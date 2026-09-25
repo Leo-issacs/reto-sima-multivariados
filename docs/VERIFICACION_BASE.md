@@ -33,3 +33,7 @@ El lanzador local `quarto.cmd` tuvo un problema con espacios en su ruta. Se veri
 - Revisar visualmente los documentos cuando contengan tablas, figuras y resultados reales.
 
 Las instalaciones locales no configuran automáticamente cuentas de GitHub o Posit Cloud. Se publicó la base del repositorio. Aún no se eligió el método estadístico ni se ejecutaron modelos.
+
+## Publicación en GitHub
+
+El 25 de septiembre se comprobó el acceso público sin autenticación a [Leo-issacs/reto-sima-multivariados](https://github.com/Leo-issacs/reto-sima-multivariados). La rama principal es `main`. Se publicaron cinco hitos y cinco tareas de la primera semana. Las invitaciones de pablo21597, LilDannniels e IgnacioK2005 tienen permiso `write` y están pendientes de aceptación; por ahora, el único acceso activo comprobado es el del propietario.

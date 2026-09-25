@@ -17,7 +17,7 @@ Antes de subir: abrir los archivos, revisar figuras/tablas, nombres y formato, c
 - URL pública: https://github.com/Leo-issacs/reto-sima-multivariados
 - Propietario: Leo-issacs.
 - Acceso: propietario Leo-issacs; invitaciones de edición enviadas a pablo21597, LilDannniels e IgnacioK2005. Pendiente que las acepten y comprueben su primer Push.
-- Visibilidad comprobada sin iniciar sesión: pendiente.
+- Visibilidad pública comprobada sin iniciar sesión el 25 de septiembre de 2026.
 - Entorno restaurado desde `renv.lock`: pendiente en Posit Cloud.
 - Única persona que sube la liga por el equipo: por acordar.
 - Fecha y comprobante de entrega: aún no registrados.
