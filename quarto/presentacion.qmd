@@ -1,0 +1,30 @@
+---
+title: "Reto SIMA"
+subtitle: "Guion inicial de presentación"
+author: "Equipo: nombres por completar"
+format: pptx
+---
+
+## Pregunta y utilidad
+
+Formular la pregunta aprobada y explicar para quién es útil. Esta plantilla todavía no contiene resultados.
+
+## Datos y alcance
+
+Identificar estaciones, periodo, variables y unidades confirmadas. Mostrar una limitación importante de cobertura.
+
+## Preparación y método
+
+Explicar la decisión de preparación más relevante y por qué la técnica responde a la pregunta.
+
+## Resultado principal
+
+Insertar una figura validada con una sola conclusión respaldada, unidades y periodo.
+
+## Evaluación y límites
+
+Mostrar cómo se comprobó el resultado, una comparación o diagnóstico y una limitación de generalización.
+
+## Demostración y conclusión
+
+Mostrar la interacción acordada de la interfaz y responder la pregunta sin exceder la evidencia.

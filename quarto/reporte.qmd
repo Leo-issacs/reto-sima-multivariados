@@ -1,33 +1,89 @@
 ---
-title: "Reporte de la Situación Problema"
-author: "Equpo x"
-date: today
-format:
-  docx:
-    toc: true          # Include table of contents
-    toc-depth: 3       # Levels in TOC
+title: "Reto SIMA: análisis multivariado de calidad del aire"
+subtitle: "Documento de trabajo acumulativo"
+author: "Equipo: nombres por completar"
 ---
 
-# Etapa 1. Conociendo el negocio
+> **Estado inicial:** plantilla sin resultados. Los textos de orientación deben reemplazarse con evidencia del equipo antes de entregar. No presentar apartados incompletos como análisis realizado.
 
-Para esta primera etapa, empezaremos por cargar las librerías que necesitamos y establecemos algunas opciones de configuración:
-```{r}
-#| output: false
-library(tidyverse)
-library(here)
-library(readxl)
+# Resumen ejecutivo
 
-options(scipen = 999)
-```
-Ahora cargamos los datos que nos proporcionó el Socio Formador. Para los datos del 2024 tenemos:
-```{r}
-calidad_aire_2024_tbl <- read_excel(here("data", "BD 2024.xlsx")) %>%
-  glimpse()
-```
-Para los datos del 2025 tenemos:
-```{r}
-calidad_aire_2025_tbl <- read_excel(here("data", "BD 2025.xlsx")) %>%
-  glimpse()
-```
+Al cerrar el trabajo, explicar la pregunta, los datos seleccionados, el método, el resultado principal, sus límites y su utilidad. Mientras no existan resultados, indicar el avance real.
 
+# Comprensión del problema
 
+## Contexto y utilidad
+
+El enunciado del reto propone estudiar las relaciones entre contaminantes y meteorología en estaciones de Monterrey siguiendo CRISP-DM. Delimitar quién utilizaría el resultado y para qué decisión o comprensión del fenómeno.
+
+## Pregunta y objetivos
+
+La pregunta definitiva aún no ha sido elegida. Formular una pregunta principal con población, variables, periodo y resultado esperado; registrar retroalimentación docente.
+
+## Alcance y criterios de aceptación
+
+Precisar estaciones, periodo y granularidad después de revisar los datos. Distinguir requisitos oficiales, acuerdos del equipo y limitaciones. Incorporar bibliografía relevante y riesgos concretos.
+
+# Comprensión de los datos
+
+## Fuentes y procedencia
+
+Registrar archivos, versiones, medio autorizado de obtención, fechas y diccionario. Las bases anuales han sido revisadas estructuralmente; eso no constituye control de calidad completo.
+
+## Unidad de observación y variables
+
+Explicar qué representa cada fila, qué identifica una estación y qué significan las unidades. Evitar confundir códigos de hojas con nombres de contaminantes.
+
+## Cobertura y calidad
+
+Presentar conteos efectivos, cobertura temporal, faltantes, duplicados y observaciones fuera de rango con reglas respaldadas. No sustituir esta evaluación por el número de filas declarado por Excel.
+
+# Preparación de los datos
+
+## Transformaciones y selección
+
+Documentar normalización de fechas, nombres, unidades, uniones, agregaciones y exclusiones. Mostrar el número de registros antes y después y conservar procedencia.
+
+## Datos faltantes y valores extremos
+
+Justificar tratamiento, indicadores de imputación y sensibilidad. Distinguir fallos instrumentales de episodios reales y evitar fuga de información si se evaluará predicción.
+
+# Análisis exploratorio
+
+Incorporar solo tablas y figuras necesarias para comprender la pregunta. Cada figura debe tener unidades, periodo, población, fuente e interpretación. Las asociaciones no demuestran causalidad.
+
+# Modelado
+
+## Técnica seleccionada y justificación
+
+Indicar qué pregunta responde, qué supuestos requiere y qué alternativa de referencia se utiliza. No incluir modelos solo para completar una lista.
+
+## Especificación y reproducción
+
+Describir variables, transformaciones, parámetros, semilla y paquetes. Registrar particiones de datos cuando correspondan.
+
+# Evaluación
+
+## Protocolo y resultados
+
+Aplicar el protocolo acordado antes de comparar modelos. Respetar estructura temporal/espacial según el uso previsto. Para métodos exploratorios, evaluar estabilidad y sensibilidad de su estructura.
+
+## Diagnósticos y límites
+
+Presentar incertidumbre, errores, sensibilidad y condiciones en las que el resultado no debería generalizarse. Informar resultados desfavorables relevantes.
+
+# Interfaz y uso del modelo
+
+Documentar el alcance confirmado con las profesoras, el usuario previsto, las entradas, las salidas y una prueba reproducible. Este apartado no contiene todavía una interfaz implementada.
+
+# Conclusiones y recomendaciones
+
+Responder la pregunta con evidencia y explicar qué acciones o investigaciones futuras se justifican. Evitar afirmaciones sobre fuentes industriales o normativa que los datos y el método no respalden.
+
+# Referencias
+
+Incorporar referencias efectivamente consultadas y citadas en el texto, con el formato requerido por el curso. Los enlaces de estudio del repositorio no constituyen automáticamente bibliografía del reporte.
+
+# Anexos
+
+Adjuntar diccionario confirmado, reglas de calidad, protocolo de validación, versiones del entorno y evidencia de reproducción que la rúbrica permita.

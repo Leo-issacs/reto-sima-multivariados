@@ -1,8 +1,53 @@
+# R y editor
 .Rhistory
 .RData
+.Ruserdata
 .Rproj.user/
+.DS_Store
+Thumbs.db
+
+# Credenciales y configuración personal
+.Renviron
+.Renviron.*
+.env
+.env.*
+*.pem
+*.key
+
+# Datos y material externo: el repositorio solo conserva documentación
+data/raw/*
+!data/raw/README.md
+data/processed/*
+!data/processed/README.md
+references/materiales/*
+!references/materiales/README.md
+*.xlsx
+*.xls
+*.rds
+*.RDS
+*.parquet
+
+# Salidas reproducibles y temporales
+output/*
+!output/README.md
+_output/
+.quarto/
+_freeze/
+*_cache/
+*_files/
+quarto/*.html
+quarto/*.docx
+quarto/*.pptx
+tmp/
+
+# Entorno renv del curso: versionar lockfile, perfil, activador y ajustes
 renv/library/
 renv/staging/
-output/
+renv/cache/
+renv/sandbox/
 
 /.quarto/
+**/*.quarto_ipynb
+
+# Reportes generados: revisar antes de decidir si se publican
+/docs/quarto/

@@ -1,3 +1,21 @@
 project:
   type: default
   output-dir: docs
+  execute-dir: project
+  render:
+    - quarto/reporte.qmd
+    - quarto/presentacion.qmd
+
+lang: es
+format:
+  html:
+    toc: true
+    embed-resources: true
+  docx:
+    toc: true
+    number-sections: true
+
+execute:
+  echo: false
+  warning: true
+  error: false

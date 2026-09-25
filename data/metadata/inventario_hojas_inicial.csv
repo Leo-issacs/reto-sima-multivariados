@@ -1,0 +1,88 @@
+archivo,hoja,filas_declaradas_excel,columnas_declaradas_excel,columna_fecha,alcance
+BD 2020.xlsx,SE,8786,16,Fecha y hora,estructura_no_cobertura_validada
+BD 2020.xlsx,CE,8786,16,Fecha y hora,estructura_no_cobertura_validada
+BD 2020.xlsx,SO,8786,16,Fecha y hora,estructura_no_cobertura_validada
+BD 2020.xlsx,NE2,8784,16,Fecha y hora,estructura_no_cobertura_validada
+BD 2020.xlsx,SE2,8784,16,Fecha y hora,estructura_no_cobertura_validada
+BD 2020.xlsx,SE3,8784,16,Fecha y hora,estructura_no_cobertura_validada
+BD 2020.xlsx,NE,8777,16,Fecha y hora,estructura_no_cobertura_validada
+BD 2020.xlsx,NO,8785,16,Fecha y hora,estructura_no_cobertura_validada
+BD 2020.xlsx,NO2,8784,16,Fecha y hora,estructura_no_cobertura_validada
+BD 2020.xlsx,NTE,8784,16,Fecha y hora,estructura_no_cobertura_validada
+BD 2020.xlsx,NTE2,8784,16,Fecha y hora,estructura_no_cobertura_validada
+BD 2020.xlsx,SO2,8777,16,Fecha y hora,estructura_no_cobertura_validada
+BD 2020.xlsx,SUR,8784,16,Fecha y hora,estructura_no_cobertura_validada
+BD 2021.xlsx,CE,8786,16,Fecha y hora,estructura_no_cobertura_validada
+BD 2021.xlsx,NE,8760,16,Fecha y hora,estructura_no_cobertura_validada
+BD 2021.xlsx,NE2,8784,16,Fecha y hora,estructura_no_cobertura_validada
+BD 2021.xlsx,NE3,8760,16,Fecha y hora,estructura_no_cobertura_validada
+BD 2021.xlsx,NO,8785,16,Fecha y hora,estructura_no_cobertura_validada
+BD 2021.xlsx,NO2,8784,16,Fecha y hora,estructura_no_cobertura_validada
+BD 2021.xlsx,SE,8786,16,Fecha y hora,estructura_no_cobertura_validada
+BD 2021.xlsx,SE2,8784,16,Fecha y hora,estructura_no_cobertura_validada
+BD 2021.xlsx,SE3,8784,16,Fecha y hora,estructura_no_cobertura_validada
+BD 2021.xlsx,NTE,8784,16,Fecha y hora,estructura_no_cobertura_validada
+BD 2021.xlsx,NTE2,8784,16,Fecha y hora,estructura_no_cobertura_validada
+BD 2021.xlsx,SO,8786,16,Fecha y hora,estructura_no_cobertura_validada
+BD 2021.xlsx,SO2,8760,16,Fecha y hora,estructura_no_cobertura_validada
+BD 2021.xlsx,SUR,8784,16,Fecha y hora,estructura_no_cobertura_validada
+BD 2022.xlsx,CE,8761,16,Fecha y hora,estructura_no_cobertura_validada
+BD 2022.xlsx,NE,8761,16,Fecha y hora,estructura_no_cobertura_validada
+BD 2022.xlsx,NE2,8761,16,Fecha y hora,estructura_no_cobertura_validada
+BD 2022.xlsx,NE3,8761,16,Fecha y hora,estructura_no_cobertura_validada
+BD 2022.xlsx,NO,8761,16,Fecha y hora,estructura_no_cobertura_validada
+BD 2022.xlsx,NO2,8761,16,Fecha y hora,estructura_no_cobertura_validada
+BD 2022.xlsx,NO3,744,16,Fecha y hora,estructura_no_cobertura_validada
+BD 2022.xlsx,NTE,8761,16,Fecha y hora,estructura_no_cobertura_validada
+BD 2022.xlsx,NTE2,8761,16,Fecha y hora,estructura_no_cobertura_validada
+BD 2022.xlsx,SE,8761,16,Fecha y hora,estructura_no_cobertura_validada
+BD 2022.xlsx,SE2,8761,16,Fecha y hora,estructura_no_cobertura_validada
+BD 2022.xlsx,SE3,8761,16,Fecha y hora,estructura_no_cobertura_validada
+BD 2022.xlsx,SO,8761,16,Fecha y hora,estructura_no_cobertura_validada
+BD 2022.xlsx,SO2,8761,16,Fecha y hora,estructura_no_cobertura_validada
+BD 2022.xlsx,SUR,8761,16,Fecha y hora,estructura_no_cobertura_validada
+BD 2023.xlsx,CE,8759,16,Fecha y hora,estructura_no_cobertura_validada
+BD 2023.xlsx,NE,8759,16,Fecha y hora,estructura_no_cobertura_validada
+BD 2023.xlsx,NE2,8759,16,Fecha y hora,estructura_no_cobertura_validada
+BD 2023.xlsx,NE3,8758,16,Fecha y hora,estructura_no_cobertura_validada
+BD 2023.xlsx,NO,8759,16,Fecha y hora,estructura_no_cobertura_validada
+BD 2023.xlsx,NO2,8760,16,Fecha y hora,estructura_no_cobertura_validada
+BD 2023.xlsx,NO3,8760,16,Fecha y hora,estructura_no_cobertura_validada
+BD 2023.xlsx,NTE,8759,16,Fecha y hora,estructura_no_cobertura_validada
+BD 2023.xlsx,NTE2,8759,16,Fecha y hora,estructura_no_cobertura_validada
+BD 2023.xlsx,SE,8759,16,Fecha y hora,estructura_no_cobertura_validada
+BD 2023.xlsx,SE2,8759,16,Fecha y hora,estructura_no_cobertura_validada
+BD 2023.xlsx,SE3,8759,16,Fecha y hora,estructura_no_cobertura_validada
+BD 2023.xlsx,SO,8759,16,Fecha y hora,estructura_no_cobertura_validada
+BD 2023.xlsx,SO2,8759,16,Fecha y hora,estructura_no_cobertura_validada
+BD 2023.xlsx,SUR,8758,16,Fecha y hora,estructura_no_cobertura_validada
+BD 2024.xlsx,CE,8786,16,Fecha y hora,estructura_no_cobertura_validada
+BD 2024.xlsx,NE,8786,16,Fecha y hora,estructura_no_cobertura_validada
+BD 2024.xlsx,NE2,8784,16,Fecha y hora,estructura_no_cobertura_validada
+BD 2024.xlsx,NE3,8783,16,Fecha y hora,estructura_no_cobertura_validada
+BD 2024.xlsx,NO,8785,16,Fecha y hora,estructura_no_cobertura_validada
+BD 2024.xlsx,NO2,8784,16,Fecha y hora,estructura_no_cobertura_validada
+BD 2024.xlsx,NO3,8785,16,Fecha y hora,estructura_no_cobertura_validada
+BD 2024.xlsx,NTE,8784,16,Fecha y hora,estructura_no_cobertura_validada
+BD 2024.xlsx,NTE2,8784,16,Fecha y hora,estructura_no_cobertura_validada
+BD 2024.xlsx,SE,8786,16,Fecha y hora,estructura_no_cobertura_validada
+BD 2024.xlsx,SE2,8784,16,Fecha y hora,estructura_no_cobertura_validada
+BD 2024.xlsx,SE3,8784,16,Fecha y hora,estructura_no_cobertura_validada
+BD 2024.xlsx,SO,8786,16,Fecha y hora,estructura_no_cobertura_validada
+BD 2024.xlsx,SO2,8784,16,Fecha y hora,estructura_no_cobertura_validada
+BD 2024.xlsx,SUR,8784,16,Fecha y hora,estructura_no_cobertura_validada
+BD 2025.xlsx,CE,8760,16,date,estructura_no_cobertura_validada
+BD 2025.xlsx,NE,8759,16,date,estructura_no_cobertura_validada
+BD 2025.xlsx,NE2,8759,16,date,estructura_no_cobertura_validada
+BD 2025.xlsx,NE3,8760,16,date,estructura_no_cobertura_validada
+BD 2025.xlsx,NO,8760,16,date,estructura_no_cobertura_validada
+BD 2025.xlsx,NO2,8759,16,date,estructura_no_cobertura_validada
+BD 2025.xlsx,NO3,8760,16,date,estructura_no_cobertura_validada
+BD 2025.xlsx,NTE,8760,16,date,estructura_no_cobertura_validada
+BD 2025.xlsx,NTE2,8759,16,date,estructura_no_cobertura_validada
+BD 2025.xlsx,SE,8760,16,date,estructura_no_cobertura_validada
+BD 2025.xlsx,SE2,8760,16,date,estructura_no_cobertura_validada
+BD 2025.xlsx,SE3,8759,16,date,estructura_no_cobertura_validada
+BD 2025.xlsx,SO,8759,16,date,estructura_no_cobertura_validada
+BD 2025.xlsx,SO2,8759,16,date,estructura_no_cobertura_validada
+BD 2025.xlsx,SUR,8760,16,date,estructura_no_cobertura_validada
