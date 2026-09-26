@@ -1,16 +1,16 @@
-codigo_hoja,anios_con_hoja,nombre_confirmado,latitud,longitud,estado
-CE,2020;2021;2022;2023;2024;2025,,,,requiere_catalogo_de_estaciones
-NE,2020;2021;2022;2023;2024;2025,,,,requiere_catalogo_de_estaciones
-NE2,2020;2021;2022;2023;2024;2025,,,,requiere_catalogo_de_estaciones
-NE3,2021;2022;2023;2024;2025,,,,requiere_catalogo_de_estaciones
-NO,2020;2021;2022;2023;2024;2025,,,,requiere_catalogo_de_estaciones
-NO2,2020;2021;2022;2023;2024;2025,,,,requiere_catalogo_de_estaciones
-NO3,2022;2023;2024;2025,,,,requiere_catalogo_de_estaciones
-NTE,2020;2021;2022;2023;2024;2025,,,,requiere_catalogo_de_estaciones
-NTE2,2020;2021;2022;2023;2024;2025,,,,requiere_catalogo_de_estaciones
-SE,2020;2021;2022;2023;2024;2025,,,,requiere_catalogo_de_estaciones
-SE2,2020;2021;2022;2023;2024;2025,,,,requiere_catalogo_de_estaciones
-SE3,2020;2021;2022;2023;2024;2025,,,,requiere_catalogo_de_estaciones
-SO,2020;2021;2022;2023;2024;2025,,,,requiere_catalogo_de_estaciones
-SO2,2020;2021;2022;2023;2024;2025,,,,requiere_catalogo_de_estaciones
-SUR,2020;2021;2022;2023;2024;2025,,,,requiere_catalogo_de_estaciones
+codigo_hoja,anios_con_hoja,nombre_confirmado,municipio,zona,latitud,longitud,altitud_msnm,fuente,estado
+CE,2020;2021;2022;2023;2024;2025,Obispado,Monterrey,Centro,25.67583,-100.33833,562,"Etiquetas.xlsx (nombre, municipio); Ubicación de las estaciones de monitoreo.docx (coordenadas, altitud)",confirmado
+NE,2020;2021;2022;2023;2024;2025,San Nicolás,San Nicolás de los Garza,Noreste,25.74472,-100.25306,474,"Etiquetas.xlsx (nombre, municipio); Ubicación de las estaciones de monitoreo.docx (coordenadas, altitud)",confirmado
+NE2,2020;2021;2022;2023;2024;2025,Apodaca,Apodaca,Noreste 2,25.77722,-100.18806,432,"Etiquetas.xlsx (nombre, municipio); Ubicación de las estaciones de monitoreo.docx (coordenadas, altitud)",confirmado
+NE3,2021;2022;2023;2024;2025,Noreste 3,,Noreste 3,25.79056,-100.07833,346,"Ubicación de las estaciones de monitoreo.docx (coordenadas, altitud); nombre indicado por el equipo",municipio_por_confirmar
+NO,2020;2021;2022;2023;2024;2025,San Bernabé,Monterrey,Noroeste,25.76278,-100.36917,568,"Etiquetas.xlsx (nombre, municipio); Ubicación de las estaciones de monitoreo.docx (coordenadas, altitud)",confirmado
+NO2,2020;2021;2022;2023;2024;2025,García,García,Noroeste 2,25.80028,-100.58444,702,"Etiquetas.xlsx (nombre, municipio); Ubicación de las estaciones de monitoreo.docx (coordenadas, altitud)",confirmado
+NO3,2022;2023;2024;2025,Noroeste 3,,Noroeste 3,25.76833,-100.46361,607,"Ubicación de las estaciones de monitoreo.docx (coordenadas, altitud); nombre indicado por el equipo",municipio_por_confirmar
+NTE,2020;2021;2022;2023;2024;2025,Escobedo,Escobedo,Norte,25.79861,-100.32722,503,"Etiquetas.xlsx (nombre, municipio); Ubicación de las estaciones de monitoreo.docx (coordenadas, altitud)",confirmado
+NTE2,2020;2021;2022;2023;2024;2025,Universidad,,Norte 2,25.72972,-100.31,520,"Ubicación de las estaciones de monitoreo.docx (coordenadas, altitud); nombre indicado por el equipo",municipio_por_confirmar
+SE,2020;2021;2022;2023;2024;2025,La Pastora,Guadalupe,Sureste,25.66528,-100.24361,500,"Etiquetas.xlsx (nombre, municipio); Ubicación de las estaciones de monitoreo.docx (coordenadas, altitud)",confirmado
+SE2,2020;2021;2022;2023;2024;2025,Juárez,Juárez,Sureste 2,25.64583,-100.09528,387,"Etiquetas.xlsx (nombre, municipio); Ubicación de las estaciones de monitoreo.docx (coordenadas, altitud)",confirmado
+SE3,2020;2021;2022;2023;2024;2025,Cadereyta,,Sureste 3,25.60111,-99.99917,334,"Ubicación de las estaciones de monitoreo.docx (coordenadas, altitud); nombre indicado por el equipo",municipio_por_confirmar
+SO,2020;2021;2022;2023;2024;2025,Santa Catarina,Santa Catarina,Suroeste,25.67556,-100.45806,674,"Etiquetas.xlsx (nombre, municipio); Ubicación de las estaciones de monitoreo.docx (coordenadas, altitud)",confirmado
+SO2,2020;2021;2022;2023;2024;2025,San Pedro,San Pedro Garza García,Suroeste 2,25.665,-100.41278,636,"Etiquetas.xlsx (nombre, municipio); Ubicación de las estaciones de monitoreo.docx (coordenadas, altitud)",confirmado
+SUR,2020;2021;2022;2023;2024;2025,Pueblo Serena,,Sur,25.61694,-100.27389,555,"Ubicación de las estaciones de monitoreo.docx (coordenadas, altitud); nombre indicado por el equipo",municipio_por_confirmar
