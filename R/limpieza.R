@@ -5,6 +5,7 @@
 #   K racha >= 24 h identicos invalidada
 #   C racha >= 6 h identicos marcada pero conservada
 #   I imputada (interpolacion lineal, huecos internos <= 3 h)
+#   X imputacion revertida: el valor interpolado incumplia una regla y volvio a NA
 # Rangos duros: contaminantes = rango de operacion del anio (ambos limites);
 # meteorologia = rango del fabricante (RAINF: 0 al maximo de operacion del anio). Reglas y orden: ver data/clean/README.md.
 # Requiere R/importar_sima.R y R/diagnostico.R (construir_malla, cargar_rangos).
@@ -68,14 +69,37 @@ limpiar_hoja <- function(datos_hoja, rangos_op, rangos_fab) {
     list(lo = rangos_op$minimo[i], hi = rangos_op$maximo[i])
   }
 
+  # Limites duros por hora (segun el anio de esa hora): contaminantes = operacion del anio;
+  # RAINF = 0 al maximo de operacion; resto de meteorologia = fabricante.
+  limites <- function(v) {
+    if (v %in% CONTAMINANTES) return(lim_op(v))
+    if (v == "RAINF") return(list(lo = 0, hi = lim_op(v)$hi))
+    f <- rangos_fab[rangos_fab$variable == v, ]
+    list(lo = f$minimo, hi = f$maximo)
+  }
+  # Incumple el rango duro o una nota del PDF (en su anio). Sirve para validar originales e imputados.
+  incumple_rango <- function(v, x) {
+    l <- limites(v)
+    malo <- x < l$lo | x > l$hi
+    for (k in which(NOTAS_PDF$variable == v)) {
+      nt <- NOTAS_PDF[k, ]; lo <- lim_op(v)
+      extra <- if (nt$tipo == "alto") x > lo$hi else x < lo$lo | x > lo$hi
+      malo <- malo | (anio == nt$anio & extra)
+    }
+    malo[is.na(malo)] <- FALSE
+    malo
+  }
+  # Nota 2020 O3: "omitir maximo de NTE2". Se identifica sobre la serie ORIGINAL, antes de
+  # aplicar F; si ese maximo ya cae fuera de rango, F lo elimina y no se toca ningun otro valor.
+  i_o3_nota <- NA_integer_
+  if (hoja == "NTE2") {
+    e <- which(anio == 2020 & !is.na(X[, "O3"]))
+    if (length(e)) i_o3_nota <- e[which.max(X[e, "O3"])]
+  }
+
   # F: rango duro
   for (v in VARIABLES_SIMA) {
-    if (v %in% CONTAMINANTES) { l <- lim_op(v) } else if (v == "RAINF") {
-      l <- list(lo = 0, hi = lim_op(v)$hi)   # el PDF da maximo de operacion por anio
-    } else {
-      f <- rangos_fab[rangos_fab$variable == v, ]
-      l <- list(lo = f$minimo, hi = f$maximo)
-    }
+    l <- limites(v)
     invalidar(v, X[, v] < l$lo | X[, v] > l$hi, "F")
   }
   # P: notas del PDF en sus anios (sobre el rango de operacion de ese anio)
@@ -84,10 +108,7 @@ limpiar_hoja <- function(datos_hoja, rangos_op, rangos_fab) {
     m <- if (nt$tipo == "alto") X[, v] > l$hi else X[, v] < l$lo | X[, v] > l$hi
     invalidar(v, en & m, "P")
   }
-  if (hoja == "NTE2") {   # 2020 O3: omitir el maximo de NTE2
-    e <- which(anio == 2020 & !is.na(X[, "O3"]))
-    if (length(e)) invalidar("O3", seq_len(n) == e[which.max(X[e, "O3"])], "P")
-  }
+  if (!is.na(i_o3_nota)) invalidar("O3", seq_len(n) == i_o3_nota, "P")
   # S: salto horario de TOUT / PRS respecto de la hora previa valida
   for (v in names(SALTO_MAX)) {
     d <- c(NA_real_, diff(X[, v]))
@@ -111,12 +132,15 @@ limpiar_hoja <- function(datos_hoja, rangos_op, rangos_fab) {
     FL[marca & FL[, v] == "V", v] <- "C"
   }
 
-  # Inconsistencia NOX vs NO + NO2 (solo bandera; no invalida)
-  s <- X[, "NO"] + X[, "NO2"]
-  comp <- !is.na(X[, "NOX"]) & !is.na(s)
-  nox_inc <- rep(NA_integer_, n)
-  nox_inc[comp] <- as.integer(abs(X[comp, "NOX"] - s[comp]) >
-                                pmax(NOX_TOL_ABS_PPB, NOX_TOL_REL * X[comp, "NOX"]))
+  # Inconsistencia NOX vs NO + NO2 (solo bandera; no invalida). Se calcula sobre lo observado
+  # aqui (diagnostico) y otra vez sobre los valores finales, que es la que se publica.
+  bandera_nox <- function(NOX, NO, NO2) {
+    s <- NO + NO2; comp <- !is.na(NOX) & !is.na(s)
+    b <- rep(NA_integer_, length(NOX))
+    b[comp] <- as.integer(abs(NOX[comp] - s[comp]) > pmax(NOX_TOL_ABS_PPB, NOX_TOL_REL * NOX[comp]))
+    b
+  }
+  nox_inc_obs <- bandera_nox(X[, "NOX"], X[, "NO"], X[, "NO2"])
 
   # Viento: componentes u/v en m/s desde WSR (km/h) y WDR (grados desde donde sopla)
   ok_w <- !is.na(X[, "WSR"]) & !is.na(X[, "WDR"])
@@ -137,6 +161,7 @@ limpiar_hoja <- function(datos_hoja, rangos_op, rangos_fab) {
 
   # I: interpolacion lineal de huecos internos <= 3 h (por estacion y variable)
   V1 <- V0; flags1 <- flags0
+  IMP <- matrix(FALSE, n, ncol(V0), dimnames = dimnames(V0))
   for (v in VARS_IMPUTAR) {
     x <- V0[, v]
     if (sum(!is.na(x)) < 2L) next
@@ -146,12 +171,39 @@ limpiar_hoja <- function(datos_hoja, rangos_op, rangos_fab) {
     y <- imputeTS::na_interpolation(x, option = "linear", maxgap = MAX_HUECO_H)
     idx <- unlist(mapply(seq, ini[hueco], fin[hueco], SIMPLIFY = FALSE))
     idx <- idx[!is.na(y[idx])]
-    V1[idx, v] <- y[idx]
-    col <- if (v %in% c("viento_u", "viento_v")) "f_uv" else v
-    flags1[idx, col] <- "I"
+    V1[idx, v] <- y[idx]; IMP[idx, v] <- TRUE
   }
+  # Revalidacion: un valor imputado que incumple una regla vuelve a NA (bandera X). Nunca se
+  # modifica un valor original. Se repite hasta que ya no haya reversiones.
+  revertida <- matrix(FALSE, n, ncol(V0), dimnames = dimnames(V0))
+  revertir <- function(v, m) {
+    m <- m & IMP[, v]; m[is.na(m)] <- FALSE
+    if (any(m)) { V1[m, v] <<- NA_real_; IMP[m, v] <<- FALSE; revertida[m, v] <<- TRUE }
+    any(m)
+  }
+  repeat {
+    cambio <- FALSE
+    for (v in setdiff(VARS_IMPUTAR, c("viento_u", "viento_v")))            # rango del anio de cada hora
+      cambio <- revertir(v, incumple_rango(v, V1[, v])) || cambio
+    for (v in names(SALTO_MAX)) {                                         # salto contra hora vecina
+      x <- V1[, v]
+      salto <- abs(c(NA_real_, diff(x))) > SALTO_MAX[[v]] | abs(c(diff(x), NA_real_)) > SALTO_MAX[[v]]
+      cambio <- revertir(v, salto) || cambio
+    }
+    pm <- !is.na(V1[, "PM2.5"]) & !is.na(V1[, "PM10"]) & V1[, "PM2.5"] > V1[, "PM10"]  # PM2.5 <= PM10
+    cambio <- revertir("PM2.5", pm) || cambio
+    cambio <- revertir("PM10", pm) || cambio
+    if (!cambio) break
+  }
+  for (v in VARS_IMPUTAR) {
+    col <- if (v %in% c("viento_u", "viento_v")) "f_uv" else v
+    flags1[IMP[, v], col] <- "I"
+    flags1[revertida[, v], col] <- "X"
+  }
+  # se evalua sobre los valores redondeados a 3 decimales, que son los publicados
+  nox_inc <- bandera_nox(round(V1[, "NOX"], 3), round(V1[, "NO"], 3), round(V1[, "NO2"], 3))
   list(fecha = fecha, anio = anio, obs = V0, imp = V1, flags_obs = flags0, flags = flags1,
-       nox_inconsistente = nox_inc, sens = sens[sens$valida, ])
+       nox_inconsistente = nox_inc, nox_inconsistente_obs = nox_inc_obs, sens = sens[sens$valida, ])
 }
 
 # Agregado diario de una matriz horaria (n filas = 24 x dias, desde 00:00).

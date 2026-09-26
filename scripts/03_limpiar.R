@@ -128,6 +128,7 @@ filas <- lapply(c(VARIABLES_SIMA, "f_uv"), function(v) {
     faltante_original_n = n("N"), invalidada_F_rango_n = n("F"), invalidada_P_nota_pdf_n = n("P"),
     invalidada_S_salto_n = n("S"), invalidada_R_pm25_gt_pm10_n = n("R"),
     invalidada_K_racha24_n = n("K"), marcada_C_racha6_conservada_n = sum(f == "C"),
+    imputada_bruta_n = sum(f %in% c("I", "X")), imputacion_revertida_n = sum(f == "X"),
     imputada_n = sum(f == "I"), faltante_final_n = invalida - sum(f == "I"),
     stringsAsFactors = FALSE)
 })
@@ -154,18 +155,23 @@ escribir(rbind(sens_t, tot_s), "output/diagnostico/sensibilidad_rango_TOUT_PRS.c
 
 # ---- Consistencia NOX por estacion (con la tolerancia adoptada) --------------------------------
 nox <- do.call(rbind, lapply(hojas, function(h) {
-  r <- res[[h]]
-  do.call(rbind, lapply(split(r$nox_inconsistente, r$anio), function(z) data.frame(
-    horas_comparables = sum(!is.na(z)), inconsistentes = sum(z == 1, na.rm = TRUE))))
+  r <- res[[h]]; anios <- sort(unique(r$anio))
+  do.call(rbind, lapply(anios, function(a) {
+    fin <- r$nox_inconsistente[r$anio == a]; obs <- r$nox_inconsistente_obs[r$anio == a]
+    data.frame(estacion = h, anio = a,
+               horas_comparables = sum(!is.na(fin)), inconsistentes = sum(fin == 1, na.rm = TRUE),
+               horas_comparables_obs = sum(!is.na(obs)), inconsistentes_obs = sum(obs == 1, na.rm = TRUE))
+  }))
 }))
-nox$estacion <- rep(hojas, times = vapply(hojas, function(h) length(unique(res[[h]]$anio)), 1L))
-nox$anio <- unlist(lapply(hojas, function(h) sort(unique(res[[h]]$anio))))
-por_est <- aggregate(cbind(horas_comparables, inconsistentes) ~ estacion, nox, sum)
+por_est <- aggregate(cbind(horas_comparables, inconsistentes, horas_comparables_obs, inconsistentes_obs) ~ estacion, nox, sum)
 por_est$pct_inconsistente <- round(100 * por_est$inconsistentes / por_est$horas_comparables, 2)
+por_est$pct_inconsistente_obs <- round(100 * por_est$inconsistentes_obs / por_est$horas_comparables_obs, 2)
+# horas_comparables / inconsistentes / pct_inconsistente = valores FINALES (publicados, con imputados);
+# *_obs = solo valores observados (diagnostico previo a imputar).
 escribir(por_est, "output/diagnostico/nox_inconsistencia_por_estacion.csv")
 nox$pct_inconsistente <- round(100 * nox$inconsistentes / nox$horas_comparables, 2)
-escribir(nox[c("estacion", "anio", "horas_comparables", "inconsistentes", "pct_inconsistente")],
-         "output/diagnostico/nox_inconsistencia_por_estacion_anio.csv")
+nox$pct_inconsistente_obs <- round(100 * nox$inconsistentes_obs / nox$horas_comparables_obs, 2)
+escribir(nox, "output/diagnostico/nox_inconsistencia_por_estacion_anio.csv")
 
 # ---- Distribucion de RAINF (sin conversion) -----------------------------------------------------
 lluvia <- do.call(rbind, lapply(hojas, function(h) data.frame(
@@ -192,8 +198,9 @@ corte <- grep("^## Parte B", previo)
 if (length(corte)) previo <- previo[seq_len(corte[1L] - 1L)]
 inval <- tab$invalidada_F_rango_n + tab$invalidada_P_nota_pdf_n + tab$invalidada_S_salto_n +
   tab$invalidada_R_pm25_gt_pm10_n + tab$invalidada_K_racha24_n
-filas_tab <- sprintf("| %s | %s | %s | %s | %s |", tab$variable, fmt(tab$faltante_original_pct, 1),
-                     fmt(100 * inval / den, 2), fmt(tab$imputada_pct, 2), fmt(tab$faltante_final_pct, 1))
+filas_tab <- sprintf("| %s | %s | %s | %s | %s | %s |", tab$variable, fmt(tab$faltante_original_pct, 1),
+                     fmt(100 * inval / den, 2), fmt(tab$imputada_pct, 2), fmt(tab$imputacion_revertida_n),
+                     fmt(tab$faltante_final_pct, 1))
 m <- nuc[nuc$anio >= 2021, ]
 tot_m <- colSums(m[c("dias_totales", "dias_completos_A", "dias_completos_B")])
 nB <- aggregate(cbind(dias_totales, dias_completos_B) ~ estacion, m, sum)
@@ -204,16 +211,16 @@ tam <- file.size(list.files("data/clean", pattern = "\\.csv$", full.names = TRUE
 nombres_csv <- list.files("data/clean", pattern = "\\.csv$")
 nueva <- c(
   "", "## Parte B. Limpieza y publicación", "",
-  sprintf("Generado por `scripts/03_limpiar.R` el %s. Reglas completas en `data/clean/README.md`: rango duro (contaminantes: operación del año; meteorología: fabricante; RAINF: 0 al máximo de operación del año), notas del PDF, salto horario (TOUT/PRS), PM2.5 > PM10, rachas ≥ 24 h (marcadas desde 6 h) e imputación lineal de huecos ≤ 3 h. Denominador de las tablas: %s horas esperadas por variable (%d hojas-año).",
+  sprintf("Generado por `scripts/03_limpiar.R` el %s. Reglas completas en `data/clean/README.md`: rango duro (contaminantes: operación del año; meteorología: fabricante; RAINF: 0 al máximo de operación del año), notas del PDF, salto horario (TOUT/PRS), PM2.5 > PM10, rachas ≥ 24 h (marcadas desde 6 h) e imputación lineal de huecos ≤ 3 h, con revalidación posterior (un valor imputado que incumple rango, salto o PM2.5 ≤ PM10 vuelve a NA, bandera X; nunca se toca un original). Denominador de las tablas: %s horas esperadas por variable (%d hojas-año).",
           format(Sys.Date()), fmt(den), n_hojas),
-  "", "| Variable | % falt. original | % invalidado | % imputado | % falt. final |", "|---|---|---|---|---|",
+  "", "| Variable | % falt. original | % invalidado | % imputado neto | Imputaciones revertidas (n) | % falt. final |", "|---|---|---|---|---|---|",
   filas_tab, "",
   sprintf("**Núcleos (días estación completos, 2021–2025, sobre %s días).** Núcleo A (PM10, O3 máx. 8 h, NO2, CO, SO2, TOUT, RH, SR, viento, PRS, RAINF): %s (%.1f%%). Núcleo B (A + PM2.5, conjunto principal de modelado): %s (%.1f%%). Por estación, B va de %.0f%% (%s) a %.0f%% (%s); NE3 y NO3 casi nunca completan B. `sima_diario_2020_2025.csv` trae `en_nucleo_A`, `en_nucleo_B` y `en_periodo_modelado`.",
           fmt(tot_m[["dias_totales"]]), fmt(tot_m[["dias_completos_A"]]), 100 * tot_m[["dias_completos_A"]] / tot_m[["dias_totales"]],
           fmt(tot_m[["dias_completos_B"]]), 100 * tot_m[["dias_completos_B"]] / tot_m[["dias_totales"]],
           min(nB$p), nB$estacion[which.min(nB$p)], max(nB$p), nB$estacion[which.max(nB$p)]),
   "",
-  sprintf("**NOX.** Horas con |NOX − (NO + NO2)| > max(1 ppb, 10%% de NOX), sobre las horas comparables de cada estación: %s. El resto de estaciones queda bajo 0.5%%.",
+  sprintf("**NOX.** Horas con |NOX − (NO + NO2)| > max(1 ppb, 10%% de NOX), sobre las horas comparables de cada estación, con los valores finales publicados (incluye imputados): %s. El resto de estaciones queda bajo 0.5%%.",
           paste(sprintf("%s %.2f%% (de %s)", nox_alto$estacion, nox_alto$pct_inconsistente, fmt(nox_alto$horas_comparables)), collapse = "; ")),
   "",
   sprintf("**Sensibilidad.** Con el rango de operación estricto se habrían eliminado %s horas de TOUT (%.3f%% de %s) y %s de PRS (%.2f%% de %s).",
@@ -239,3 +246,6 @@ saveRDS(list(tab = tab, nuc = nuc), file.path(tempdir(), "resumen_limpieza.rds")
 print(tab[, c("variable", "faltante_original_pct", "invalidada_F_rango_pct", "invalidada_P_nota_pdf_pct",
               "invalidada_S_salto_pct", "invalidada_R_pm25_gt_pm10_pct", "invalidada_K_racha24_pct",
               "imputada_pct", "faltante_final_pct")], row.names = FALSE)
+
+# ---- Validacion de los CSV publicados (falla el script si algo no se cumple) -------------------------
+source("scripts/04_validar_limpios.R")
