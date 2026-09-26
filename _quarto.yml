@@ -5,6 +5,7 @@ project:
   render:
     - quarto/reporte.qmd
     - quarto/presentacion.qmd
+    - quarto/etapa1.qmd
 
 lang: es
 format:
