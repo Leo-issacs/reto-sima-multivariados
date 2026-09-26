@@ -37,3 +37,36 @@ Horas sin fila: 8,189 (1.07% de 762,792); 8,017 son de NO3 2022, que empieza el 
 **6. Heatmaps** de faltantes (estación × mes, 15 variables): `output/diagnostico/heatmaps/faltantes_<VAR>.png`. **Alertas de rango:** TOUT tiene 458 h bajo el mínimo del rango cuando ese mínimo es 0 (2020 y 2023; pueden ser temperaturas reales bajo cero); PRS concentra 8,172 h fuera de rango en pocas hojas-año (p. ej. NO2 2022: 3,085 h), consistente con un rango único para estaciones a distinta altitud.
 
 **7. Tamaño estimado del CSV limpio** (escrito de prueba, 15 variables a 2 decimales): horario 754,603 filas ≈ **60 MB** (≈ 82 MB con una columna bandera por variable; año mayor ≈ 14 MB); diario 31,449 filas ≈ **4.2 MB**. Un solo CSV horario supera 50 MB: dividir por año o publicar solo el diario.
+
+## Parte B. Limpieza y publicación
+
+Generado por `scripts/03_limpiar.R` el 2026-09-26. Reglas completas en `data/clean/README.md`: rango duro (contaminantes: operación del año; meteorología: fabricante; RAINF: 0 al máximo de operación del año), notas del PDF, salto horario (TOUT/PRS), PM2.5 > PM10, rachas ≥ 24 h (marcadas desde 6 h) e imputación lineal de huecos ≤ 3 h. Denominador de las tablas: 762,792 horas esperadas por variable (87 hojas-año).
+
+| Variable | % falt. original | % invalidado | % imputado | % falt. final |
+|---|---|---|---|---|
+| CO | 14.2 | 0.02 | 0.60 | 13.7 |
+| NO | 17.6 | 0.82 | 1.80 | 16.7 |
+| NO2 | 18.3 | 0.67 | 1.18 | 17.7 |
+| NOX | 17.7 | 0.19 | 1.17 | 16.7 |
+| O3 | 15.6 | 0.00 | 1.20 | 14.4 |
+| PM10 | 5.7 | 0.01 | 0.99 | 4.7 |
+| PM2.5 | 26.0 | 0.02 | 3.35 | 22.7 |
+| PRS | 6.1 | 0.41 | 0.81 | 5.7 |
+| RAINF | 5.8 | 0.00 | 0.00 | 5.8 |
+| RH | 12.3 | 0.04 | 0.64 | 11.7 |
+| SO2 | 15.9 | 0.00 | 2.25 | 13.7 |
+| SR | 4.7 | 0.14 | 0.34 | 4.5 |
+| TOUT | 7.9 | 0.12 | 0.67 | 7.4 |
+| WSR | 7.9 | 0.01 | 0.00 | 7.9 |
+| WDR | 9.3 | 0.00 | 0.00 | 9.3 |
+| viento_uv | 12.5 | 0.01 | 1.08 | 11.4 |
+
+**Núcleos (días estación completos, 2021–2025, sobre 27,025 días).** Núcleo A (PM10, O3 máx. 8 h, NO2, CO, SO2, TOUT, RH, SR, viento, PRS, RAINF): 17,923 (66.3%). Núcleo B (A + PM2.5, conjunto principal de modelado): 14,731 (54.5%). Por estación, B va de 1% (NE3) a 82% (SE3); NE3 y NO3 casi nunca completan B. `sima_diario_2020_2025.csv` trae `en_nucleo_A`, `en_nucleo_B` y `en_periodo_modelado`.
+
+**NOX.** Horas con |NOX − (NO + NO2)| > max(1 ppb, 10% de NOX), sobre las horas comparables de cada estación: NE3 11.35% (de 40,139); NTE2 8.21% (de 43,186); CE 1.75% (de 47,609); NO 0.68% (de 38,179); NTE 0.68% (de 39,527). El resto de estaciones queda bajo 0.5%.
+
+**Sensibilidad.** Con el rango de operación estricto se habrían eliminado 88 horas de TOUT (0.013% de 701,213) y 7,895 de PRS (1.11% de 713,116).
+
+**RAINF.** 32 horas sobre el máximo de operación del año se invalidaron (bandera F). Con lo que queda: 1.56% de 718,811 horas válidas tienen lluvia > 0; valor positivo más frecuente 0.01. La cantidad no se usa (unidad sin confirmar); el diario publica `horas_lluvia` y `llovio`.
+
+**Tamaños.** diario_2020_2025 5.5 MB, horario_limpio_2020 13.2 MB, horario_limpio_2021 15.8 MB, horario_limpio_2022 17.0 MB, horario_limpio_2023 17.3 MB, horario_limpio_2024 17.3 MB, horario_limpio_2025 16.9 MB; máximo por archivo 17.3 MB (límite 50 MB). Diario: 31,783 filas × 40 columnas.
