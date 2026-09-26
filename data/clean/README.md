@@ -16,16 +16,20 @@
 
 No se elimina ninguna hoja-año, estación ni el año 2020. El modelado principal usa el **núcleo B** (`en_nucleo_B == 1`) en **2021–2025** (`en_periodo_modelado == 1`); el núcleo A es la sensibilidad. NE3 y NO3 se conservan, pero casi nunca completan B. Detalle de días completos: `output/diagnostico/dias_completos_nucleo.csv`.
 
+## Validación
+
+`scripts/04_validar_limpios.R` (se corre al final de `03_limpiar.R`) falla si en los CSV horarios hay PM2.5 > PM10, valores fuera del rango de su año (o de las notas del PDF) o una terna NO/NO2/NOX completa con `nox_inconsistente` vacía. `scripts/05_probar_limpieza.R` prueba las reglas con datos sintéticos.
+
 ## Reglas, en este orden (cada hora de cada variable queda con una bandera)
 
 1. **F, rango duro.** Contaminantes: rango de operación **del año** (ambos límites). Meteorología: rango del **fabricante** (TOUT −50 a 50 °C, PRS 449.9–824.9 mm Hg, RH 0–100, WSR 0–180 km/h, SR 0–1.4 kW/m², WDR 0–360; RAINF: de 0 al **máximo de operación del año**, porque el rango del fabricante no es numérico).
-2. **P, notas del PDF**, solo en su año: 2020 O3 se omite el máximo de NTE2; 2020 WSR > 75; SR > 1 en 2020 y 2021; 2020 PRS fuera de 690–750.
+2. **P, notas del PDF**, solo en su año: 2020 O3 se omite el máximo **original** de NTE2 (identificado antes de aplicar F: si ya cae fuera de rango, F lo elimina y no se quita ningún otro valor); 2020 WSR > 75; SR > 1 en 2020 y 2021; 2020 PRS fuera de 690–750.
 3. **S, salto horario** (bandera `h` de SIMA): |ΔTOUT| > 10 °C o |ΔPRS| > 10 mm Hg respecto de la hora previa; se invalida la hora que salta.
 4. **R, PM2.5 > PM10** (bandera `r` de SIMA): se invalidan ambas.
 5. **K / C, rachas de valores idénticos.** Toda racha ≥ 6 h queda marcada `C` (excepto ceros de SR y RAINF, que son noche y horas secas). Solo se invalidan (`K`) las de ≥ 24 h en contaminantes, TOUT, PRS y RH (RH = 100 no se invalida). SR, RAINF, WSR y WDR nunca se invalidan por racha.
-6. **NOX:** no se invalida. `nox_inconsistente` = 1 si |NOX − (NO + NO2)| > max(1 ppb, 10 % de NOX): el piso de 1 ppb evita marcar diferencias menores a la resolución del analizador.
+6. **NOX:** no se invalida. `nox_inconsistente` = 1 si |NOX − (NO + NO2)| > max(1 ppb, 10 % de NOX): el piso de 1 ppb evita marcar diferencias menores a la resolución del analizador. Se calcula sobre los **valores finales** publicados (tras imputar y revertir) en toda hora con NO, NO2 y NOX presentes; vacía solo si falta alguna.
 7. **Viento:** `viento_u = −WSR/3.6·sin(WDR)`, `viento_v = −WSR/3.6·cos(WDR)` en m/s (requiere WSR y WDR válidas). WSR y WDR se publican validadas y sin imputar.
-8. **I, imputación**: solo huecos internos de ≤ 3 h consecutivas, interpolación lineal (`imputeTS::na_interpolation(maxgap = 3)`), por estación y variable, sobre la serie continua 2020–2025 de la estación y antes del agregado diario. Se imputan contaminantes, TOUT, RH, SR, PRS y u/v; **no** RAINF ni WSR/WDR. Sin imputación por media. Al imputar se pierde el motivo original de invalidez en la bandera (la tabla del informe sí lo separa).
+8. **I, imputación**: solo huecos internos de ≤ 3 h consecutivas, interpolación lineal (`imputeTS::na_interpolation(maxgap = 3)`), por estación y variable, sobre la serie continua 2020–2025 de la estación y antes del agregado diario. Se imputan contaminantes, TOUT, RH, SR, PRS y u/v; **no** RAINF ni WSR/WDR. Sin imputación por media. **Revalidación posterior:** después de interpolar se vuelven a aplicar el rango del año de cada hora (contaminantes: operación; meteorología: fabricante; notas del PDF), el salto horario de TOUT y PRS con las horas vecinas y PM2.5 ≤ PM10. Un valor imputado que incumple una regla vuelve a NA con bandera `X`; **nunca se modifica un valor original válido** (si PM2.5 imputada > PM10 original, se revierte la imputada; si ambas son imputadas, ambas). Se repite hasta que no haya más reversiones. En horas `I` y `X` se pierde el motivo original de invalidez (la tabla del informe sí lo separa y reporta el % imputado neto y las imputaciones revertidas).
 9. Los valores extremos dentro de rango se conservan.
 
 **Duplicados:** no existen marcas duplicadas en los seis libros (verificado); el código conservaría el primer valor numérico de cada marca.
