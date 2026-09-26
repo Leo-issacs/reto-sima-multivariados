@@ -10,7 +10,7 @@ sima_horario_limpio_AAAA.csv,O3,numérico,ppb,Ozono. Vacío = sin valor válido 
 sima_horario_limpio_AAAA.csv,PM10,numérico,ug/m3,Material particulado < 10 µm. Vacío = sin valor válido tras la limpieza. Contaminantes: rango de operación del año; meteorología: rango del fabricante; interpolado si f_ = I,Excel BD AAAA + reglas de scripts/03_limpiar.R
 sima_horario_limpio_AAAA.csv,PM2.5,numérico,ug/m3,Material particulado < 2.5 µm. Vacío = sin valor válido tras la limpieza. Contaminantes: rango de operación del año; meteorología: rango del fabricante; interpolado si f_ = I,Excel BD AAAA + reglas de scripts/03_limpiar.R
 sima_horario_limpio_AAAA.csv,PRS,numérico,mm Hg,Presión atmosférica. Vacío = sin valor válido tras la limpieza. Contaminantes: rango de operación del año; meteorología: rango del fabricante; interpolado si f_ = I,Excel BD AAAA + reglas de scripts/03_limpiar.R
-sima_horario_limpio_AAAA.csv,RAINF,numérico,mm/h,"Precipitación, tal como viene en el Excel (sin conversión). Vacío = sin valor válido tras la limpieza. Contaminantes: rango de operación del año; meteorología: rango del fabricante",Excel BD AAAA + reglas de scripts/03_limpiar.R
+sima_horario_limpio_AAAA.csv,RAINF,numérico,mm/h,"Precipitación, tal como viene en el Excel (sin conversión; la unidad no está confirmada). Se invalida (F) lo que supera el máximo de operación del año. Vacío = sin valor válido",Excel BD AAAA + reglas de scripts/03_limpiar.R
 sima_horario_limpio_AAAA.csv,RH,numérico,%,Humedad relativa. Vacío = sin valor válido tras la limpieza. Contaminantes: rango de operación del año; meteorología: rango del fabricante; interpolado si f_ = I,Excel BD AAAA + reglas de scripts/03_limpiar.R
 sima_horario_limpio_AAAA.csv,SO2,numérico,ppb,Dióxido de azufre. Vacío = sin valor válido tras la limpieza. Contaminantes: rango de operación del año; meteorología: rango del fabricante; interpolado si f_ = I,Excel BD AAAA + reglas de scripts/03_limpiar.R
 sima_horario_limpio_AAAA.csv,SR,numérico,kW/m2,Radiación solar. Vacío = sin valor válido tras la limpieza. Contaminantes: rango de operación del año; meteorología: rango del fabricante; interpolado si f_ = I,Excel BD AAAA + reglas de scripts/03_limpiar.R
@@ -27,7 +27,7 @@ sima_horario_limpio_AAAA.csv,f_O3,texto (1 letra),,Bandera de O3 (mismos código
 sima_horario_limpio_AAAA.csv,f_PM10,texto (1 letra),,Bandera de PM10 (mismos códigos que f_CO),scripts/03_limpiar.R
 sima_horario_limpio_AAAA.csv,f_PM2.5,texto (1 letra),,Bandera de PM2.5 (mismos códigos que f_CO),scripts/03_limpiar.R
 sima_horario_limpio_AAAA.csv,f_PRS,texto (1 letra),,Bandera de PRS (mismos códigos que f_CO),scripts/03_limpiar.R
-sima_horario_limpio_AAAA.csv,f_RAINF,texto (1 letra),,Bandera de RAINF (mismos códigos que f_CO),scripts/03_limpiar.R
+sima_horario_limpio_AAAA.csv,f_RAINF,texto (1 letra),,Bandera de RAINF (mismos códigos que f_CO; RAINF no se imputa),scripts/03_limpiar.R
 sima_horario_limpio_AAAA.csv,f_RH,texto (1 letra),,Bandera de RH (mismos códigos que f_CO),scripts/03_limpiar.R
 sima_horario_limpio_AAAA.csv,f_SO2,texto (1 letra),,Bandera de SO2 (mismos códigos que f_CO),scripts/03_limpiar.R
 sima_horario_limpio_AAAA.csv,f_SR,texto (1 letra),,Bandera de SR (mismos códigos que f_CO),scripts/03_limpiar.R
@@ -39,7 +39,7 @@ sima_horario_limpio_AAAA.csv,nox_inconsistente,0/1,,"1 si |NOX-(NO+NO2)| > max(1
 sima_diario_2020_2025.csv,estacion,texto,,Código de estación,Hoja del Excel
 sima_diario_2020_2025.csv,fecha,fecha AAAA-MM-DD,,Día calendario local,
 sima_diario_2020_2025.csv,anio,entero,,Año,
-sima_diario_2020_2025.csv,temporada,texto,,"Temporada regional: fria (nov-feb), seca_calida (mar-may), lluviosa (jun-oct). Definición del equipo, ajustable",Definición del equipo
+sima_diario_2020_2025.csv,temporada,texto,,"Temporada regional: seca_fria (nov-feb), seca_calida (mar-may), calida_humeda (jun-oct). Definición operativa del equipo; nombres según Hernández-Romero et al. (2026); cortes según la climatología del PIGECA 2023-2033",Definición del equipo
 sima_diario_2020_2025.csv,confinamiento_2020,0/1,,1 entre 2020-04-01 y 2020-05-31,Definición del equipo
 sima_diario_2020_2025.csv,CO,numérico,ppm,Media diaria de las horas válidas (incluye imputadas); vacío si < 18 h válidas,Agregado de la tabla horaria
 sima_diario_2020_2025.csv,NO,numérico,ppb,Media diaria de las horas válidas (incluye imputadas); vacío si < 18 h válidas,Agregado de la tabla horaria
@@ -52,14 +52,17 @@ sima_diario_2020_2025.csv,TOUT,numérico,°C,Media diaria de las horas válidas 
 sima_diario_2020_2025.csv,RH,numérico,%,Media diaria de las horas válidas (incluye imputadas); vacío si < 18 h válidas,Agregado de la tabla horaria
 sima_diario_2020_2025.csv,SR,numérico,kW/m2,Media diaria de las horas válidas (incluye imputadas); vacío si < 18 h válidas,Agregado de la tabla horaria
 sima_diario_2020_2025.csv,PRS,numérico,mm Hg,Media diaria de las horas válidas (incluye imputadas); vacío si < 18 h válidas,Agregado de la tabla horaria
+sima_diario_2020_2025.csv,horas_lluvia,entero,horas,Número de horas del día con 0 < RAINF <= máximo de operación del año; vacío si < 18 h válidas de RAINF. La cantidad de lluvia no se usa porque la unidad no está confirmada,Agregado de la tabla horaria
+sima_diario_2020_2025.csv,llovio,0/1,,1 si horas_lluvia > 0,Agregado de la tabla horaria
 sima_diario_2020_2025.csv,O3_max8h,numérico,ppb,"Máximo diario del promedio móvil de 8 h (ventana por hora inicial, >= 6 de 8 horas válidas); vacío si < 18 h válidas de O3 en el día",Agregado de la tabla horaria
-sima_diario_2020_2025.csv,RAINF_suma,numérico,mm/h sumado,"Suma de los valores horarios de RAINF del día, sin conversión; vacío si < 18 h válidas",Agregado de la tabla horaria
-sima_diario_2020_2025.csv,RAINF_max_h,numérico,mm/h,Máximo horario de RAINF del día,Agregado de la tabla horaria
 sima_diario_2020_2025.csv,viento_u,numérico,m/s,Media diaria de la componente u; vacío si < 18 h válidas,Agregado de la tabla horaria
 sima_diario_2020_2025.csv,viento_v,numérico,m/s,Media diaria de la componente v,Agregado de la tabla horaria
 sima_diario_2020_2025.csv,viento_rapidez_ms,numérico,m/s,Media diaria de la rapidez horaria sqrt(u^2+v^2),Agregado de la tabla horaria
 sima_diario_2020_2025.csv,n_horas_<variable>,entero,horas,Número de horas válidas (incluye imputadas) del día para esa variable; n_horas_viento cuenta horas con u/v; n_horas_O3_max8h cuenta horas de O3,Agregado de la tabla horaria
 sima_diario_2020_2025.csv,n_horas_nox_inconsistente,entero,horas,Horas del día con nox_inconsistente = 1,Agregado de la tabla horaria
+sima_diario_2020_2025.csv,en_nucleo_A,0/1,,"1 si el estación-día está completo en el núcleo A: PM10, O3_max8h, NO2, CO, SO2, TOUT, RH, SR, viento (u/v), PRS y horas_lluvia con >= 18 h válidas. Núcleo de sensibilidad",scripts/03_limpiar.R
+sima_diario_2020_2025.csv,en_nucleo_B,0/1,,1 si el estación-día está completo en el núcleo B = A + PM2.5. Conjunto principal de modelado,scripts/03_limpiar.R
+sima_diario_2020_2025.csv,en_periodo_modelado,0/1,,1 si el año está entre 2021 y 2025,Decisión del equipo
 cobertura_dias_validos_hoja_anio.csv,"estacion, anio",,,Hoja-año,
 cobertura_dias_validos_hoja_anio.csv,variable,texto,,Variable diaria evaluada (viento_uv = u/v; O3 = máximo de 8 h; RAINF = suma diaria),
 cobertura_dias_validos_hoja_anio.csv,"dias_totales, dias_validos",entero,días,Días del año de la hoja-año y días con >= 18 h válidas de esa variable,
