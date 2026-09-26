@@ -6,7 +6,7 @@
 #   C racha >= 6 h identicos marcada pero conservada
 #   I imputada (interpolacion lineal, huecos internos <= 3 h)
 # Rangos duros: contaminantes = rango de operacion del anio (ambos limites);
-# meteorologia = rango del fabricante. Reglas y orden: ver data/clean/README.md.
+# meteorologia = rango del fabricante (RAINF: 0 al maximo de operacion del anio). Reglas y orden: ver data/clean/README.md.
 # Requiere R/importar_sima.R y R/diagnostico.R (construir_malla, cargar_rangos).
 
 CONTAMINANTES <- c("CO", "NO", "NO2", "NOX", "O3", "PM10", "PM2.5", "SO2")
@@ -34,7 +34,7 @@ cargar_rangos_fabricante <- function(ruta = "config/rangos_fabricante.csv") {
 
 temporada_regional <- function(fecha) {
   m <- as.integer(format(fecha, "%m"))
-  ifelse(m %in% c(11, 12, 1, 2), "fria", ifelse(m %in% 3:5, "seca_calida", "lluviosa"))
+  ifelse(m %in% c(11, 12, 1, 2), "seca_fria", ifelse(m %in% 3:5, "seca_calida", "calida_humeda"))
 }
 
 # Malla continua por hoja (todos sus anios) con los valores originales.
@@ -70,7 +70,9 @@ limpiar_hoja <- function(datos_hoja, rangos_op, rangos_fab) {
 
   # F: rango duro
   for (v in VARIABLES_SIMA) {
-    if (v %in% CONTAMINANTES) { l <- lim_op(v) } else {
+    if (v %in% CONTAMINANTES) { l <- lim_op(v) } else if (v == "RAINF") {
+      l <- list(lo = 0, hi = lim_op(v)$hi)   # el PDF da maximo de operacion por anio
+    } else {
       f <- rangos_fab[rangos_fab$variable == v, ]
       l <- list(lo = f$minimo, hi = f$maximo)
     }
@@ -178,11 +180,12 @@ agregar_diario <- function(fecha, M) {
   mx <- suppressWarnings(apply(pm, 2L, max, na.rm = TRUE)); mx[!is.finite(mx)] <- NA_real_
   nvo <- colSums(matrix(ok, nrow = 24L)); mx[nvo < HORAS_MIN_DIA_LIMPIO] <- NA_real_
   val[["O3_max8h"]] <- mx; nh[["O3_max8h"]] <- nvo
-  # RAINF: suma y maximo horario (sin conversion de unidades)
+  # RAINF: solo si llovio y cuantas horas (la cantidad no se usa: unidad sin confirmar)
   r <- M[, "RAINF"]; rm <- matrix(r, nrow = 24L); nvr <- colSums(!is.na(rm))
-  val[["RAINF_suma"]] <- ifelse(nvr >= HORAS_MIN_DIA_LIMPIO, colSums(rm, na.rm = TRUE), NA_real_)
-  mxr <- suppressWarnings(apply(rm, 2L, max, na.rm = TRUE)); mxr[!is.finite(mxr)] <- NA_real_
-  val[["RAINF_max_h"]] <- ifelse(nvr >= HORAS_MIN_DIA_LIMPIO, mxr, NA_real_); nh[["RAINF"]] <- nvr
+  hl <- colSums(rm > 0, na.rm = TRUE)
+  val[["horas_lluvia"]] <- ifelse(nvr >= HORAS_MIN_DIA_LIMPIO, hl, NA_real_)
+  val[["llovio"]] <- ifelse(nvr >= HORAS_MIN_DIA_LIMPIO, as.numeric(hl > 0), NA_real_)
+  nh[["RAINF"]] <- nvr
   # Rapidez media del viento (m/s) desde u/v horarios
   rap <- matrix(sqrt(M[, "viento_u"]^2 + M[, "viento_v"]^2), nrow = 24L)
   nvw <- colSums(!is.na(rap))

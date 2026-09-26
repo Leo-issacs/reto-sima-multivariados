@@ -18,6 +18,7 @@ verificar_huellas(carpeta_datos)
 message("Importando hojas (aprox. 1 min)...")
 imp <- suppressMessages(importar_sima(carpeta_datos))
 rangos_op <- cargar_rangos(); rangos_fab <- cargar_rangos_fabricante()
+n_hojas <- nrow(unique(imp$datos[c("archivo", "hoja")]))
 
 message("Limpiando por estacion...")
 hojas <- sort(unique(imp$datos$hoja))
@@ -57,7 +58,7 @@ diario_hoja <- function(h, version) {
   d$temporada <- temporada_regional(d$fecha)
   d$confinamiento_2020 <- as.integer(d$fecha >= as.Date("2020-04-01") & d$fecha <= as.Date("2020-05-31"))
   orden <- c("CO", "NO", "NO2", "NOX", "O3_max8h", "PM10", "PM2.5", "SO2", "TOUT", "RH", "SR",
-             "PRS", "RAINF_suma", "RAINF_max_h", "viento_u", "viento_v", "viento_rapidez_ms")
+             "PRS", "horas_lluvia", "llovio", "viento_u", "viento_v", "viento_rapidez_ms")
   for (v in orden) d[[v]] <- redondear(ag$valores[[v]])
   nh <- ag$n_horas
   names(nh)[names(nh) == "viento_u"] <- "viento"
@@ -69,12 +70,21 @@ diario_hoja <- function(h, version) {
 for (h in hojas) res[[h]]$obs_completa <- res[[h]]$obs   # matriz sin imputar (con u/v)
 diario <- do.call(rbind, lapply(hojas, diario_hoja, version = "imp"))
 diario_obs <- do.call(rbind, lapply(hojas, diario_hoja, version = "obs"))
+
+# ---- Marcas de nucleo y periodo (deben existir antes de escribir el diario) --------------------
+var_dia_n <- c(PM10 = "PM10", O3_max8h = "O3_max8h", NO2 = "NO2", CO = "CO", SO2 = "SO2",
+               TOUT = "TOUT", RH = "RH", SR = "SR", viento_u = "viento_u", PRS = "PRS",
+               RAINF = "horas_lluvia", PM2.5 = "PM2.5")
+comp_n <- function(d, vars) Reduce(`&`, lapply(vars, function(v) !is.na(d[[var_dia_n[[v]]]])))
+diario$en_nucleo_A <- as.integer(comp_n(diario, NUCLEO_A))
+diario$en_nucleo_B <- as.integer(comp_n(diario, NUCLEO_B))
+diario$en_periodo_modelado <- as.integer(diario$anio >= 2021 & diario$anio <= 2025)
 data.table::fwrite(diario, "data/clean/sima_diario_2020_2025.csv")
 
 # ---- Cobertura de dias validos por hoja-anio x variable -----------------------------------
 var_dia <- c(CO = "CO", NO = "NO", NO2 = "NO2", NOX = "NOX", O3 = "O3_max8h", PM10 = "PM10",
              PM2.5 = "PM2.5", SO2 = "SO2", TOUT = "TOUT", RH = "RH", SR = "SR", PRS = "PRS",
-             RAINF = "RAINF_suma", viento_uv = "viento_u")
+             RAINF = "horas_lluvia", viento_uv = "viento_u")
 dia_valido <- function(d, v) !is.na(d[[var_dia[[v]]]])
 cob <- do.call(rbind, lapply(names(var_dia), function(v) {
   z <- aggregate(list(dias_validos = dia_valido(diario, v)),
@@ -90,10 +100,6 @@ cob <- cob[order(cob$estacion, cob$anio, match(cob$variable, names(var_dia))),
 escribir(cob, "data/clean/cobertura_dias_validos_hoja_anio.csv")
 
 # ---- Paso 0: dias completos por nucleo (estacion x anio x temporada) -----------------------
-var_dia_n <- c(PM10 = "PM10", O3_max8h = "O3_max8h", NO2 = "NO2", CO = "CO", SO2 = "SO2",
-               TOUT = "TOUT", RH = "RH", SR = "SR", viento_u = "viento_u", PRS = "PRS",
-               RAINF = "RAINF_suma", PM2.5 = "PM2.5")
-comp_n <- function(d, vars) Reduce(`&`, lapply(vars, function(v) !is.na(d[[var_dia_n[[v]]]])))
 claves <- c("estacion", "anio", "temporada")
 nucleo <- function(d, sufijo) {
   z <- data.frame(d[claves], A = comp_n(d, NUCLEO_A), B = comp_n(d, NUCLEO_B))
@@ -177,6 +183,54 @@ resumen_ll <- function(z, etiqueta) {
 ll <- rbind(do.call(rbind, lapply(sort(unique(lluvia$anio)), function(a)
   resumen_ll(lluvia[lluvia$anio == a, ], as.character(a)))), resumen_ll(lluvia, "total"))
 escribir(ll, "output/diagnostico/rainf_distribucion.csv")
+
+# ---- RESUMEN.md: agrega la parte B al diagnostico de la parte A --------------------------------------
+fmt <- function(x, d = 0) formatC(x, format = "f", digits = d, big.mark = ",")
+ruta_res <- "output/diagnostico/RESUMEN.md"
+previo <- readLines(ruta_res, encoding = "UTF-8")
+corte <- grep("^## Parte B", previo)
+if (length(corte)) previo <- previo[seq_len(corte[1L] - 1L)]
+inval <- tab$invalidada_F_rango_n + tab$invalidada_P_nota_pdf_n + tab$invalidada_S_salto_n +
+  tab$invalidada_R_pm25_gt_pm10_n + tab$invalidada_K_racha24_n
+filas_tab <- sprintf("| %s | %s | %s | %s | %s |", tab$variable, fmt(tab$faltante_original_pct, 1),
+                     fmt(100 * inval / den, 2), fmt(tab$imputada_pct, 2), fmt(tab$faltante_final_pct, 1))
+m <- nuc[nuc$anio >= 2021, ]
+tot_m <- colSums(m[c("dias_totales", "dias_completos_A", "dias_completos_B")])
+nB <- aggregate(cbind(dias_totales, dias_completos_B) ~ estacion, m, sum)
+nB$p <- 100 * nB$dias_completos_B / nB$dias_totales
+nox_alto <- por_est[por_est$pct_inconsistente >= 0.5, ]
+nox_alto <- nox_alto[order(-nox_alto$pct_inconsistente), ]
+tam <- file.size(list.files("data/clean", pattern = "\\.csv$", full.names = TRUE)) / 1e6
+nombres_csv <- list.files("data/clean", pattern = "\\.csv$")
+nueva <- c(
+  "", "## Parte B. Limpieza y publicación", "",
+  sprintf("Generado por `scripts/03_limpiar.R` el %s. Reglas completas en `data/clean/README.md`: rango duro (contaminantes: operación del año; meteorología: fabricante; RAINF: 0 al máximo de operación del año), notas del PDF, salto horario (TOUT/PRS), PM2.5 > PM10, rachas ≥ 24 h (marcadas desde 6 h) e imputación lineal de huecos ≤ 3 h. Denominador de las tablas: %s horas esperadas por variable (%d hojas-año).",
+          format(Sys.Date()), fmt(den), n_hojas),
+  "", "| Variable | % falt. original | % invalidado | % imputado | % falt. final |", "|---|---|---|---|---|",
+  filas_tab, "",
+  sprintf("**Núcleos (días estación completos, 2021–2025, sobre %s días).** Núcleo A (PM10, O3 máx. 8 h, NO2, CO, SO2, TOUT, RH, SR, viento, PRS, RAINF): %s (%.1f%%). Núcleo B (A + PM2.5, conjunto principal de modelado): %s (%.1f%%). Por estación, B va de %.0f%% (%s) a %.0f%% (%s); NE3 y NO3 casi nunca completan B. `sima_diario_2020_2025.csv` trae `en_nucleo_A`, `en_nucleo_B` y `en_periodo_modelado`.",
+          fmt(tot_m[["dias_totales"]]), fmt(tot_m[["dias_completos_A"]]), 100 * tot_m[["dias_completos_A"]] / tot_m[["dias_totales"]],
+          fmt(tot_m[["dias_completos_B"]]), 100 * tot_m[["dias_completos_B"]] / tot_m[["dias_totales"]],
+          min(nB$p), nB$estacion[which.min(nB$p)], max(nB$p), nB$estacion[which.max(nB$p)]),
+  "",
+  sprintf("**NOX.** Horas con |NOX − (NO + NO2)| > max(1 ppb, 10%% de NOX), sobre las horas comparables de cada estación: %s. El resto de estaciones queda bajo 0.5%%.",
+          paste(sprintf("%s %.2f%% (de %s)", nox_alto$estacion, nox_alto$pct_inconsistente, fmt(nox_alto$horas_comparables)), collapse = "; ")),
+  "",
+  sprintf("**Sensibilidad.** Con el rango de operación estricto se habrían eliminado %s horas de TOUT (%.3f%% de %s) y %s de PRS (%.2f%% de %s).",
+          fmt(tot_s$eliminadas_con_operacion_estricta[tot_s$variable == "TOUT"]), tot_s$pct[tot_s$variable == "TOUT"],
+          fmt(tot_s$horas_validas_adoptado[tot_s$variable == "TOUT"]),
+          fmt(tot_s$eliminadas_con_operacion_estricta[tot_s$variable == "PRS"]), tot_s$pct[tot_s$variable == "PRS"],
+          fmt(tot_s$horas_validas_adoptado[tot_s$variable == "PRS"])),
+  "",
+  sprintf("**RAINF.** %s horas sobre el máximo de operación del año se invalidaron (bandera F). Con lo que queda: %.2f%% de %s horas válidas tienen lluvia > 0; valor positivo más frecuente 0.01. La cantidad no se usa (unidad sin confirmar); el diario publica `horas_lluvia` y `llovio`.",
+          fmt(tab$invalidada_F_rango_n[tab$variable == "RAINF"]), ll$pct_horas_mayor_0[ll$anio == "total"],
+          fmt(ll$horas_validas[ll$anio == "total"])),
+  "",
+  sprintf("**Tamaños.** %s; máximo por archivo %.1f MB (límite 50 MB). Diario: %s filas × %d columnas.",
+          paste(sprintf("%s %.1f MB", sub("^sima_", "", sub("\\.csv$", "", nombres_csv)), tam)[grepl("sima_", nombres_csv)], collapse = ", "),
+          max(tam), fmt(nrow(diario)), ncol(diario))
+)
+con <- file(ruta_res, "w", encoding = "UTF-8"); writeLines(c(previo, nueva), con); close(con)
 
 # ---- Resumen en consola para revisar --------------------------------------------------------------
 message("Filas horario: ", nrow(horario), "; diario: ", nrow(diario))

@@ -119,7 +119,9 @@ c_inv <- solar$centroide_hora[solar$temporada == "dic-feb" & solar$anio == 2020]
 cc <- dg$cobertura_conjunta
 sin_pm25 <- s$hoja[s$variable == "PM2.5" & s$horas_presentes == 0]
 lineas <- c(
-  "# Diagnóstico de datos SIMA 2020–2025 (etapa 1, sin limpiar)",
+  "# Diagnóstico y limpieza de datos SIMA 2020–2025 (etapa 1)",
+  "",
+  "## Parte A. Diagnóstico de los datos originales (sin limpiar)",
   "",
   sprintf("Generado por `scripts/02_importar_diagnosticar.R` el %s. Huellas MD5 de los 6 Excel = inventario del 25-sep. Tablas y heatmaps en `output/diagnostico/`.", format(Sys.Date())),
   "",
