@@ -1,0 +1,16 @@
+variable,minimo,maximo,unidad,nota_pdf
+PM10,0,1000,ug/m3,
+PM2.5,0,1000,ug/m3,
+O3,0,1000,ppb,
+NO,0,500,ppb,
+NO2,0,500,ppb,
+NOX,0,500,ppb,
+SO2,0,500,ppb,
+CO,0,50,ppm,
+RH,0,100,%,
+WSR,0,180,km/h,
+TOUT,-50,50,C,
+SR,0,1.400,kW/m2,texto del PDF pegado con BP 0 - 1.400449.9- 824.9: lectura asumida SR 0-1.400 y BP 449.9-824.9
+PRS,449.9,824.9,mm Hg,
+WDR,0,360,grados,
+RAINF,,,mm/h,conteo pulso 0.01 (sin rango numérico en el PDF)

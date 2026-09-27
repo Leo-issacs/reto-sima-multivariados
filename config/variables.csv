@@ -1,18 +1,18 @@
 nombre_original,nombre_interno_propuesto,tipo_esperado,definicion_confirmada,unidad_confirmada,codigos_invalidos,fuente_confirmacion,estado
-Fecha y hora,fecha_hora,fecha_hora,,,,,encabezado_observado_metadatos_pendientes
-date,fecha_hora,fecha_hora,,,,,encabezado_observado_metadatos_pendientes
-CO,co,numerico_por_verificar,,,,,encabezado_observado_metadatos_pendientes
-NO,no,numerico_por_verificar,,,,,encabezado_observado_metadatos_pendientes
-NO2,no2,numerico_por_verificar,,,,,encabezado_observado_metadatos_pendientes
-NOX,nox,numerico_por_verificar,,,,,encabezado_observado_metadatos_pendientes
-O3,o3,numerico_por_verificar,,,,,encabezado_observado_metadatos_pendientes
-PM10,pm10,numerico_por_verificar,,,,,encabezado_observado_metadatos_pendientes
-PM2.5,pm25,numerico_por_verificar,,,,,encabezado_observado_metadatos_pendientes
-PRS,prs,numerico_por_verificar,,,,,encabezado_observado_metadatos_pendientes
-RAINF,rainf,numerico_por_verificar,,,,,encabezado_observado_metadatos_pendientes
-RH,rh,numerico_por_verificar,,,,,encabezado_observado_metadatos_pendientes
-SO2,so2,numerico_por_verificar,,,,,encabezado_observado_metadatos_pendientes
-SR,sr,numerico_por_verificar,,,,,encabezado_observado_metadatos_pendientes
-TOUT,tout,numerico_por_verificar,,,,,encabezado_observado_metadatos_pendientes
-WSR,wsr,numerico_por_verificar,,,,,encabezado_observado_metadatos_pendientes
-WDR,wdr,numerico_por_verificar,,,,,encabezado_observado_metadatos_pendientes
+Fecha y hora,fecha_hora,fecha_hora,"Fecha y hora de la medición; resolución horaria, hora local ingenua sin zona (sin cambio de horario visible)",AAAA-MM-DD HH:MM:SS,,Diagnóstico de datos (scripts/02_importar_diagnosticar.R),confirmado_zona_horaria_por_confirmar_con_SIMA
+date,fecha_hora,fecha_hora,"Fecha y hora de la medición; resolución horaria, hora local ingenua sin zona (sin cambio de horario visible)",AAAA-MM-DD HH:MM:SS,,Diagnóstico de datos (scripts/02_importar_diagnosticar.R),confirmado_zona_horaria_por_confirmar_con_SIMA
+CO,co,numerico,Monóxido de carbono,ppm,"Los Excel no traen banderas (0 celdas de texto); banderas SIMA en Etiquetas.xlsx, hoja Banderas",Etiquetas.xlsx (Variables); Rangos de los parámetros del SIMA.pdf (rangos),confirmado
+NO,no,numerico,Monóxido de nitrógeno,ppb,"Los Excel no traen banderas (0 celdas de texto); banderas SIMA en Etiquetas.xlsx, hoja Banderas",Etiquetas.xlsx (Variables); Rangos de los parámetros del SIMA.pdf (rangos),confirmado
+NO2,no2,numerico,Dióxido de nitrógeno,ppb,"Los Excel no traen banderas (0 celdas de texto); banderas SIMA en Etiquetas.xlsx, hoja Banderas",Etiquetas.xlsx (Variables); Rangos de los parámetros del SIMA.pdf (rangos),confirmado
+NOX,nox,numerico,Óxidos de nitrógeno (NO + NO2),ppb,"Los Excel no traen banderas (0 celdas de texto); banderas SIMA en Etiquetas.xlsx, hoja Banderas",Etiquetas.xlsx (Variables); Rangos de los parámetros del SIMA.pdf (rangos),confirmado
+O3,o3,numerico,Ozono,ppb,"Los Excel no traen banderas (0 celdas de texto); banderas SIMA en Etiquetas.xlsx, hoja Banderas",Etiquetas.xlsx (Variables); Rangos de los parámetros del SIMA.pdf (rangos),confirmado
+PM10,pm10,numerico,Material particulado menor a 10 micrómetros,µg/m3,"Los Excel no traen banderas (0 celdas de texto); banderas SIMA en Etiquetas.xlsx, hoja Banderas",Etiquetas.xlsx (Variables); Rangos de los parámetros del SIMA.pdf (rangos),confirmado
+PM2.5,pm25,numerico,Material particulado menor a 2.5 micrómetros,µg/m3,"Los Excel no traen banderas (0 celdas de texto); banderas SIMA en Etiquetas.xlsx, hoja Banderas",Etiquetas.xlsx (Variables); Rangos de los parámetros del SIMA.pdf (rangos),confirmado
+PRS,prs,numerico,Presión atmosférica,mm Hg,"Los Excel no traen banderas (0 celdas de texto); banderas SIMA en Etiquetas.xlsx, hoja Banderas",Etiquetas.xlsx (Variables); Rangos de los parámetros del SIMA.pdf (rangos),confirmado
+RAINF,rainf,numerico,"Precipitación (Etiquetas: para cada valor, (valor*0.25)*100; conversión sin confirmar, no aplicada)",mm/h,"Los Excel no traen banderas (0 celdas de texto); banderas SIMA en Etiquetas.xlsx, hoja Banderas",Etiquetas.xlsx (Variables); Rangos de los parámetros del SIMA.pdf (rangos),confirmado
+RH,rh,numerico,Humedad relativa,%,"Los Excel no traen banderas (0 celdas de texto); banderas SIMA en Etiquetas.xlsx, hoja Banderas",Etiquetas.xlsx (Variables); Rangos de los parámetros del SIMA.pdf (rangos),confirmado
+SO2,so2,numerico,Dióxido de azufre,ppb,"Los Excel no traen banderas (0 celdas de texto); banderas SIMA en Etiquetas.xlsx, hoja Banderas",Etiquetas.xlsx (Variables); Rangos de los parámetros del SIMA.pdf (rangos),confirmado
+SR,sr,numerico,Radiación solar,kW/m2,"Los Excel no traen banderas (0 celdas de texto); banderas SIMA en Etiquetas.xlsx, hoja Banderas",Etiquetas.xlsx (Variables); Rangos de los parámetros del SIMA.pdf (rangos),confirmado
+TOUT,tout,numerico,Temperatura,°C,"Los Excel no traen banderas (0 celdas de texto); banderas SIMA en Etiquetas.xlsx, hoja Banderas",Etiquetas.xlsx (Variables); Rangos de los parámetros del SIMA.pdf (rangos),confirmado
+WSR,wsr,numerico,Velocidad del viento,km/h,"Los Excel no traen banderas (0 celdas de texto); banderas SIMA en Etiquetas.xlsx, hoja Banderas",Etiquetas.xlsx (Variables); Rangos de los parámetros del SIMA.pdf (rangos),confirmado
+WDR,wdr,numerico,"Dirección del viento (grados de donde sopla; 0-360, 360 equivale a 0)",grados,"Los Excel no traen banderas (0 celdas de texto); banderas SIMA en Etiquetas.xlsx, hoja Banderas",Etiquetas.xlsx (Variables); Rangos de los parámetros del SIMA.pdf (rangos),confirmado

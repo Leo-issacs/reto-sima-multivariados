@@ -23,6 +23,8 @@ references/materiales/*
 !references/materiales/README.md
 *.xlsx
 *.xls
+/*.pdf
+/*.docx
 *.rds
 *.RDS
 *.parquet
@@ -30,6 +32,7 @@ references/materiales/*
 # Salidas reproducibles y temporales
 output/*
 !output/README.md
+!output/diagnostico/
 _output/
 .quarto/
 _freeze/
@@ -51,3 +54,7 @@ renv/sandbox/
 
 # Reportes generados: revisar antes de decidir si se publican
 /docs/quarto/
+
+# CSV limpios publicables (los Excel siguen bloqueados por *.xlsx)
+!data/clean/
+!data/clean/*.csv

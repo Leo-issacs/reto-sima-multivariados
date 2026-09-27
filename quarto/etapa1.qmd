@@ -1,0 +1,192 @@
+---
+title: "Reto SIMA: calidad del aire en el Área Metropolitana de Monterrey"
+subtitle: "Etapa 1. Preparación de los datos"
+lang: es
+format:
+  docx:
+    reference-doc: plantillas/referencia_etapa1.docx
+    toc: false
+    number-sections: false
+    fig-width: 6.3
+    fig-dpi: 200
+execute:
+  echo: false
+  warning: false
+  message: false
+---
+
+```{r}
+#| label: setup
+suppressPackageStartupMessages({
+  library(data.table)
+  library(ggplot2)
+  library(knitr)
+})
+miles <- function(x) formatC(x, format = "d", big.mark = ",")
+pct <- function(x, d = 1) formatC(x, format = "f", digits = d)
+
+horario <- rbindlist(lapply(2020:2025, function(a)
+  fread(sprintf("data/clean/sima_horario_limpio_%d.csv", a), encoding = "UTF-8")))
+diario <- fread("data/clean/sima_diario_2020_2025.csv", encoding = "UTF-8")
+informe <- fread("data/clean/tabla_informe_limpieza.csv", encoding = "UTF-8")
+nucleo <- fread("output/diagnostico/dias_completos_nucleo.csv", encoding = "UTF-8")
+hojas <- fread("output/diagnostico/hoja_anio_resumen.csv", encoding = "UTF-8")
+tot <- nucleo[, .(dias = sum(dias_totales), A = sum(dias_completos_A), B = sum(dias_completos_B)), by = anio]
+```
+
+**Nombres y matrículas**
+
+Nombre completo: \_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_  Matrícula: \_\_\_\_\_\_\_\_\_\_\_\_\_\_
+
+Nombre completo: \_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_  Matrícula: \_\_\_\_\_\_\_\_\_\_\_\_\_\_
+
+Nombre completo: \_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_  Matrícula: \_\_\_\_\_\_\_\_\_\_\_\_\_\_
+
+Nombre completo: \_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_  Matrícula: \_\_\_\_\_\_\_\_\_\_\_\_\_\_
+
+Curso: Análisis multivariado (MA2003B)
+
+Profesor(a):
+
+Fecha de entrega: 1 de octubre de 2026
+
+{{< pagebreak >}}
+
+# Parte I. Comprensión del problema
+
+## Contexto y utilidad
+
+## Pregunta y objetivos
+
+## Alcance y criterios de éxito
+
+## Fuentes y procedencia de los datos
+
+{{< pagebreak >}}
+
+# Parte II. Preparación de los datos
+
+```{r}
+#| label: tbl-dimensiones
+#| tbl-cap: "Dimensiones de las bases limpias (SIMA, 2020–2025)."
+dim_tab <- data.frame(
+  Concepto = c("Registros (estación-hora / estación-día)",
+               "  de ellos, con fila en los Excel originales",
+               "Columnas",
+               "Estaciones",
+               "Hojas estación-año en los Excel",
+               "Variables medidas",
+               "Periodo",
+               "Estación-días 2021–2025 (periodo de modelado)"),
+  `Base horaria` = c(miles(nrow(horario)), miles(sum(hojas$filas_hoja)), ncol(horario),
+                     uniqueN(horario$estacion), nrow(hojas), 15,
+                     paste(substr(min(horario$fecha_hora), 1, 10), "a", substr(max(horario$fecha_hora), 1, 10)),
+                     "—"),
+  `Base diaria` = c(miles(nrow(diario)), "—", ncol(diario), uniqueN(diario$estacion), nrow(hojas), 15,
+                    paste(min(diario$fecha), "a", max(diario$fecha)),
+                    miles(sum(diario$en_periodo_modelado))),
+  check.names = FALSE)
+kable(dim_tab, align = c("l", "r", "r"))
+```
+
+```{r}
+#| label: tbl-limpieza
+#| tbl-cap: !expr 'sprintf("Limpieza por variable, como %% de %s horas estación (87 hojas-año). Invalidado = fuera de rango, notas del PDF, saltos, PM2.5 > PM10 y rachas ≥ 24 h; final = original + invalidado − imputado. viento_uv = componentes u/v.", miles(informe$horas_esperadas[1]))'
+tab2 <- informe[, .(
+  Variable = variable,
+  `% faltante original` = pct(faltante_original_pct, 1),
+  `% invalidado` = pct(100 * (invalidada_F_rango_n + invalidada_P_nota_pdf_n + invalidada_S_salto_n +
+                                invalidada_R_pm25_gt_pm10_n + invalidada_K_racha24_n) / horas_esperadas, 2),
+  `% imputado` = pct(imputada_pct, 2),
+  `% faltante final` = pct(faltante_final_pct, 1))]
+kable(tab2, align = c("l", "r", "r", "r", "r"))
+```
+
+```{r}
+#| label: fig-faltantes
+#| fig-cap: "% de horas sin dato tras la limpieza, por variable y estación (base horaria publicada; NO3 empieza en diciembre de 2022 y NE3 casi no mide PM2.5)."
+#| fig-height: 3.9
+vars <- c("PM10", "PM2.5", "O3", "NO2", "NO", "NOX", "CO", "SO2", "TOUT", "RH", "SR", "PRS", "RAINF", "WSR", "WDR")
+falt <- horario[, lapply(.SD, function(x) 100 * mean(is.na(x))), by = estacion, .SDcols = vars]
+falt <- melt(falt, id.vars = "estacion", variable.name = "variable", value.name = "pct")
+falt[, variable := factor(variable, levels = rev(vars))]
+ggplot(falt, aes(estacion, variable, fill = pct)) +
+  geom_tile(colour = "white", linewidth = 0.4) +
+  geom_text(aes(label = round(pct), colour = pct > 55), size = 2.4, show.legend = FALSE) +
+  scale_colour_manual(values = c("grey20", "white")) +
+  scale_fill_gradientn(colours = c("#f7fbff", "#fee8c8", "#fdbb84", "#e34a33", "#7f0000"),
+                       limits = c(0, 100), name = "% faltante") +
+  labs(x = "Estación", y = NULL) +
+  theme_minimal(base_size = 9) +
+  theme(panel.grid = element_blank(), legend.position = "right")
+```
+
+```{r}
+#| label: fig-nucleos
+#| fig-cap: !expr 'sprintf("Estación-días completos por año en el núcleo A (PM10, O3 máx. 8 h, NO2, CO, SO2, TOUT, RH, SR, viento, PRS, RAINF) y en el núcleo B (A + PM2.5). Etiqueta: días completos (%% de los días estación del año). Total de días estación: %s. El 2020 se conserva en los datos, pero no entra al modelado.", paste(sprintf("%d: %s", tot$anio, miles(tot$dias)), collapse = "; "))'
+#| fig-height: 3.0
+larg <- melt(tot, id.vars = c("anio", "dias"), variable.name = "nucleo", value.name = "n")
+larg[, etiqueta := sprintf("%s\n(%s%%)", miles(n), pct(100 * n / dias, 0))]
+larg[, nucleo := factor(nucleo, labels = c("Núcleo A (sensibilidad)", "Núcleo B (principal)"))]
+ggplot(larg, aes(factor(anio), n, fill = nucleo)) +
+  geom_col(position = position_dodge(0.8), width = 0.75) +
+  geom_text(aes(label = etiqueta), position = position_dodge(0.8), vjust = -0.25, size = 2.4, lineheight = 0.9) +
+  scale_fill_manual(values = c("#0072B2", "#E69F00"), name = NULL) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.18)), labels = miles) +
+  labs(x = "Año", y = "Estación-días completos") +
+  theme_minimal(base_size = 9) +
+  theme(legend.position = "top", panel.grid.major.x = element_blank())
+```
+
+{{< pagebreak >}}
+
+# Anexos
+
+## Anexo A. Diccionario de datos
+
+```{r}
+#| label: tbl-diccionario
+#| tbl-cap: "Diccionario completo de las bases publicadas en data/clean/."
+dic <- fread("data/clean/DICCIONARIO.csv", encoding = "UTF-8")
+dic[, archivo := fcase(grepl("horario", archivo), "horario", grepl("diario", archivo), "diario",
+                       grepl("cobertura", archivo), "cobertura", default = "informe")]
+setnames(dic, c("Base", "Columna", "Tipo", "Unidad", "Descripción", "Fuente o regla"))
+k <- kable(dic, format = "pipe")
+pesos <- c(9, 15, 9, 8, 36, 15)   # anchos relativos de columna (pandoc los toma de los guiones)
+k[2] <- paste0("|", paste0(":", vapply(pesos - 1, function(n) strrep("-", n), ""), collapse = "|"), "|")
+k
+```
+
+## Anexo B. Rangos de operación y del fabricante
+
+```{r}
+#| label: tbl-rangos
+#| tbl-cap: "Rangos de operación por año (Rangos de los parámetros del SIMA) y rango del fabricante. Unidades: ver Anexo A."
+rg <- fread("config/rangos_operacion.csv", encoding = "UTF-8")
+fab <- fread("config/rangos_fabricante.csv", encoding = "UTF-8")
+rg[, txt := paste0(minimo, "–", maximo)]
+ancho <- dcast(rg, variable ~ anio, value.var = "txt")
+ancho <- merge(ancho, fab[, .(variable, Fabricante = ifelse(is.na(minimo), "—", paste0(minimo, "–", maximo)))],
+               by = "variable", all.x = TRUE, sort = FALSE)
+ancho <- ancho[match(unique(rg$variable), variable)]
+ancho[is.na(Fabricante), Fabricante := "—"]
+setnames(ancho, "variable", "Variable")
+kable(ancho, align = c("l", rep("r", 7)))
+```
+
+Notas del PDF: `r paste(paste0(rg[nota_pdf != ""]$anio, " ", rg[nota_pdf != ""]$variable, ": ", rg[nota_pdf != ""]$nota_pdf), collapse = "; ")`
+
+## Anexo C. Cobertura por hoja-año
+
+```{r}
+#| label: tbl-cobertura
+#| tbl-cap: "Porcentaje de días con al menos 18 h válidas, por hoja-año y variable. Un asterisco marca cobertura baja (menos de 75 %). u/v = componentes del viento."
+cob <- fread("data/clean/cobertura_dias_validos_hoja_anio.csv", encoding = "UTF-8")
+cob[, txt := paste0(round(pct_dias_validos), ifelse(cobertura_baja == 1, "*", ""))]
+cob[variable == "viento_uv", variable := "u/v"]
+cw <- dcast(cob, estacion + anio ~ variable, value.var = "txt")
+orden <- c("estacion", "anio", "PM10", "PM2.5", "O3", "NO2", "NO", "NOX", "CO", "SO2", "TOUT", "RH", "SR", "PRS", "RAINF", "u/v")
+cw <- cw[, ..orden]
+setnames(cw, c("estacion", "anio"), c("Est.", "Año"))
+kable(cw, align = c("l", "r", rep("r", length(orden) - 2)))
+```
