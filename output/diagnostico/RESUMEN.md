@@ -39,9 +39,10 @@ Horas sin fila: 8,189 (1.07% de 762,792); 8,017 son de NO3 2022, que empieza el 
 **7. Tamaño estimado del CSV limpio** (escrito de prueba, 15 variables a 2 decimales): horario 754,603 filas ≈ **60 MB** (≈ 82 MB con una columna bandera por variable; año mayor ≈ 14 MB); diario 31,449 filas ≈ **4.2 MB**. Un solo CSV horario supera 50 MB: dividir por año o publicar solo el diario.
 
 
+
 ## Parte B. Limpieza y publicación
 
-Generado por `scripts/03_limpiar.R` el 2026-09-26. Reglas completas en `data/clean/README.md`: rango duro (contaminantes: operación del año; meteorología: fabricante; RAINF: 0 al máximo de operación del año), notas del PDF, salto horario (TOUT/PRS), PM2.5 > PM10, rachas ≥ 24 h (marcadas desde 6 h) e imputación lineal de huecos ≤ 3 h, con revalidación posterior (un valor imputado que incumple rango, salto o PM2.5 ≤ PM10 vuelve a NA, bandera X; nunca se toca un original). Denominador de las tablas: 762,792 horas esperadas por variable (87 hojas-año).
+Generado por `scripts/03_limpiar.R` el 2026-09-27. Reglas completas en `data/clean/README.md`: rango duro (contaminantes: operación del año; meteorología: fabricante; RAINF: 0 al máximo de operación del año), notas del PDF, saturación de TOUT (|TOUT| ≥ 49.9, L), salto horario (TOUT/PRS), PM2.5 > PM10, rachas ≥ 24 h (marcadas desde 6 h) consistencia espacial sobre lo observado (TOUT a más de 10 °C y RH a más de 40 pp de la mediana de la red en esa hora, con ≥ 5 estaciones; bandera E) e imputación lineal de huecos ≤ 3 h, con revalidación posterior (incluida la regla espacial) (un valor imputado que incumple rango, salto o PM2.5 ≤ PM10 vuelve a NA, bandera X; nunca se toca un original). Denominador de las tablas: 762,792 horas esperadas por variable (87 hojas-año).
 
 | Variable | % falt. original | % invalidado | % imputado neto | Imputaciones revertidas (n) | % falt. final |
 |---|---|---|---|---|---|
@@ -54,19 +55,21 @@ Generado por `scripts/03_limpiar.R` el 2026-09-26. Reglas completas en `data/cle
 | PM2.5 | 26.0 | 0.02 | 2.88 | 3,599 | 23.2 |
 | PRS | 6.1 | 0.41 | 0.80 | 54 | 5.7 |
 | RAINF | 5.8 | 0.00 | 0.00 | 0 | 5.8 |
-| RH | 12.3 | 0.04 | 0.64 | 0 | 11.7 |
+| RH | 12.3 | 0.58 | 0.64 | 180 | 12.3 |
 | SO2 | 15.9 | 0.00 | 2.25 | 0 | 13.7 |
 | SR | 4.7 | 0.14 | 0.34 | 0 | 4.5 |
-| TOUT | 7.9 | 0.12 | 0.65 | 147 | 7.4 |
+| TOUT | 7.9 | 0.19 | 0.64 | 8 | 7.5 |
 | WSR | 7.9 | 0.01 | 0.00 | 0 | 7.9 |
 | WDR | 9.3 | 0.00 | 0.00 | 0 | 9.3 |
 | viento_uv | 12.5 | 0.01 | 1.08 | 0 | 11.4 |
 
-**Núcleos (días estación completos, 2021–2025, sobre 27,025 días).** Núcleo A (PM10, O3 máx. 8 h, NO2, CO, SO2, TOUT, RH, SR, viento, PRS, RAINF): 17,920 (66.3%). Núcleo B (A + PM2.5, conjunto principal de modelado): 14,675 (54.3%). Por estación, B va de 1% (NE3) a 82% (SE3); NE3 y NO3 casi nunca completan B. `sima_diario_2020_2025.csv` trae `en_nucleo_A`, `en_nucleo_B` y `en_periodo_modelado`.
+**Núcleos (días estación completos, 2021–2025, sobre 27,025 días).** Núcleo A (PM10, O3 máx. 8 h, NO2, CO, SO2, TOUT, RH, SR, viento, PRS, RAINF): 17,743 (65.7%). Núcleo B (A + PM2.5, conjunto principal de modelado): 14,551 (53.8%). Por estación, B va de 1% (NE3) a 82% (SE3); NE3 y NO3 casi nunca completan B. `sima_diario_2020_2025.csv` trae `en_nucleo_A`, `en_nucleo_B` y `en_periodo_modelado`.
 
 **NOX.** Horas con |NOX − (NO + NO2)| > max(1 ppb, 10% de NOX), sobre las horas comparables de cada estación, con los valores finales publicados (incluye imputados): NE3 11.50% (de 41,076); NTE2 8.45% (de 43,573); CE 1.87% (de 48,550); NTE 0.94% (de 40,744); NO 0.79% (de 40,308). El resto de estaciones queda bajo 0.5%.
 
-**Sensibilidad.** Con el rango de operación estricto se habrían eliminado 88 horas de TOUT (0.013% de 701,213) y 7,895 de PRS (1.11% de 713,116).
+**Sensibilidad.** Con el rango de operación estricto se habrían eliminado 18 horas de TOUT (0.003% de 700,738) y 7,895 de PRS (1.11% de 713,116).
+
+**Consistencia espacial (E) y saturación (L).** Sobre 701,188 lecturas observadas de TOUT (701,137 con ≥ 5 estaciones) y 668,445 de RH (668,382): con el umbral adoptado se invalidan 450 horas de TOUT (0.064% de las evaluables) y 4,120 de RH (0.616%); además 25 horas de TOUT en el límite del sensor (L). Sensibilidad (una pasada; `sensibilidad_consistencia_espacial.csv`): TOUT > 8 °C: 576 h; > 10 °C: 447 h; > 15 °C: 299 h; RH > 30 pp: 6,283 h; > 40 pp: 4,068 h; > 50 pp: 2,815 h.
 
 **RAINF.** 32 horas sobre el máximo de operación del año se invalidaron (bandera F). Con lo que queda: 1.56% de 718,811 horas válidas tienen lluvia > 0; valor positivo más frecuente 0.01. La cantidad no se usa (unidad sin confirmar); el diario publica `horas_lluvia` y `llovio`.
 
