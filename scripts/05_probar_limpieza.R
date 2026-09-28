@@ -2,6 +2,7 @@
 #   Rscript scripts/05_probar_limpieza.R
 if (!file.exists("sima.Rproj")) stop("Ejecuta desde la raiz del proyecto.", call. = FALSE)
 source("R/importar_sima.R"); source("R/diagnostico.R"); source("R/limpieza.R")
+library(data.table)
 rangos_op <- cargar_rangos(); rangos_fab <- cargar_rangos_fabricante()
 
 # Serie base valida: valores dentro de rango, variables sin rachas ni saltos, NOX = NO + NO2.
@@ -74,4 +75,32 @@ ok(all(!is.na(r$nox_inconsistente[comp])) && all(is.na(r$nox_inconsistente[!comp
 # 6. Nunca se modifica un valor original valido.
 orig <- d[, c("NO", "NO2", "PM10", "PM2.5")]; g <- malla_hoja(d)$X[, c("NO", "NO2", "PM10", "PM2.5")]
 for (v in colnames(g)) { m <- r$flags[, v] %in% c("V", "C"); ok(all(r$imp[m, v] == g[m, v]), paste("originales validos intactos:", v)) }
+
+# 7. Consistencia espacial (regla E), saturacion (L) y revalidacion de imputados contra la red.
+est <- paste0("R", 1:6)
+red_datos <- setNames(lapply(est, function(h) base_hoja(h, 2022)), est)
+d0 <- red_datos[[1]]
+kE <- pos(d0, "2022-05-10 12:00"); kN <- pos(d0, "2022-05-11 12:00"); kL <- pos(d0, "2022-05-12 12:00")
+kR <- pos(d0, "2022-05-13 12:00"); kI <- pos(d0, "2022-06-01 08:00")
+# (un salto de >10 C en 1 h lo atrapa antes la regla S; E se prueba con una deriva en pasos de 8 C)
+red_datos$R1$TOUT[kE + 0:2] <- red_datos$R1$TOUT[kE + 0:2] + c(8, 16, 16)   # +16 C sobre la red con 6 estaciones -> E
+for (h in est[3:6]) red_datos[[h]]$TOUT[kN + 0:1] <- NA                    # solo 2 estaciones reportan (< 5)
+red_datos$R2$TOUT[kN + 0:1] <- red_datos$R2$TOUT[kN + 0:1] + c(8, 16)      # desvio de 16 C pero n < 5: no se evalua
+red_datos$R3$TOUT[kL] <- -50                                               # saturacion -> L
+red_datos$R4$RH[kR] <- 95; red_datos$R5$RH[kR] <- 50; red_datos$R4$RH[kR - 1] <- 50; red_datos$R4$RH[kR + 1] <- 50
+red_datos$R6$RH[kR] <- 40                                                  # (referencia: mediana ~ 50)
+# R6 imputado contra la red: los demas suben en rampa (pasos < 10 C) y R6 tiene un hueco de 3 h entre 20 y 20
+for (h in est[1:5]) red_datos[[h]]$TOUT[kI + (-1:3)] <- c(20, 29, 38, 38, 29)
+red_datos$R6$TOUT[kI + (-1:3)] <- c(20, NA, NA, NA, 20)
+fase1 <- lapply(red_datos, function(d) limpiar_hoja(d, rangos_op, rangos_fab, solo_fase1 = TRUE))
+esp <- red_espacial(fase1)
+rr <- lapply(red_datos, function(d) limpiar_hoja(d, rangos_op, rangos_fab, red = esp$red))
+ok(all(rr$R1$flags_obs[kE + 1:2, "TOUT"] == "E") && all(is.na(rr$R1$obs[kE + 1:2, "TOUT"])), "E: TOUT a +16 C de la mediana con 6 estaciones se invalida")
+ok(rr$R1$flags_obs[kE, "TOUT"] %in% c("V", "C"), "E: a +8 C (dentro del umbral) se conserva")
+ok(all(rr$R2$flags_obs[kN + 0:1, "TOUT"] %in% c("V", "C")), "E: horas con < 5 estaciones no se evaluan (el valor se conserva)")
+ok(rr$R3$flags_obs[kL, "TOUT"] == "L", "L: TOUT = -50 se invalida como saturacion del sensor")
+ok(rr$R4$flags_obs[kR, "RH"] == "E", "E: RH a +45 pp de la mediana se invalida")
+ok(rr$R6$flags[kI, "TOUT"] == "I", "E imputado: la hora dentro de 10 C de la red se conserva (I)")
+ok(all(rr$R6$flags[kI + 1:2, "TOUT"] == "X") && all(is.na(rr$R6$imp[kI + 1:2, "TOUT"])), "E imputado: horas a > 10 C de la red observada se revierten (X)")
+ok(rr$R6$imp[kI - 1, "TOUT"] == 20 && rr$R6$imp[kI + 3, "TOUT"] == 20, "E imputado: los originales vecinos no se tocan")
 message("Todas las pruebas de limpieza pasaron.")

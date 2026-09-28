@@ -47,9 +47,22 @@ validar_limpios <- function(carpeta = "data/clean") {
     tol <- with(d, abs(NOX - (NO + NO2)) > pmax(NOX_TOL_ABS_PPB, NOX_TOL_REL * NOX))
     n_inc <- sum(completa & as.integer(tol) != d$nox_inconsistente, na.rm = TRUE)
     if (n_inc) fallos <- c(fallos, sprintf("%s: %d ternas con nox_inconsistente incoherente con la tolerancia", basename(f), n_inc))
+    # 4. Saturacion del sensor: ningun TOUT pegado al limite del fabricante
+    n_sat <- sum(abs(d$TOUT) >= SATURACION_TOUT, na.rm = TRUE)
+    if (n_sat) fallos <- c(fallos, sprintf("%s: %d horas con TOUT en el limite del sensor (|TOUT| >= %s)", basename(f), n_sat, SATURACION_TOUT))
+    # 5. Consistencia espacial: cada valor publicado (observado o imputado) esta a <= umbral de la mediana
+    #    de las lecturas OBSERVADAS (bandera V/C) de la red en esa hora, si reportan >= 5 estaciones
+    for (v in c("TOUT", "RH")) {
+      x <- d[[v]]; obs <- d[[paste0("f_", v)]] %in% c("V", "C") & !is.na(x)
+      n_obs <- tapply(obs, d$fecha_hora, sum)
+      med <- tapply(ifelse(obs, x, NA_real_), d$fecha_hora, stats::median, na.rm = TRUE)
+      k <- match(d$fecha_hora, names(n_obs))
+      viola <- !is.na(x) & n_obs[k] >= MIN_ESTACIONES_E & abs(x - med[k]) > UMBRAL_E[[v]] + 0.001
+      if (any(viola, na.rm = TRUE)) fallos <- c(fallos, sprintf("%s: %d valores de %s a mas de %s de la mediana de la red", basename(f), sum(viola, na.rm = TRUE), v, UMBRAL_E[[v]]))
+    }
   }
   if (length(fallos)) stop("Validacion de CSV limpios FALLO:\n - ", paste(fallos, collapse = "\n - "), call. = FALSE)
-  message("Validacion OK: sin PM2.5 > PM10, sin valores fuera de rango del anio y nox_inconsistente coherente (",
+  message("Validacion OK: sin PM2.5 > PM10, sin valores fuera de rango del anio, nox_inconsistente coherente, sin saturacion de TOUT y consistencia espacial de TOUT/RH (",
           length(archivos), " CSV horarios).")
   invisible(TRUE)
 }
