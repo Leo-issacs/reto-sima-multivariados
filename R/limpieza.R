@@ -202,6 +202,9 @@ limpiar_hoja <- function(datos_hoja, rangos_op, rangos_fab, red = NULL, solo_fas
     y <- imputeTS::na_interpolation(x, option = "linear", maxgap = MAX_HUECO_H)
     idx <- unlist(mapply(seq, ini[hueco], fin[hueco], SIMPLIFY = FALSE))
     idx <- idx[!is.na(y[idx])]
+    # Las horas anuladas por consistencia espacial (E) o saturacion (L) NO se imputan nunca: la
+    # validacion espacial de un imputado depende de tener >= 5 estaciones, y E puede dejar menos.
+    if (v %in% c("TOUT", "RH")) idx <- idx[!(flags0[idx, v] %in% c("E", "L"))]
     V1[idx, v] <- y[idx]; IMP[idx, v] <- TRUE
   }
   # Revalidacion: un valor imputado que incumple una regla vuelve a NA (bandera X). Nunca se

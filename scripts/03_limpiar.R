@@ -46,7 +46,8 @@ horario <- do.call(rbind, lapply(hojas, function(h) {
   d$confinamiento_2020 <- as.integer(r$fecha >= as.POSIXct("2020-04-01", tz = "UTC") &
                                        r$fecha < as.POSIXct("2020-06-01", tz = "UTC"))
   cbind(d, as.data.frame(apply(val, 2L, redondear)), as.data.frame(fl, stringsAsFactors = FALSE),
-        nox_inconsistente = r$nox_inconsistente)
+        nox_inconsistente = r$nox_inconsistente,
+        f_obs_TOUT = r$flags_obs[, "TOUT"], f_obs_RH = r$flags_obs[, "RH"])
 }))
 stopifnot(anyDuplicated(names(horario)) == 0L)
 
