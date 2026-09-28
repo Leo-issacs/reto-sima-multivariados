@@ -103,4 +103,19 @@ ok(rr$R4$flags_obs[kR, "RH"] == "E", "E: RH a +45 pp de la mediana se invalida")
 ok(rr$R6$flags[kI, "TOUT"] == "I", "E imputado: la hora dentro de 10 C de la red se conserva (I)")
 ok(all(rr$R6$flags[kI + 1:2, "TOUT"] == "X") && all(is.na(rr$R6$imp[kI + 1:2, "TOUT"])), "E imputado: horas a > 10 C de la red observada se revierten (X)")
 ok(rr$R6$imp[kI - 1, "TOUT"] == 20 && rr$R6$imp[kI + 3, "TOUT"] == 20, "E imputado: los originales vecinos no se tocan")
+
+# 8. Caso de la revision (PR #7): E rechaza una lectura y deja < 5 estaciones. La hora anulada NO se imputa.
+h5 <- paste0("Q", 1:5)
+q <- setNames(lapply(h5, function(h) base_hoja(h, 2022)), h5)
+kq <- pos(q$Q1, "2022-07-20 12:00")
+for (h in h5) q[[h]]$RH[kq + (-1:1)] <- c(90, if (h == "Q1") 90 else 40, 90)   # S1: 90/90/90; S2-S5: 90/40/90
+q$Q1$TOUT[kq + (-1:1)] <- c(20, -50, 20)                                         # y saturacion (L) entre dos 20 validos
+f1 <- lapply(q, function(d) limpiar_hoja(d, rangos_op, rangos_fab, solo_fase1 = TRUE))
+e5 <- red_espacial(f1)
+rq <- lapply(q, function(d) limpiar_hoja(d, rangos_op, rangos_fab, red = e5$red))
+ok(rq$Q1$flags_obs[kq, "RH"] == "E", "5 -> 4 estaciones: E rechaza el 90 % de S1 (mediana 40)")
+ok(is.na(rq$Q1$imp[kq, "RH"]) && rq$Q1$flags[kq, "RH"] == "E", "5 -> 4 estaciones: la hora rechazada NO se imputa (queda NA, bandera E)")
+ok(all(rq$Q2$imp[kq + (-1:1), "RH"] == c(90, 40, 90)), "5 -> 4 estaciones: las otras estaciones no cambian")
+ok(rq$Q1$flags_obs[kq, "TOUT"] == "L" && is.na(rq$Q1$imp[kq, "TOUT"]) && rq$Q1$flags[kq, "TOUT"] == "L",
+   "L: la hora saturada entre dos valores validos NO se imputa (queda NA, bandera L)")
 message("Todas las pruebas de limpieza pasaron.")

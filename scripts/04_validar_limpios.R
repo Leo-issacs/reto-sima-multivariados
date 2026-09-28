@@ -60,6 +60,14 @@ validar_limpios <- function(carpeta = "data/clean") {
       viola <- !is.na(x) & n_obs[k] >= MIN_ESTACIONES_E & abs(x - med[k]) > UMBRAL_E[[v]] + 0.001
       if (any(viola, na.rm = TRUE)) fallos <- c(fallos, sprintf("%s: %d valores de %s a mas de %s de la mediana de la red", basename(f), sum(viola, na.rm = TRUE), v, UMBRAL_E[[v]]))
     }
+    # 6. Horas anuladas por E o L nunca se imputan: siguen vacias y conservan su bandera
+    stopifnot(all(c("f_obs_TOUT", "f_obs_RH") %in% names(d)))
+    anul <- list(TOUT = d$f_obs_TOUT %in% c("E", "L"), RH = d$f_obs_RH %in% "E")
+    for (v in names(anul)) {
+      m <- anul[[v]]
+      n_rein <- sum(m & (!is.na(d[[v]]) | !(d[[paste0("f_", v)]] %in% c("E", "L"))))
+      if (n_rein) fallos <- c(fallos, sprintf("%s: %d horas de %s anuladas por E/L reincorporadas (imputadas)", basename(f), n_rein, v))
+    }
   }
   if (length(fallos)) stop("Validacion de CSV limpios FALLO:\n - ", paste(fallos, collapse = "\n - "), call. = FALSE)
   message("Validacion OK: sin PM2.5 > PM10, sin valores fuera de rango del anio, nox_inconsistente coherente, sin saturacion de TOUT y consistencia espacial de TOUT/RH (",
