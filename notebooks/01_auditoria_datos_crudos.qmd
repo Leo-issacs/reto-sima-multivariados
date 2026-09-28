@@ -1,0 +1,704 @@
+---
+title: "Auditoría de los datos crudos del SIMA (2020–2025)"
+subtitle: "Cómo encontramos las irregularidades, paso a paso"
+lang: es
+format:
+  html:
+    toc: true
+    embed-resources: true
+execute:
+  warning: false
+  message: false
+---
+
+## Cómo usar este cuaderno
+
+Este cuaderno reproduce, sobre los **Excel originales**, cada irregularidad que reportamos en la etapa 1. Es independiente de los scripts de limpieza (`scripts/02–05`): usa solo `dplyr`, `tidyr`, `readxl` y `ggplot2`, para que cualquiera del equipo pueda leerlo y verificar los resultados por su cuenta.
+
+- **En RStudio:** abre el proyecto `sima.Rproj` y luego este archivo. Ejecuta los bloques en orden con el botón ▶ de cada uno (o `Ctrl + Shift + Enter`) y lee el resultado antes de pasar al siguiente.
+- **Para generar el reporte completo:** `quarto render notebooks/01_auditoria_datos_crudos.qmd`.
+- En cada bloque, **"Resultado del diagnóstico"** indica lo que obtuvimos el 26 de septiembre de 2026, para que compares. Algunas cifras pueden variar ligeramente cuando el criterio de este cuaderno es más simple que el de los scripts; eso se indica en cada caso.
+
+---
+
+## Bloque 0 · Preparar el entorno
+
+**Para qué sirve:** carga los paquetes, ubica la carpeta del proyecto y los seis Excel, y define la lista de variables de medición.
+
+```{r bloque-0}
+paquetes <- c("readxl", "dplyr", "tidyr", "purrr", "lubridate", "ggplot2", "stringr")
+faltan <- paquetes[!vapply(paquetes, requireNamespace, logical(1), quietly = TRUE)]
+if (length(faltan) > 0) stop("Instala primero: ", paste(faltan, collapse = ", "))
+invisible(lapply(paquetes, library, character.only = TRUE))
+
+# Carpeta raíz del proyecto, tanto si se ejecuta desde la raíz como desde notebooks/
+raiz <- if (file.exists("sima.Rproj")) "." else ".."
+
+# Ubicación de los Excel originales: primero data/raw/ del proyecto, luego Descargas
+candidatas <- c(file.path(raiz, "data", "raw"), "C:/Users/leona/Downloads")
+ruta_excel <- candidatas[file.exists(file.path(candidatas, "BD 2020.xlsx"))][1]
+if (is.na(ruta_excel)) stop("No encuentro 'BD 2020.xlsx'. Copia los 6 Excel a data/raw/.")
+archivos <- file.path(ruta_excel, paste0("BD ", 2020:2025, ".xlsx"))
+stopifnot(all(file.exists(archivos)))
+
+VARS <- c("CO", "NO", "NO2", "NOX", "O3", "PM10", "PM2.5", "PRS",
+          "RAINF", "RH", "SO2", "SR", "TOUT", "WSR", "WDR")
+cat("Excel encontrados en:", normalizePath(ruta_excel), "\n")
+```
+
+---
+
+## Bloque 1 · Integridad de los archivos
+
+**Para qué sirve:** comprueba que los Excel sean exactamente los mismos que inventariamos el 25 de septiembre. La huella MD5 cambia si se altera un solo byte del archivo. Sin esta comprobación no podríamos afirmar que todos trabajamos con la misma versión de los datos.
+
+```{r bloque-1}
+inventario <- read.csv(file.path(raiz, "data/metadata/inventario_archivos_inicial.csv"))
+
+tibble(archivo = basename(archivos),
+       md5_hoy = unname(tools::md5sum(archivos))) |>
+  left_join(inventario |> select(archivo, md5_inventario = md5, hojas), by = "archivo") |>
+  mutate(coincide = md5_hoy == md5_inventario) |>
+  select(archivo, hojas, coincide)
+```
+
+**Resultado del diagnóstico:** los 6 archivos coinciden (`TRUE`); tienen 13, 14, 15, 15, 15 y 15 hojas.
+
+---
+
+## Bloque 2 · Estructura: hojas, columnas y nombre de la fecha
+
+**Para qué sirve:** lee solo los encabezados de las 87 hojas para ver si todos los años tienen la misma estructura antes de unirlos.
+
+```{r bloque-2}
+estructura <- map_dfr(archivos, function(a) {
+  map_dfr(excel_sheets(a), function(h) {
+    enc <- names(read_excel(a, sheet = h, n_max = 0))
+    tibble(archivo = basename(a), hoja = h,
+           n_columnas = length(enc), columna_fecha = enc[1])
+  })
+})
+
+# a) ¿Cómo se llama la columna de fecha en cada archivo?
+estructura |> count(archivo, columna_fecha, n_columnas, name = "hojas")
+
+# b) ¿En qué años aparece cada estación (hoja)?
+estructura |>
+  mutate(anio = str_extract(archivo, "\\d{4}")) |>
+  group_by(hoja) |>
+  summarise(n_anios = n(), anios = paste(anio, collapse = ", "), .groups = "drop") |>
+  arrange(n_anios)
+```
+
+**Resultado del diagnóstico:**
+
+- La fecha se llama `Fecha y hora` en 2020–2024 y `date` en 2025. Todas las hojas tienen 16 columnas.
+- NE3 aparece desde 2021 y NO3 desde 2022.
+- **Irregularidad 1:** el nombre de la columna de fecha cambia entre años. Si se une por nombre sin corregirlo, se pierde la fecha de 2025.
+
+---
+
+## Bloque 3 · Importar todas las hojas sin transformar
+
+**Para qué sirve:** lee las 87 hojas **como texto**, para no perder nada que no sea número. Luego convierte cada columna a numérica y cuenta cuántas celdas no pudieron convertirse. Conserva la estación (el nombre de la hoja), el año y la fila de origen de cada registro. Tarda 1–2 minutos.
+
+```{r bloque-3}
+leer_hoja <- function(a, h) {
+  x <- read_excel(a, sheet = h, col_types = "text", .name_repair = "minimal")
+  names(x)[1] <- "fecha_texto"
+
+  # Excel guarda la fecha como número de días desde 1899-12-30
+  f_num <- suppressWarnings(as.numeric(x$fecha_texto))
+  fecha <- as.POSIXct(round(f_num * 86400), origin = "1899-12-30", tz = "UTC")
+  sin_num <- is.na(f_num) & !is.na(x$fecha_texto)            # por si viniera como texto
+  fecha[sin_num] <- ymd_hms(x$fecha_texto[sin_num], tz = "UTC", quiet = TRUE)
+
+  vars <- intersect(VARS, names(x))
+  datos <- tibble(archivo = basename(a),
+                  anio_archivo = as.integer(str_extract(basename(a), "\\d{4}")),
+                  estacion = h, fila_excel = seq_len(nrow(x)) + 1L, fecha_hora = fecha)
+  no_num <- integer(length(vars))
+  for (i in seq_along(vars)) {
+    v <- vars[i]
+    num <- suppressWarnings(as.numeric(x[[v]]))
+    no_num[i] <- sum(!is.na(x[[v]]) & is.na(num))            # había algo, pero no era número
+    datos[[v]] <- num
+  }
+  list(datos = datos,
+       no_num = tibble(archivo = basename(a), estacion = h, variable = vars, no_numericas = no_num))
+}
+
+lecturas <- unlist(lapply(archivos, function(a) lapply(excel_sheets(a), function(h) leer_hoja(a, h))),
+                   recursive = FALSE)
+crudo        <- map_dfr(lecturas, "datos")
+no_numericos <- map_dfr(lecturas, "no_num")
+rm(lecturas)
+
+cat("Registros:", nrow(crudo), "| columnas:", ncol(crudo),
+    "| estaciones:", n_distinct(crudo$estacion), "\n")
+```
+
+**Resultado del diagnóstico:** 754 603 registros de 15 estaciones.
+
+---
+
+## Bloque 4 · Celdas que no son números (¿hay banderas?)
+
+**Para qué sirve:** SIMA marca la validez de cada hora con banderas de letras (P, c, m…, según `Etiquetas.xlsx`). Si los archivos las trajeran, aparecerían aquí como celdas no numéricas.
+
+```{r bloque-4}
+no_numericos |>
+  group_by(variable) |>
+  summarise(celdas_no_numericas = sum(no_numericas), .groups = "drop") |>
+  arrange(desc(celdas_no_numericas))
+```
+
+**Resultado del diagnóstico:** 0 celdas no numéricas en todas las variables.
+
+- **Hallazgo:** los archivos no traen banderas. Una celda vacía no dice si el dato faltó por falla, calibración o invalidación.
+
+---
+
+## Bloque 5 · Resolución temporal: ¿horaria o diaria?
+
+**Para qué sirve:** `Etiquetas.xlsx` dice que los datos son "promedios diarios". Este bloque lo contrasta con los datos reales, calculando el tiempo entre registros consecutivos y el número de registros por día.
+
+```{r bloque-5}
+saltos <- crudo |>
+  arrange(estacion, anio_archivo, fecha_hora) |>
+  group_by(estacion, anio_archivo) |>
+  mutate(salto_horas = as.numeric(difftime(fecha_hora, lag(fecha_hora), units = "hours"))) |>
+  ungroup() |>
+  filter(!is.na(salto_horas))
+
+# a) Distribución del tiempo entre registros consecutivos
+saltos |> count(salto_horas, sort = TRUE) |> mutate(pct = round(100 * n / sum(n), 2)) |> head(6)
+
+# b) ¿Las marcas caen en punto (minuto 0)? ¿Cuántos registros hay por día?
+crudo |>
+  summarise(pct_en_punto = round(100 * mean(minute(fecha_hora) == 0, na.rm = TRUE), 2))
+crudo |>
+  count(estacion, dia = as_date(fecha_hora)) |>
+  summarise(mediana_registros_por_dia = median(n))
+```
+
+**Resultado del diagnóstico:** 99.98 % de los saltos son de 1 hora, el 100 % de las marcas caen en punto y la mediana es de 24 registros por día.
+
+- **Irregularidad 2:** la documentación (Etiquetas) no describe estos archivos. Los datos son **horarios**.
+
+---
+
+## Bloque 6 · Duplicados y horas sin registro
+
+**Para qué sirve:**
+
+- Busca marcas de tiempo repetidas en una misma estación.
+- Compara las horas que debería tener cada estación-año (24 × días del año) con las filas que realmente tiene.
+
+```{r bloque-6}
+# a) Duplicados
+crudo |> count(estacion, fecha_hora) |> filter(n > 1) |> nrow()
+
+# b) Horas esperadas vs. filas presentes
+horas_sin_fila <- crudo |>
+  count(estacion, anio_archivo, name = "filas") |>
+  mutate(horas_esperadas = 24 * if_else(leap_year(anio_archivo), 366, 365),
+         horas_sin_fila = horas_esperadas - filas) |>
+  arrange(desc(horas_sin_fila))
+head(horas_sin_fila, 5)
+cat("Total de horas sin fila:", sum(horas_sin_fila$horas_sin_fila),
+    "de", sum(horas_sin_fila$horas_esperadas), "\n")
+
+# c) ¿Cuándo empieza la estación NO3?
+crudo |>
+  filter(estacion == "NO3") |>
+  group_by(anio_archivo) |>
+  summarise(primera = min(fecha_hora), ultima = max(fecha_hora))
+```
+
+**Resultado del diagnóstico:**
+
+- 0 duplicados.
+- 8 189 horas sin fila de 762 792 esperadas (1.07 %). De ellas, 8 017 corresponden a NO3 en 2022, que empieza el 1 de diciembre de 2022 a la 01:00.
+
+---
+
+## Bloque 7 · ¿Hay cambio de horario de verano?
+
+**Para qué sirve:** México aplicó el horario de verano hasta 2022. Si los registros lo siguieran, en abril y octubre habría días con 23 o 25 registros, y el mediodía solar se correría una hora entre invierno y verano. Esto define si la hora es local fija.
+
+```{r bloque-7}
+# a) Días de abril y octubre (2020–2022) con un número de registros distinto de 24
+crudo |>
+  filter(anio_archivo <= 2022, month(fecha_hora) %in% c(4, 10)) |>
+  count(estacion, dia = as_date(fecha_hora)) |>
+  filter(n != 24)
+
+# b) "Hora central" de la radiación solar (promedio de la hora ponderado por la radiación)
+crudo |>
+  filter(anio_archivo == 2020, !is.na(SR), SR > 0) |>
+  mutate(periodo = case_when(month(fecha_hora) %in% c(12, 1, 2) ~ "invierno (dic–feb)",
+                             month(fecha_hora) %in% 6:8        ~ "verano (jun–ago)")) |>
+  filter(!is.na(periodo)) |>
+  group_by(periodo) |>
+  summarise(hora_central_radiacion = round(weighted.mean(hour(fecha_hora), SR), 2))
+```
+
+**Resultado del diagnóstico:**
+
+- No hay días con 23 o 25 registros.
+- La hora central de la radiación es de 12.74 h en invierno y 13.15 h en verano. Es una diferencia de ~0.4 h, no la hora completa que dejaría el horario de verano.
+- **Conclusión:** la hora parece local fija. Lo pedimos confirmar a SIMA.
+
+---
+
+## Bloque 8 · Datos faltantes por variable y por estación-año
+
+**Para qué sirve:** mide qué porcentaje de horas no tiene dato. El denominador son **todas las horas esperadas** (762 792 por variable), incluidas las horas sin fila del bloque 6. El mapa de calor muestra si los faltantes se concentran en ciertas estaciones o años.
+
+```{r bloque-8}
+total_esperado <- sum(horas_sin_fila$horas_esperadas)
+total_sin_fila <- sum(horas_sin_fila$horas_sin_fila)
+
+crudo |>
+  summarise(across(all_of(VARS), ~ sum(is.na(.x)))) |>
+  pivot_longer(everything(), names_to = "variable", values_to = "vacias_con_fila") |>
+  mutate(pct_faltante = round(100 * (vacias_con_fila + total_sin_fila) / total_esperado, 1)) |>
+  arrange(desc(pct_faltante))
+```
+
+```{r bloque-8-grafica, fig.width = 11, fig.height = 7}
+crudo |>
+  group_by(estacion, anio_archivo) |>
+  summarise(across(all_of(VARS), ~ 100 * mean(is.na(.x))), .groups = "drop") |>
+  pivot_longer(all_of(VARS), names_to = "variable", values_to = "pct_faltante") |>
+  ggplot(aes(factor(anio_archivo), estacion, fill = pct_faltante)) +
+  geom_tile() +
+  facet_wrap(~ variable, ncol = 5) +
+  scale_fill_viridis_c(name = "% faltante", limits = c(0, 100)) +
+  labs(x = "Año", y = "Estación",
+       title = "Faltantes por estación y año (sobre las filas presentes)") +
+  theme_minimal(base_size = 9)
+```
+
+**Resultado del diagnóstico:**
+
+- El faltante va de 4.7 % (SR) a **26.0 % (PM2.5)**; PM10 tiene 5.7 %.
+- En el mapa se ven NE3 y NO3 casi vacías en PM2.5, y 2020 como el peor año para los gases.
+
+---
+
+## Bloque 9 · Valores fuera de los rangos de operación de SIMA
+
+**Para qué sirve:** compara cada valor con el rango "posible" que SIMA definió para ese año y esa variable (`Rangos de los parámetros del SIMA`, transcrito en `config/rangos_operacion.csv`). Un valor fuera de rango es candidato a error de medición.
+
+```{r bloque-9}
+rangos <- read.csv(file.path(raiz, "config/rangos_operacion.csv"))
+
+fuera_rango <- map_dfr(intersect(unique(rangos$variable), VARS), function(v) {
+  r <- rangos |> filter(variable == v) |> select(anio_archivo = anio, minimo, maximo)
+  crudo |>
+    select(anio_archivo, valor = all_of(v)) |>
+    filter(!is.na(valor)) |>
+    left_join(r, by = "anio_archivo") |>
+    summarise(variable = v, presentes = n(),
+              bajo_minimo = sum(valor < minimo), sobre_maximo = sum(valor > maximo))
+}) |>
+  mutate(pct_fuera = round(100 * (bajo_minimo + sobre_maximo) / presentes, 2)) |>
+  arrange(desc(pct_fuera))
+fuera_rango
+```
+
+**Resultado del diagnóstico:**
+
+- Los contaminantes casi nunca salen de rango (≤ 0.05 %).
+- La **presión (PRS)** sale de rango en 1.14 % de las horas.
+- La **temperatura** tiene cientos de horas bajo el mínimo en años cuyo rango empieza en 0 °C.
+
+Los dos bloques siguientes explican por qué esas dos "violaciones" **no son errores**.
+
+---
+
+## Bloque 10 · Temperaturas bajo cero: ¿heladas reales o errores?
+
+**Para qué sirve:** en 2020 y 2023 el rango de operación de la temperatura empieza en 0 °C. Este bloque separa las lecturas negativas por época del año:
+
+- En **noviembre–marzo** pueden ser heladas reales. El PIGECA registra −4.0 °C en NE3 el 25 de diciembre de 2022.
+- En **abril–octubre**, en Monterrey, son físicamente implausibles.
+
+También cuenta lecturas pegadas al límite del sensor (−50 °C), que indican saturación, no temperatura.
+
+```{r bloque-10}
+crudo |>
+  filter(TOUT < 0) |>
+  mutate(epoca = if_else(month(fecha_hora) %in% c(11, 12, 1, 2, 3),
+                         "nov–mar (posible helada)", "abr–oct (implausible)")) |>
+  group_by(epoca, estacion, anio_archivo) |>
+  summarise(horas = n(), minima = min(TOUT), .groups = "drop") |>
+  arrange(epoca, desc(horas))
+
+crudo |> summarise(horas_en_el_limite_del_sensor = sum(TOUT <= -49.9, na.rm = TRUE))
+```
+
+**Resultado del diagnóstico:**
+
+- La mayoría de las horas bajo cero son de invierno y coinciden con frentes fríos.
+- Sin embargo, aparecen **negativos en verano**: SE en 2021, SUR en 2023–2024, y NTE en abril de 2020 con −50 °C, el límite del sensor.
+- **Irregularidad 4:** ni el rango de operación (que eliminaría heladas reales) ni el del fabricante (que deja pasar −50 °C) bastan. Hace falta una prueba adicional (bloque 10b).
+
+---
+
+## Bloque 10b · Consistencia espacial de la temperatura y la humedad
+
+**Para qué sirve:** las 15 estaciones están en la misma metrópoli, así que a una misma hora sus temperaturas no deberían diferir por decenas de grados. Este bloque compara cada lectura con la **mediana de la red en esa hora** (solo cuando reportan al menos 5 estaciones) y cuenta las desviaciones extremas.
+
+Es una prueba estándar de control de calidad meteorológico, conocida como *buddy check* o prueba espacial (Fiebrich et al., 2010). Se hace lo mismo con la humedad relativa.
+
+```{r bloque-10b}
+desvio_red <- function(v) {
+  crudo |>
+    select(estacion, anio_archivo, fecha_hora, x = all_of(v)) |>
+    filter(!is.na(x)) |>
+    group_by(fecha_hora) |>
+    mutate(n_estaciones = n(), mediana_red = median(x), desviacion = x - mediana_red) |>
+    ungroup() |>
+    filter(n_estaciones >= 5)
+}
+
+tout_red <- desvio_red("TOUT")
+tout_red |> summarise(horas = n(),
+                      desvio_mayor_10C = sum(abs(desviacion) > 10),
+                      desvio_mayor_15C = sum(abs(desviacion) > 15))
+tout_red |> filter(abs(desviacion) > 10) |> count(estacion, anio_archivo, sort = TRUE) |> head(8)
+
+rh_red <- desvio_red("RH")
+rh_red |> summarise(horas = n(),
+                    desvio_mayor_40pp = sum(abs(desviacion) > 40),
+                    rh_menor_5pct = sum(x < 5))
+```
+
+```{r bloque-10b-grafica, fig.width = 7, fig.height = 3.5}
+ggplot(tout_red, aes(desviacion)) +
+  geom_histogram(binwidth = 0.5) +
+  geom_vline(xintercept = c(-10, 10), linetype = 2) +
+  scale_y_continuous(trans = "log1p") +
+  labs(x = "Temperatura de la estación − mediana de la red a la misma hora (°C)",
+       y = "Horas (escala log)",
+       title = "Casi todas las horas quedan a pocos grados de la red; las colas son errores") +
+  theme_minimal()
+```
+
+**Resultado del diagnóstico.** El número depende de sobre qué base se calcule. Este cuaderno usa los **Excel originales**:
+
+| Base | Lecturas de temperatura a más de 10 °C de la mediana de la red |
+|---|---:|
+| Excel originales (este cuaderno) | 1 082 |
+| Base limpia `datos-v1.0`, con imputaciones | 614 |
+| PR #7, después de los filtros previos y en una sola pasada | 447 |
+
+Cifras verificadas por la revisión de Codex del PR #7. En humedad, la base `datos-v1.0` tenía 3 351 horas con RH < 5 %, sobre todo en NTE.
+
+**Cómo interpretarlo:** una lectura muy distinta de las demás estaciones es **sospechosa, pero eso no demuestra por sí solo que sea errónea**. Un fenómeno muy local también podría producirla. La prueba espacial está respaldada por la literatura (Fiebrich et al., 2010), pero los umbrales son **decisiones del equipo**, justificadas por:
+
+1. la forma de este histograma, donde casi todas las horas quedan a pocos grados de la red;
+2. la plausibilidad física (no hay −50 °C ni heladas en verano en Monterrey);
+3. un análisis de sensibilidad con umbrales de 8, 10 y 15 °C para la temperatura y de 30, 40 y 50 puntos para la humedad.
+
+**Decisión:** se invalidan la temperatura con desviación > 10 °C, la humedad con desviación > 40 puntos y las lecturas en el límite del sensor. Estas horas **no se vuelven a imputar**.
+
+---
+
+## Bloque 11 · Presión fuera de rango y altitud de las estaciones
+
+**Para qué sirve:** la presión atmosférica baja con la altitud (alrededor de 1 mm Hg cada 11 m cerca del nivel del mar). El rango de operación es **uno solo para toda la red**. Si las horas "fuera de rango" se concentran en las estaciones más altas, el problema es el rango, no el sensor.
+
+```{r bloque-11, fig.width = 7, fig.height = 4}
+estaciones <- read.csv(file.path(raiz, "data/metadata/estaciones.csv"))
+r_prs <- rangos |> filter(variable == "PRS") |> select(anio_archivo = anio, minimo, maximo)
+
+prs <- crudo |>
+  filter(!is.na(PRS)) |>
+  left_join(r_prs, by = "anio_archivo") |>
+  group_by(estacion) |>
+  summarise(prs_mediana = median(PRS),
+            pct_bajo_minimo = round(100 * mean(PRS < minimo), 2),
+            pct_sobre_maximo = round(100 * mean(PRS > maximo), 2), .groups = "drop") |>
+  left_join(estaciones |> select(estacion = codigo_hoja, altitud_msnm), by = "estacion") |>
+  arrange(desc(altitud_msnm))
+prs
+
+ggplot(prs, aes(altitud_msnm, prs_mediana, label = estacion)) +
+  geom_point() + geom_text(nudge_y = 1.2, size = 3) +
+  geom_smooth(method = "lm", se = FALSE, linewidth = 0.5) +
+  labs(x = "Altitud de la estación (msnm)", y = "Presión mediana (mm Hg)",
+       title = "La presión depende de la altitud; el rango de SIMA es único para toda la red") +
+  theme_minimal()
+```
+
+**Resultado del diagnóstico:**
+
+- Relación claramente decreciente entre altitud y presión.
+- Las horas fuera de rango se concentran en estaciones y años concretos (por ejemplo, NO2-García en 2022, cuando el mínimo del rango subió a 700 mm Hg).
+- **Decisión:** en la presión usamos el rango del fabricante más una regla de saltos bruscos (> 10 mm Hg en 1 h).
+
+---
+
+## Bloque 12 · Consistencia química: NOX debería ser NO + NO2
+
+**Para qué sirve:** por definición (Etiquetas), NOX = NO + NO2. Si en una estación la igualdad falla con frecuencia, hay un problema de calibración o de cálculo en ese equipo. La tolerancia usada es de 1 ppb o 10 % de NOX, la mayor de las dos.
+
+```{r bloque-12}
+nox <- crudo |>
+  filter(!is.na(NO), !is.na(NO2), !is.na(NOX)) |>
+  mutate(diferencia = NOX - (NO + NO2),
+         inconsistente = abs(diferencia) > pmax(1, 0.10 * NOX))
+
+nox |>
+  group_by(estacion) |>
+  summarise(horas_comparables = n(),
+            pct_inconsistente = round(100 * mean(inconsistente), 2),
+            diferencia_mediana_ppb = round(median(diferencia), 2), .groups = "drop") |>
+  arrange(desc(pct_inconsistente))
+```
+
+```{r bloque-12-grafica, fig.width = 8, fig.height = 4}
+nox |>
+  filter(estacion %in% c("NE3", "NTE2", "SE3")) |>
+  slice_sample(n = 3000, by = estacion) |>
+  ggplot(aes(NO + NO2, NOX, colour = inconsistente)) +
+  geom_point(alpha = 0.3, size = 0.6) +
+  geom_abline(slope = 1, intercept = 0) +
+  facet_wrap(~ estacion) +
+  labs(x = "NO + NO2 (ppb)", y = "NOX (ppb)",
+       title = "Sobre la diagonal, NOX = NO + NO2 (muestra de 3 000 horas por estación)") +
+  theme_minimal()
+```
+
+**Resultado del diagnóstico:** NE3 es inconsistente en 11.35 % de las horas y NTE2 en 8.21 %. El resto queda por debajo de 2 %.
+
+- **Irregularidad 3:** es un problema localizado en dos estaciones.
+- **Decisión:** NOX no entra al análisis; conserva una bandera de inconsistencia.
+
+---
+
+## Bloque 13 · Consistencia física: PM2.5 no puede superar a PM10
+
+**Para qué sirve:** las partículas menores de 2.5 µm forman parte de las menores de 10 µm, así que PM2.5 ≤ PM10 siempre. Si esto casi nunca se viola, los datos ya pasaron por una depuración previa.
+
+```{r bloque-13}
+crudo |>
+  filter(!is.na(PM10), !is.na(`PM2.5`)) |>
+  summarise(horas_comparables = n(),
+            pm25_mayor_que_pm10 = sum(`PM2.5` > PM10),
+            pct = round(100 * pm25_mayor_que_pm10 / horas_comparables, 3))
+```
+
+**Resultado del diagnóstico:** 37 de 555 259 horas (0.007 %).
+
+- **Conclusión:** SIMA ya depuró sus datos.
+- **Decisión:** en esas 37 horas se anulan los dos valores (bandera *r* de SIMA).
+
+---
+
+## Bloque 14 · Rachas de valores idénticos (¿sensor "congelado"?)
+
+**Para qué sirve:** un sensor que se atora repite el mismo valor hora tras hora. Este bloque cuenta las horas que forman parte de rachas de 6 h o más con el mismo valor distinto de cero. Luego revisa si las rachas de radiación solar ocurren de noche, en cuyo caso son reales.
+
+```{r bloque-14}
+rachas_de <- function(v, minimo = 6) {
+  d <- crudo |>
+    select(estacion, anio_archivo, fecha_hora, x = all_of(v)) |>
+    arrange(estacion, anio_archivo, fecha_hora)
+  n <- nrow(d)
+  grupo <- paste(d$estacion, d$anio_archivo)
+  # Empieza una racha nueva si cambia la estación-año, si hay un vacío o si cambia el valor
+  nueva <- c(TRUE, grupo[-1] != grupo[-n] | is.na(d$x[-1]) | is.na(d$x[-n]) | d$x[-1] != d$x[-n])
+  nueva[is.na(nueva)] <- TRUE
+  inicio <- which(nueva)
+  tibble(estacion = d$estacion[inicio], anio_archivo = d$anio_archivo[inicio],
+         valor = d$x[inicio], largo = tabulate(cumsum(nueva)),
+         hora_inicio = hour(d$fecha_hora[inicio])) |>
+    filter(!is.na(valor), valor != 0, largo >= minimo)
+}
+
+rachas <- map(set_names(VARS), rachas_de)
+map_dfr(rachas, ~ tibble(rachas = nrow(.x), horas_en_rachas = sum(.x$largo),
+                         racha_maxima_h = if (nrow(.x)) max(.x$largo) else 0L),
+        .id = "variable") |>
+  arrange(desc(horas_en_rachas))
+
+# Detalle de la radiación solar: ¿qué valor se repite y a qué hora empiezan las rachas?
+rachas$SR |> count(valor, sort = TRUE) |> head(5)
+rachas$SR |> summarise(pct_rachas_que_inician_entre_18h_y_6h =
+                         round(100 * mean(hora_inicio >= 18 | hora_inicio <= 6), 1))
+```
+
+**Resultado del diagnóstico:**
+
+- SR concentra la mayoría de las horas en rachas (~59 600), con valores de fondo como 0.001 kW/m² durante la noche. Es un comportamiento real del sensor, no una falla.
+- **Decisión:** las rachas se marcan desde 6 h, pero solo se anulan las de ≥ 24 h, y nunca en SR ni RAINF.
+- Los conteos pueden variar un poco respecto a los scripts, que evalúan cada hoja-año por separado.
+
+---
+
+## Bloque 15 · Precipitación (RAINF): unidad dudosa y valores imposibles
+
+**Para qué sirve:** Etiquetas indica una conversión "(Valor × 0.25) × 100", y el fabricante reporta un conteo por pulso de 0.01. Este bloque revisa si los valores tienen sentido físico. Como referencia, en Nuevo León llueven cerca de 400–600 mm **al año**.
+
+```{r bloque-15}
+# a) Resumen general
+crudo |>
+  filter(!is.na(RAINF)) |>
+  summarise(horas = n(), pct_horas_con_lluvia = round(100 * mean(RAINF > 0), 2),
+            maximo_por_hora = max(RAINF))
+
+# b) Valores positivos más frecuentes (¿hay valores "pegados"?)
+crudo |> filter(RAINF > 0) |> count(RAINF, sort = TRUE) |> head(8)
+
+# c) Días con mayor suma de lluvia en una estación
+crudo |>
+  group_by(estacion, dia = as_date(fecha_hora)) |>
+  summarise(suma_dia = sum(RAINF, na.rm = TRUE), .groups = "drop") |>
+  arrange(desc(suma_dia)) |>
+  head(5)
+```
+
+**Resultado del diagnóstico:**
+
+- Solo 1.56 % de las horas tienen lluvia.
+- Hay horas con valor 360, que es imposible como mm/h, y valores repetidos sospechosos (17.98 y 18).
+- Algunos días suman **miles de mm**.
+- **Decisión:** la cantidad de lluvia no se usa. Solo usamos "llovió sí/no" y el número de horas con lluvia.
+
+---
+
+## Bloque 16 · Cobertura diaria: ¿cuántos días sirven para el análisis?
+
+**Para qué sirve:**
+
+- Un promedio diario solo es confiable con al menos 18 de 24 horas válidas, el criterio del 75 % de SIMA.
+- Primero se calcula, por variable, cuántas estaciones-año tienen al menos 75 % de días válidos.
+- Después se calcula cuántos días son válidos en **todas** las variables a la vez, que es lo que exigen PCA y conglomerados.
+
+```{r bloque-16}
+horas_validas <- crudo |>
+  mutate(dia = as_date(fecha_hora)) |>
+  group_by(estacion, anio_archivo, dia) |>
+  summarise(across(all_of(VARS), ~ sum(!is.na(.x))), .groups = "drop")
+dia_valido <- horas_validas |> mutate(across(all_of(VARS), ~ .x >= 18))
+
+# a) Estaciones-año (de 87) con al menos 75 % de los días del año válidos, por variable
+dia_valido |>
+  group_by(estacion, anio_archivo) |>
+  summarise(across(all_of(VARS), ~ sum(.x) / if_else(leap_year(first(anio_archivo)), 366, 365)),
+            .groups = "drop") |>
+  summarise(across(all_of(VARS), ~ sum(.x >= 0.75))) |>
+  pivot_longer(everything(), names_to = "variable", values_to = "estaciones_anio_con_75pct") |>
+  arrange(estaciones_anio_con_75pct)
+
+# b) Días completos en todas las variables del núcleo (2021–2025, sin imputar)
+nucleo <- c("PM10", "PM2.5", "O3", "NO2", "CO", "SO2", "TOUT", "RH", "SR", "WSR", "WDR", "PRS")
+dia_valido |>
+  filter(anio_archivo >= 2021) |>
+  mutate(completo = if_all(all_of(nucleo))) |>
+  summarise(dias_estacion = n(), dias_completos = sum(completo),
+            pct = round(100 * dias_completos / dias_estacion, 1))
+```
+
+**Resultado del diagnóstico:**
+
+- PM10 cumple en 84 de 87 estaciones-año, pero PM2.5 solo en 60.
+- Exigiendo todas las variables a la vez, sin imputar, quedan cerca de la mitad de los días de 2021–2025. Los scripts obtienen 13 871 de 27 025 con el criterio exacto del núcleo B (O3 con 8 h y lluvia incluida), así que aquí la cifra será cercana, no idéntica.
+- **Conclusión:** la restricción real no es cada variable por separado, sino la **completitud conjunta**.
+
+---
+
+## Bloque 17 · Metadatos: inconsistencias en `Etiquetas.xlsx`
+
+**Para qué sirve:** compara el catálogo de estaciones de Etiquetas con las hojas reales de los Excel.
+
+```{r bloque-17}
+etq <- read_excel(file.path(raiz, "references/materiales/Etiquetas.xlsx"),
+                  sheet = "Variables", col_names = FALSE, .name_repair = "minimal")
+names(etq) <- c("c1", "c2", "c3", "c4")
+
+# Nota sobre la resolución temporal
+etq$c1[str_detect(coalesce(etq$c1, ""), "promedios diarios")]
+
+# Tabla 1 de estaciones (filas entre "Tabla 1" y "Tabla 2")
+i1 <- which(str_detect(coalesce(etq$c1, ""), "^Tabla 1"))
+i2 <- which(str_detect(coalesce(etq$c1, ""), "^Tabla 2"))
+cat_estaciones <- etq[(i1 + 2):(i2 - 1), ] |>
+  filter(!is.na(c1)) |>
+  select(abreviatura = c1, descripcion = c2, estacion = c3)
+cat_estaciones |> count(abreviatura) |> filter(n > 1)                 # abreviaturas repetidas
+setdiff(unique(crudo$estacion), cat_estaciones$abreviatura)            # hojas que no están en el catálogo
+```
+
+**Resultado del diagnóstico:**
+
+- La abreviatura **SE aparece dos veces**: la segunda es "Sur – Pueblo Serena", que en los datos es la hoja SUR.
+- **NE3, NO3 y SUR no aparecen** con su código en el catálogo; los identificamos con el documento de ubicación.
+- Y la nota de "promedios diarios" contradice el bloque 5.
+
+---
+
+## Bloque 18 · Por qué hay que volver a validar después de imputar
+
+**Para qué sirve:** reproduce un error que detectamos en la revisión de nuestra propia limpieza. La interpolación rellena cada variable **por separado**, así que puede crear horas donde el PM2.5 imputado supera al PM10 real. Este bloque lo demuestra y justifica la regla de revalidar después de imputar.
+
+```{r bloque-18}
+if (requireNamespace("imputeTS", quietly = TRUE)) {
+  interpolar <- function(x) if (sum(!is.na(x)) >= 2) imputeTS::na_interpolation(x, maxgap = 3) else x
+
+  pm <- crudo |>
+    select(estacion, anio_archivo, fecha_hora, PM10, `PM2.5`) |>
+    arrange(estacion, anio_archivo, fecha_hora) |>
+    group_by(estacion, anio_archivo) |>
+    mutate(PM10_imp = interpolar(PM10), PM25_imp = interpolar(`PM2.5`)) |>
+    ungroup()
+
+  pm |> summarise(
+    antes_de_imputar  = sum(`PM2.5` > PM10, na.rm = TRUE),
+    despues_de_imputar = sum(PM25_imp > PM10_imp, na.rm = TRUE),
+    creadas_por_la_imputacion = despues_de_imputar - antes_de_imputar)
+} else {
+  message("Instala imputeTS para ejecutar este bloque.")
+}
+```
+
+**Resultado del diagnóstico:**
+
+- La imputación ingenua crea **miles** de horas con PM2.5 > PM10: 3 832 en la versión que revisó Codex. Aquí no se aplican antes las reglas de rango, así que el número puede variar un poco.
+- **Decisión:** después de imputar se vuelven a aplicar todas las reglas, y las imputaciones que las violan se revierten a NA. Así, la base publicada tiene 0 horas con PM2.5 > PM10 (lo verifica `scripts/04_validar_limpios.R`).
+
+---
+
+## Resumen de hallazgos
+
+**Para qué sirve:** reúne en una tabla las cifras calculadas arriba, lista para copiar al informe.
+
+```{r resumen}
+tibble(
+  hallazgo = c("Resolución real de los datos", "Banderas de validez en los archivos",
+               "Horas sin registro", "Variable con más faltantes",
+               "NOX ≠ NO + NO2 (peor estación)", "PM2.5 > PM10 en datos originales",
+               "Presión fuera del rango de operación"),
+  evidencia = c(
+    sprintf("%.2f %% de saltos de 1 h", 100 * mean(saltos$salto_horas == 1)),
+    sprintf("%d celdas no numéricas", sum(no_numericos$no_numericas)),
+    sprintf("%d de %d (%.2f %%)", total_sin_fila, total_esperado, 100 * total_sin_fila / total_esperado),
+    with(crudo, sprintf("PM2.5: %.1f %%", 100 * (sum(is.na(`PM2.5`)) + total_sin_fila) / total_esperado)),
+    nox |> group_by(estacion) |> summarise(p = 100 * mean(inconsistente)) |>
+      slice_max(p, n = 1) |> with(sprintf("%s: %.2f %% de las horas", estacion, p)),
+    with(crudo, sprintf("%d horas", sum(`PM2.5` > PM10, na.rm = TRUE))),
+    fuera_rango |> filter(variable == "PRS") |> with(sprintf("%.2f %% de las horas", pct_fuera))
+  )
+)
+```
+
+---
+
+## Referencia metodológica
+
+Fiebrich, C. A., Morgan, C. R., McCombs, A. G., Hall, P. K., & McPherson, R. A. (2010). Quality assurance procedures for mesoscale meteorological data. *Journal of Atmospheric and Oceanic Technology, 27*(10), 1565–1582. https://doi.org/10.1175/2010JTECHA1433.1
