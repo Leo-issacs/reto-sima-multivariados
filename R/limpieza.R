@@ -3,12 +3,17 @@
 #   F fuera de rango duro            P regla de las notas del PDF (solo en su anio)
 #   S salto > umbral en 1 h (SIMA h) R PM2.5 > PM10 (SIMA r): se invalidan ambas
 #   K racha >= 24 h identicos invalidada
+#   L saturacion del sensor (TOUT en el limite del fabricante, |TOUT| >= 49.9)
+#   E consistencia espacial: TOUT (>10 C) o RH (>40 pp) lejos de la mediana de la red en esa hora
 #   C racha >= 6 h identicos marcada pero conservada
 #   I imputada (interpolacion lineal, huecos internos <= 3 h)
 #   X imputacion revertida: el valor interpolado incumplia una regla y volvio a NA
 # Rangos duros: contaminantes = rango de operacion del anio (ambos limites);
 # meteorologia = rango del fabricante (RAINF: 0 al maximo de operacion del anio). Reglas y orden: ver data/clean/README.md.
 # Requiere R/importar_sima.R y R/diagnostico.R (construir_malla, cargar_rangos).
+
+# Permite usar sintaxis data.table en funciones definidas con source() (red_espacial).
+.datatable.aware <- TRUE
 
 CONTAMINANTES <- c("CO", "NO", "NO2", "NOX", "O3", "PM10", "PM2.5", "SO2")
 VARS_RACHA_INVALIDA <- c(CONTAMINANTES, "TOUT", "PRS", "RH")
@@ -20,6 +25,11 @@ MAX_HUECO_H <- 3L
 NOX_TOL_ABS_PPB <- 1                     # piso: resolucion tipica del analizador
 NOX_TOL_REL <- 0.10                      # 10 % de NOX
 HORAS_MIN_DIA_LIMPIO <- 18L
+# Consistencia espacial (buddy check, Fiebrich et al. 2010): se invalida una lectura que se aleja
+# de la mediana de la red a esa misma hora, solo si reportan >= 5 estaciones.
+UMBRAL_E <- c(TOUT = 10, RH = 40)         # grados C / puntos porcentuales
+MIN_ESTACIONES_E <- 5L
+SATURACION_TOUT <- 49.9                   # |TOUT| >= 49.9 = sensor pegado al limite del fabricante (+-50)
 # Notas del PDF (solo en su anio): var, anios, tipo de limite sobre el rango de operacion.
 NOTAS_PDF <- data.frame(
   variable = c("WSR", "SR", "SR", "PRS"), anio = c(2020, 2020, 2021, 2020),
@@ -53,7 +63,7 @@ runs_identicos <- function(x) {   # longitud de la racha a la que pertenece cada
   r <- rle(x); rep(r$lengths, r$lengths)
 }
 
-limpiar_hoja <- function(datos_hoja, rangos_op, rangos_fab) {
+limpiar_hoja <- function(datos_hoja, rangos_op, rangos_fab, red = NULL, solo_fase1 = FALSE) {
   hoja <- datos_hoja$hoja[1L]
   g <- malla_hoja(datos_hoja)
   fecha <- g$fecha; X <- g$X; n <- length(fecha)
@@ -86,6 +96,7 @@ limpiar_hoja <- function(datos_hoja, rangos_op, rangos_fab) {
       extra <- if (nt$tipo == "alto") x > lo$hi else x < lo$lo | x > lo$hi
       malo <- malo | (anio == nt$anio & extra)
     }
+    if (v == "TOUT") malo <- malo | abs(x) >= SATURACION_TOUT
     malo[is.na(malo)] <- FALSE
     malo
   }
@@ -109,6 +120,8 @@ limpiar_hoja <- function(datos_hoja, rangos_op, rangos_fab) {
     invalidar(v, en & m, "P")
   }
   if (!is.na(i_o3_nota)) invalidar("O3", seq_len(n) == i_o3_nota, "P")
+  # L: saturacion del sensor de temperatura (lectura pegada al limite del fabricante)
+  invalidar("TOUT", abs(X[, "TOUT"]) >= SATURACION_TOUT, "L")
   # S: salto horario de TOUT / PRS respecto de la hora previa valida
   for (v in names(SALTO_MAX)) {
     d <- c(NA_real_, diff(X[, v]))
@@ -130,6 +143,24 @@ limpiar_hoja <- function(datos_hoja, rangos_op, rangos_fab) {
       marca <- marca & !inv
     }
     FL[marca & FL[, v] == "V", v] <- "C"
+  }
+
+  # Fin de la fase 1: solo TOUT y RH observados (F, P, L, S, R y K aplicadas) para la mediana de la red.
+  if (solo_fase1) return(list(fecha = fecha, X = X[, c("TOUT", "RH")]))
+  # E: consistencia espacial sobre datos OBSERVADOS, antes de imputar. `red` lista, por variable,
+  # las lecturas a quitar (punto fijo de la red) y la mediana/numero de estaciones final por hora.
+  t_num <- as.numeric(fecha)
+  if (!is.null(red)) for (v in c("TOUT", "RH")) {
+    tq <- red[[v]]$quitar$t[red[[v]]$quitar$hoja == hoja]
+    invalidar(v, t_num %in% tq, "E")
+  }
+  espacial_viola <- function(v, x) {   # para revalidar imputados contra la red observada
+    if (is.null(red)) return(rep(FALSE, n))
+    i <- match(t_num, red[[v]]$ref$t)
+    m <- !is.na(x) & !is.na(i) & red[[v]]$ref$n[i] >= MIN_ESTACIONES_E &
+      abs(x - red[[v]]$ref$mediana[i]) > UMBRAL_E[[v]]
+    m[is.na(m)] <- FALSE
+    m
   }
 
   # Inconsistencia NOX vs NO + NO2 (solo bandera; no invalida). Se calcula sobre lo observado
@@ -171,6 +202,9 @@ limpiar_hoja <- function(datos_hoja, rangos_op, rangos_fab) {
     y <- imputeTS::na_interpolation(x, option = "linear", maxgap = MAX_HUECO_H)
     idx <- unlist(mapply(seq, ini[hueco], fin[hueco], SIMPLIFY = FALSE))
     idx <- idx[!is.na(y[idx])]
+    # Las horas anuladas por consistencia espacial (E) o saturacion (L) NO se imputan nunca: la
+    # validacion espacial de un imputado depende de tener >= 5 estaciones, y E puede dejar menos.
+    if (v %in% c("TOUT", "RH")) idx <- idx[!(flags0[idx, v] %in% c("E", "L"))]
     V1[idx, v] <- y[idx]; IMP[idx, v] <- TRUE
   }
   # Revalidacion: un valor imputado que incumple una regla vuelve a NA (bandera X). Nunca se
@@ -185,6 +219,8 @@ limpiar_hoja <- function(datos_hoja, rangos_op, rangos_fab) {
     cambio <- FALSE
     for (v in setdiff(VARS_IMPUTAR, c("viento_u", "viento_v")))            # rango del anio de cada hora
       cambio <- revertir(v, incumple_rango(v, V1[, v])) || cambio
+    for (v in c("TOUT", "RH"))                                              # consistencia espacial
+      cambio <- revertir(v, espacial_viola(v, V1[, v])) || cambio
     for (v in names(SALTO_MAX)) {                                         # salto contra hora vecina
       x <- V1[, v]
       salto <- abs(c(NA_real_, diff(x))) > SALTO_MAX[[v]] | abs(c(diff(x), NA_real_)) > SALTO_MAX[[v]]
@@ -248,3 +284,31 @@ agregar_diario <- function(fecha, M) {
 # Variables (nombre diario) que definen cada nucleo de analisis.
 NUCLEO_A <- c("PM10", "O3_max8h", "NO2", "CO", "SO2", "TOUT", "RH", "SR", "viento_u", "PRS", "RAINF")
 NUCLEO_B <- c(NUCLEO_A, "PM2.5")
+
+
+# Consistencia espacial de la red. `fase1`: lista por hoja con `fecha` y `X` (TOUT, RH observados
+# tras F, P, L, S, R y K). Para cada hora se calcula la mediana de las estaciones que reportan; si
+# reportan >= 5, se quita toda lectura a mas de UMBRAL_E de la mediana y se repite (punto fijo) hasta
+# que no haya mas. Asi las lecturas observadas que quedan cumplen la regla respecto de SU mediana.
+red_espacial <- function(fase1, umbral = UMBRAL_E) {
+  salida <- list(); sens <- list()
+  for (v in c("TOUT", "RH")) {
+    d <- data.table::rbindlist(lapply(names(fase1), function(h) {
+      x <- fase1[[h]]$X[, v]; k <- !is.na(x)
+      data.table::data.table(hoja = h, t = as.numeric(fase1[[h]]$fecha[k]), x = x[k])
+    }))
+    d[, `:=`(n0 = .N, med0 = stats::median(x)), by = t]
+    d[, dev0 := abs(x - med0)]
+    sens[[v]] <- d[, .(hoja, t, n0, dev0)]
+    d[, quitado := FALSE]
+    repeat {
+      est <- d[quitado == FALSE, .(n = .N, mediana = stats::median(x)), by = t]
+      d[est, on = "t", `:=`(n_act = i.n, med_act = i.mediana)]
+      viola <- !d$quitado & d$n_act >= MIN_ESTACIONES_E & abs(d$x - d$med_act) > umbral[[v]]
+      if (!any(viola)) break
+      d[viola, quitado := TRUE]
+    }
+    salida[[v]] <- list(ref = as.data.frame(est), quitar = as.data.frame(d[quitado == TRUE, .(hoja, t)]))
+  }
+  list(red = salida, sens = sens)
+}

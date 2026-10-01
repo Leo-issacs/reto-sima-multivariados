@@ -5,6 +5,7 @@ if (!file.exists("sima.Rproj")) {
   stop("Abre sima.Rproj y ejecuta desde la raiz del proyecto.", call. = FALSE)
 }
 source("R/importar_sima.R"); source("R/diagnostico.R"); source("R/limpieza.R")
+library(data.table)
 
 carpeta_datos <- Sys.getenv("SIMA_DATA_DIR", unset = "data/raw")
 dir.create("data/clean", showWarnings = FALSE)
@@ -20,10 +21,16 @@ imp <- suppressMessages(importar_sima(carpeta_datos))
 rangos_op <- cargar_rangos(); rangos_fab <- cargar_rangos_fabricante()
 n_hojas <- nrow(unique(imp$datos[c("archivo", "hoja")]))
 
-message("Limpiando por estacion...")
+message("Limpiando por estacion (fase 1: hasta rachas)...")
 hojas <- sort(unique(imp$datos$hoja))
+fase1 <- setNames(lapply(hojas, function(h) {
+  limpiar_hoja(imp$datos[imp$datos$hoja == h, ], rangos_op, rangos_fab, solo_fase1 = TRUE)
+}), hojas)
+message("Consistencia espacial de la red (TOUT, RH)...")
+esp <- red_espacial(fase1)
+message("Limpiando por estacion (fase 2: regla E, imputacion y revalidacion)...")
 res <- setNames(lapply(hojas, function(h) {
-  limpiar_hoja(imp$datos[imp$datos$hoja == h, ], rangos_op, rangos_fab)
+  limpiar_hoja(imp$datos[imp$datos$hoja == h, ], rangos_op, rangos_fab, red = esp$red)
 }), hojas)
 
 # ---- Tabla horaria (una fila por estacion-hora de la malla completa del anio) ----------
@@ -39,7 +46,8 @@ horario <- do.call(rbind, lapply(hojas, function(h) {
   d$confinamiento_2020 <- as.integer(r$fecha >= as.POSIXct("2020-04-01", tz = "UTC") &
                                        r$fecha < as.POSIXct("2020-06-01", tz = "UTC"))
   cbind(d, as.data.frame(apply(val, 2L, redondear)), as.data.frame(fl, stringsAsFactors = FALSE),
-        nox_inconsistente = r$nox_inconsistente)
+        nox_inconsistente = r$nox_inconsistente,
+        f_obs_TOUT = r$flags_obs[, "TOUT"], f_obs_RH = r$flags_obs[, "RH"])
 }))
 stopifnot(anyDuplicated(names(horario)) == 0L)
 
@@ -122,11 +130,12 @@ den <- nrow(fl_obs)
 filas <- lapply(c(VARIABLES_SIMA, "f_uv"), function(v) {
   o <- fl_obs[, v]; f <- fl_fin[, v]
   n <- function(cod) sum(o == cod)
-  invalida <- n("N") + n("F") + n("P") + n("S") + n("R") + n("K")
+  invalida <- n("N") + n("F") + n("P") + n("L") + n("S") + n("R") + n("E") + n("K")
   data.frame(
     variable = sub("^f_", "", v), horas_esperadas = den,
     faltante_original_n = n("N"), invalidada_F_rango_n = n("F"), invalidada_P_nota_pdf_n = n("P"),
     invalidada_S_salto_n = n("S"), invalidada_R_pm25_gt_pm10_n = n("R"),
+    invalidada_L_saturacion_n = n("L"), invalidada_E_espacial_n = n("E"),
     invalidada_K_racha24_n = n("K"), marcada_C_racha6_conservada_n = sum(f == "C"),
     imputada_bruta_n = sum(f %in% c("I", "X")), imputacion_revertida_n = sum(f == "X"),
     imputada_n = sum(f == "I"), faltante_final_n = invalida - sum(f == "I"),
@@ -152,6 +161,23 @@ tot_s <- do.call(rbind, lapply(split(sens_t, sens_t$variable), function(z) data.
   pct = round(100 * sum(z$eliminadas_con_operacion_estricta) / sum(z$horas_validas_adoptado), 3))))
 sens_t$anio <- as.character(sens_t$anio)
 escribir(rbind(sens_t, tot_s), "output/diagnostico/sensibilidad_rango_TOUT_PRS.csv")
+
+# ---- Sensibilidad de la consistencia espacial (umbrales 8/10/15 C y 30/40/50 pp) ----------------------
+sens_esp <- do.call(rbind, lapply(names(esp$sens), function(v) {
+  d <- esp$sens[[v]]; ev <- d[n0 >= MIN_ESTACIONES_E]
+  umbrales <- if (v == "TOUT") c(8, 10, 15) else c(30, 40, 50)
+  do.call(rbind, lapply(umbrales, function(u) data.frame(
+    variable = v, umbral = u, lecturas_observadas = nrow(d), lecturas_evaluables_5_estaciones = nrow(ev),
+    invalidadas_una_pasada = sum(ev$dev0 > u), pct_de_evaluables = round(100 * sum(ev$dev0 > u) / nrow(ev), 4),
+    adoptado = u == UMBRAL_E[[v]],
+    invalidadas_punto_fijo = if (u == UMBRAL_E[[v]]) nrow(esp$red[[v]]$quitar) else NA_integer_)))
+}))
+escribir(sens_esp, "output/diagnostico/sensibilidad_consistencia_espacial.csv")
+esp_est <- do.call(rbind, lapply(hojas, function(h) data.frame(
+  estacion = h, TOUT_E_espacial = sum(res[[h]]$flags_obs[, "TOUT"] == "E"),
+  TOUT_L_saturacion = sum(res[[h]]$flags_obs[, "TOUT"] == "L"),
+  RH_E_espacial = sum(res[[h]]$flags_obs[, "RH"] == "E"))))
+escribir(esp_est, "output/diagnostico/consistencia_espacial_por_estacion.csv")
 
 # ---- Consistencia NOX por estacion (con la tolerancia adoptada) --------------------------------
 nox <- do.call(rbind, lapply(hojas, function(h) {
@@ -196,8 +222,9 @@ ruta_res <- "output/diagnostico/RESUMEN.md"
 previo <- readLines(ruta_res, encoding = "UTF-8")
 corte <- grep("^## Parte B", previo)
 if (length(corte)) previo <- previo[seq_len(corte[1L] - 1L)]
-inval <- tab$invalidada_F_rango_n + tab$invalidada_P_nota_pdf_n + tab$invalidada_S_salto_n +
-  tab$invalidada_R_pm25_gt_pm10_n + tab$invalidada_K_racha24_n
+inval <- tab$invalidada_F_rango_n + tab$invalidada_P_nota_pdf_n + tab$invalidada_L_saturacion_n +
+  tab$invalidada_S_salto_n + tab$invalidada_R_pm25_gt_pm10_n + tab$invalidada_E_espacial_n +
+  tab$invalidada_K_racha24_n
 filas_tab <- sprintf("| %s | %s | %s | %s | %s | %s |", tab$variable, fmt(tab$faltante_original_pct, 1),
                      fmt(100 * inval / den, 2), fmt(tab$imputada_pct, 2), fmt(tab$imputacion_revertida_n),
                      fmt(tab$faltante_final_pct, 1))
@@ -211,7 +238,7 @@ tam <- file.size(list.files("data/clean", pattern = "\\.csv$", full.names = TRUE
 nombres_csv <- list.files("data/clean", pattern = "\\.csv$")
 nueva <- c(
   "", "## Parte B. Limpieza y publicación", "",
-  sprintf("Generado por `scripts/03_limpiar.R` el %s. Reglas completas en `data/clean/README.md`: rango duro (contaminantes: operación del año; meteorología: fabricante; RAINF: 0 al máximo de operación del año), notas del PDF, salto horario (TOUT/PRS), PM2.5 > PM10, rachas ≥ 24 h (marcadas desde 6 h) e imputación lineal de huecos ≤ 3 h, con revalidación posterior (un valor imputado que incumple rango, salto o PM2.5 ≤ PM10 vuelve a NA, bandera X; nunca se toca un original). Denominador de las tablas: %s horas esperadas por variable (%d hojas-año).",
+  sprintf("Generado por `scripts/03_limpiar.R` el %s. Reglas completas en `data/clean/README.md`: rango duro (contaminantes: operación del año; meteorología: fabricante; RAINF: 0 al máximo de operación del año), notas del PDF, saturación de TOUT (|TOUT| ≥ 49.9, L), salto horario (TOUT/PRS), PM2.5 > PM10, rachas ≥ 24 h (marcadas desde 6 h) consistencia espacial sobre lo observado (TOUT a más de 10 °C y RH a más de 40 pp de la mediana de la red en esa hora, con ≥ 5 estaciones; bandera E) e imputación lineal de huecos ≤ 3 h, con revalidación posterior (incluida la regla espacial) (un valor imputado que incumple rango, salto o PM2.5 ≤ PM10 vuelve a NA, bandera X; nunca se toca un original). Denominador de las tablas: %s horas esperadas por variable (%d hojas-año).",
           format(Sys.Date()), fmt(den), n_hojas),
   "", "| Variable | % falt. original | % invalidado | % imputado neto | Imputaciones revertidas (n) | % falt. final |", "|---|---|---|---|---|---|",
   filas_tab, "",
@@ -228,6 +255,17 @@ nueva <- c(
           fmt(tot_s$horas_validas_adoptado[tot_s$variable == "TOUT"]),
           fmt(tot_s$eliminadas_con_operacion_estricta[tot_s$variable == "PRS"]), tot_s$pct[tot_s$variable == "PRS"],
           fmt(tot_s$horas_validas_adoptado[tot_s$variable == "PRS"])),
+  "",
+  sprintf("**Consistencia espacial (E) y saturación (L).** Sobre %s lecturas observadas de TOUT (%s con ≥ 5 estaciones) y %s de RH (%s): con el umbral adoptado se invalidan %s horas de TOUT (%.3f%% de las evaluables) y %s de RH (%.3f%%); además %s horas de TOUT en el límite del sensor (L). Sensibilidad (una pasada; `sensibilidad_consistencia_espacial.csv`): TOUT %s; RH %s.",
+          fmt(sens_esp$lecturas_observadas[sens_esp$variable == "TOUT"][1]), fmt(sens_esp$lecturas_evaluables_5_estaciones[sens_esp$variable == "TOUT"][1]),
+          fmt(sens_esp$lecturas_observadas[sens_esp$variable == "RH"][1]), fmt(sens_esp$lecturas_evaluables_5_estaciones[sens_esp$variable == "RH"][1]),
+          fmt(sens_esp$invalidadas_punto_fijo[sens_esp$variable == "TOUT" & sens_esp$adoptado]),
+          100 * sens_esp$invalidadas_punto_fijo[sens_esp$variable == "TOUT" & sens_esp$adoptado] / sens_esp$lecturas_evaluables_5_estaciones[sens_esp$variable == "TOUT"][1],
+          fmt(sens_esp$invalidadas_punto_fijo[sens_esp$variable == "RH" & sens_esp$adoptado]),
+          100 * sens_esp$invalidadas_punto_fijo[sens_esp$variable == "RH" & sens_esp$adoptado] / sens_esp$lecturas_evaluables_5_estaciones[sens_esp$variable == "RH"][1],
+          fmt(tab$invalidada_L_saturacion_n[tab$variable == "TOUT"]),
+          paste(sprintf("> %g °C: %s h", sens_esp$umbral[sens_esp$variable == "TOUT"], fmt(sens_esp$invalidadas_una_pasada[sens_esp$variable == "TOUT"])), collapse = "; "),
+          paste(sprintf("> %g pp: %s h", sens_esp$umbral[sens_esp$variable == "RH"], fmt(sens_esp$invalidadas_una_pasada[sens_esp$variable == "RH"])), collapse = "; ")),
   "",
   sprintf("**RAINF.** %s horas sobre el máximo de operación del año se invalidaron (bandera F). Con lo que queda: %.2f%% de %s horas válidas tienen lluvia > 0; valor positivo más frecuente 0.01. La cantidad no se usa (unidad sin confirmar); el diario publica `horas_lluvia` y `llovio`.",
           fmt(tab$invalidada_F_rango_n[tab$variable == "RAINF"]), ll$pct_horas_mayor_0[ll$anio == "total"],

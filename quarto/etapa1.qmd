@@ -91,12 +91,13 @@ kable(dim_tab, align = c("l", "r", "r"))
 
 ```{r}
 #| label: tbl-limpieza
-#| tbl-cap: !expr 'sprintf("Limpieza por variable, como %% de %s horas estación (87 hojas-año). Invalidado = fuera de rango, notas del PDF, saltos, PM2.5 > PM10 y rachas ≥ 24 h; final = original + invalidado − imputado. viento_uv = componentes u/v.", miles(informe$horas_esperadas[1]))'
+#| tbl-cap: !expr 'sprintf("Limpieza por variable, como %% de %s horas estación (87 hojas-año). Invalidado = fuera de rango, notas del PDF, saturación, saltos, PM2.5 > PM10, consistencia espacial (TOUT, RH) y rachas ≥ 24 h; final = original + invalidado − imputado. viento_uv = componentes u/v.", miles(informe$horas_esperadas[1]))'
 tab2 <- informe[, .(
   Variable = variable,
   `% faltante original` = pct(faltante_original_pct, 1),
-  `% invalidado` = pct(100 * (invalidada_F_rango_n + invalidada_P_nota_pdf_n + invalidada_S_salto_n +
-                                invalidada_R_pm25_gt_pm10_n + invalidada_K_racha24_n) / horas_esperadas, 2),
+  `% invalidado` = pct(100 * (invalidada_F_rango_n + invalidada_P_nota_pdf_n + invalidada_L_saturacion_n +
+                                invalidada_S_salto_n + invalidada_R_pm25_gt_pm10_n + invalidada_E_espacial_n +
+                                invalidada_K_racha24_n) / horas_esperadas, 2),
   `% imputado` = pct(imputada_pct, 2),
   `% faltante final` = pct(faltante_final_pct, 1))]
 kable(tab2, align = c("l", "r", "r", "r", "r"))

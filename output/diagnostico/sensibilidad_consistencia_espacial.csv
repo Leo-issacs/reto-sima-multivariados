@@ -1,0 +1,7 @@
+"variable","umbral","lecturas_observadas","lecturas_evaluables_5_estaciones","invalidadas_una_pasada","pct_de_evaluables","adoptado","invalidadas_punto_fijo"
+"TOUT",8,701188,701137,576,0.0822,FALSE,
+"TOUT",10,701188,701137,447,0.0638,TRUE,450
+"TOUT",15,701188,701137,299,0.0426,FALSE,
+"RH",30,668445,668382,6283,0.94,FALSE,
+"RH",40,668445,668382,4068,0.6086,TRUE,4120
+"RH",50,668445,668382,2815,0.4212,FALSE,
