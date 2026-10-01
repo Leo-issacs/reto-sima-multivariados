@@ -34,10 +34,9 @@ invisible(lapply(paquetes, library, character.only = TRUE))
 # Carpeta raíz del proyecto, tanto si se ejecuta desde la raíz como desde notebooks/
 raiz <- if (file.exists("sima.Rproj")) "." else ".."
 
-# Ubicación de los Excel originales: primero data/raw/ del proyecto, luego Descargas
-candidatas <- c(file.path(raiz, "data", "raw"), "C:/Users/leona/Downloads")
-ruta_excel <- candidatas[file.exists(file.path(candidatas, "BD 2020.xlsx"))][1]
-if (is.na(ruta_excel)) stop("No encuentro 'BD 2020.xlsx'. Copia los 6 Excel a data/raw/.")
+# Ubicación de los Excel originales: data/raw/ del proyecto
+ruta_excel <- file.path(raiz, "data", "raw")
+if (!file.exists(file.path(ruta_excel, "BD 2020.xlsx"))) stop("No encuentro 'BD 2020.xlsx'. Copia los 6 Excel a data/raw/.")
 archivos <- file.path(ruta_excel, paste0("BD ", 2020:2025, ".xlsx"))
 stopifnot(all(file.exists(archivos)))
 
