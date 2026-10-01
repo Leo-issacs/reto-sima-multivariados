@@ -171,7 +171,7 @@ Características encontradas:
 - **Sin celdas no numéricas ni banderas de validez:** una celda vacía no indica la causa del faltante.
 - **8 189 horas sin registro** (1.07 % de 762 792 esperadas). La mayoría corresponde a la estación NO3, que inicia en diciembre de 2022.
 
-El diccionario completo está en el Anexo A.
+El diccionario resumido está en el Anexo A y el completo en GitHub (Anexo C).
 
 ```{r}
 #| label: tbl-dimensiones
@@ -246,7 +246,7 @@ Un cuaderno reproducible de auditoría documenta cada hallazgo (`notebooks/01_au
 
 La proporción de días retenidos es similar por temporada (59.2–61.5 %). Esto reduce, pero no descarta, un sesgo de selección: los faltantes podrían concentrarse en condiciones particulares.
 
-Como sensibilidad conservamos un núcleo sin PM2.5 (Anexo C).
+Como sensibilidad conservamos un núcleo sin PM2.5 (Anexo B).
 
 ## 2.4 Limpieza
 
@@ -304,6 +304,8 @@ kable(tab2, align = c("l", "r", "r", "r", "r"))
 
 # Referencias
 
+::: {custom-style="Referencia"}
+
 Aguirre-López, M. A., Rodríguez-González, M. A., Soto-Villalobos, R., Gómez-Sánchez, L. E., Benavides-Ríos, Á. G., Benavides-Bravo, F. G., Walle-García, O., & Pamanés-Aguilar, M. G. (2022). Statistical analysis of PM10 concentration in the Monterrey Metropolitan Area, Mexico (2010–2018). *Atmosphere, 13*(2), 297. https://doi.org/10.3390/atmos13020297
 
 Elmourssi, D. M., El-Assy, A. M., & Amer, H. M. (2026). Clustering and machine learning techniques identify air pollution regimes in Greater Cairo. *Scientific Reports*. https://doi.org/10.1038/s41598-026-49777-5
@@ -334,43 +336,54 @@ Sistema Integral de Monitoreo Ambiental [SIMA]. (2026, 14 de agosto). *Red de mo
 
 World Health Organization. (2021). *WHO global air quality guidelines: Particulate matter (PM2.5 and PM10), ozone, nitrogen dioxide, sulfur dioxide and carbon monoxide*. https://www.who.int/publications/i/item/9789240034228
 
+:::
+
+{{< pagebreak >}}
+
 # Anexos
 
-## Anexo A. Diccionario de datos
+## Anexo A. Diccionario resumido
 
 ```{r}
 #| label: tbl-diccionario
-#| tbl-cap: "Diccionario completo de las bases publicadas en data/clean/."
-dic <- fread("data/clean/DICCIONARIO.csv", encoding = "UTF-8")
-dic[, archivo := fcase(grepl("horario", archivo), "horario", grepl("diario", archivo), "diario",
-                       grepl("cobertura", archivo), "cobertura", default = "informe")]
-setnames(dic, c("Base", "Columna", "Tipo", "Unidad", "Descripción", "Fuente o regla"))
-k <- kable(dic, format = "pipe")
-pesos <- c(9, 15, 9, 8, 36, 15)   # anchos relativos de columna (pandoc los toma de los guiones)
+#| tbl-cap: "Variables de medición publicadas en data/clean/ (rango de operación: mínimo–máximo entre 2020 y 2025; % faltante sobre 762 792 horas estación de las 87 hojas-año; detalle de reglas y banderas en Anexo C)."
+vars15 <- c("PM10", "PM2.5", "O3", "NO2", "NO", "NOX", "CO", "SO2", "TOUT", "RH", "SR", "PRS", "RAINF", "WSR", "WDR")
+desc <- c(
+  PM10 = "Material particulado < 10 µm", `PM2.5` = "Material particulado < 2.5 µm",
+  O3 = "Ozono", NO2 = "Dióxido de nitrógeno", NO = "Monóxido de nitrógeno",
+  NOX = "Óxidos de nitrógeno (NO + NO2)", CO = "Monóxido de carbono", SO2 = "Dióxido de azufre",
+  TOUT = "Temperatura", RH = "Humedad relativa", SR = "Radiación solar",
+  PRS = "Presión atmosférica", RAINF = "Precipitación (sin convertir; unidad sin confirmar)",
+  WSR = "Velocidad del viento", WDR = "Dirección del viento (de donde sopla)")
+unidad <- c(PM10 = "µg/m3", `PM2.5` = "µg/m3", O3 = "ppb", NO2 = "ppb", NO = "ppb", NOX = "ppb",
+           CO = "ppm", SO2 = "ppb", TOUT = "°C", RH = "%", SR = "kW/m2", PRS = "mm Hg",
+           RAINF = "mm/h", WSR = "km/h", WDR = "grados")
+
+rg <- fread("config/rangos_operacion.csv", encoding = "UTF-8")
+rg15 <- rg[, .(minimo = min(minimo), maximo = max(maximo)), by = variable]
+rango <- setNames(sprintf("%s–%s", rg15$minimo, rg15$maximo), rg15$variable)
+
+inf <- fread("data/clean/tabla_informe_limpieza.csv", encoding = "UTF-8")
+falt_o <- setNames(pct(inf$faltante_original_pct, 1), inf$variable)
+falt_f <- setNames(pct(inf$faltante_final_pct, 1), inf$variable)
+
+variable <- c("estacion", "fecha_hora", vars15)
+tabA <- data.table(
+  Variable = variable,
+  Descripción = c("Código de estación (data/metadata/estaciones.csv)",
+                  "Marca horaria (00:00–23:00), hora local fija", desc[vars15]),
+  Unidad = c("—", "AAAA-MM-DD HH:MM:SS", unidad[vars15]),
+  Tipo = c("texto", "fecha y hora", rep("numérico", 15)),
+  `Rango posible` = c("—", "—", rango[vars15]),
+  `% falt. original` = c("—", "—", falt_o[vars15]),
+  `% falt. final` = c("—", "—", falt_f[vars15]))
+k <- kable(tabA, format = "pipe", align = c("l", "l", "l", "l", "r", "r", "r"))
+pesos <- c(8, 28, 10, 10, 12, 10, 10)
 k[2] <- paste0("|", paste0(":", vapply(pesos - 1, function(n) strrep("-", n), ""), collapse = "|"), "|")
 k
 ```
 
-## Anexo B. Rangos de operación y del fabricante
-
-```{r}
-#| label: tbl-rangos
-#| tbl-cap: "Rangos de operación por año (Rangos de los parámetros del SIMA) y rango del fabricante. Unidades: ver Anexo A."
-rg <- fread("config/rangos_operacion.csv", encoding = "UTF-8")
-fab <- fread("config/rangos_fabricante.csv", encoding = "UTF-8")
-rg[, txt := paste0(minimo, "–", maximo)]
-ancho <- dcast(rg, variable ~ anio, value.var = "txt")
-ancho <- merge(ancho, fab[, .(variable, Fabricante = ifelse(is.na(minimo), "—", paste0(minimo, "–", maximo)))],
-               by = "variable", all.x = TRUE, sort = FALSE)
-ancho <- ancho[match(unique(rg$variable), variable)]
-ancho[is.na(Fabricante), Fabricante := "—"]
-setnames(ancho, "variable", "Variable")
-kable(ancho, align = c("l", rep("r", 7)))
-```
-
-Notas del PDF: `r paste(paste0(rg[nota_pdf != ""]$anio, " ", rg[nota_pdf != ""]$variable, ": ", rg[nota_pdf != ""]$nota_pdf), collapse = "; ")`
-
-## Anexo C. Núcleos de modelado y cobertura por hoja-año
+## Anexo B. Núcleos de modelado
 
 ```{r}
 #| label: fig-nucleos
@@ -389,15 +402,13 @@ ggplot(larg, aes(factor(anio), n, fill = nucleo)) +
   theme(legend.position = "top", panel.grid.major.x = element_blank())
 ```
 
-```{r}
-#| label: tbl-cobertura
-#| tbl-cap: "Porcentaje de días con al menos 18 h válidas, por hoja-año y variable. Un asterisco marca cobertura baja (menos de 75 %). u/v = componentes del viento."
-cob <- fread("data/clean/cobertura_dias_validos_hoja_anio.csv", encoding = "UTF-8")
-cob[, txt := paste0(round(pct_dias_validos), ifelse(cobertura_baja == 1, "*", ""))]
-cob[variable == "viento_uv", variable := "u/v"]
-cw <- dcast(cob, estacion + anio ~ variable, value.var = "txt")
-orden <- c("estacion", "anio", "PM10", "PM2.5", "O3", "NO2", "NO", "NOX", "CO", "SO2", "TOUT", "RH", "SR", "PRS", "RAINF", "u/v")
-cw <- cw[, ..orden]
-setnames(cw, c("estacion", "anio"), c("Est.", "Año"))
-kable(cw, align = c("l", "r", rep("r", length(orden) - 2)))
-```
+## Anexo C. Material completo en GitHub
+
+El repositorio es público y la rama `main` incluye, además de lo resumido en los Anexos A y B:
+
+- [`config/rangos_operacion.csv`](https://github.com/Leo-issacs/reto-sima-multivariados/blob/main/config/rangos_operacion.csv) — rangos de operación por año, con las notas del PDF del SIMA.
+- [`data/clean/cobertura_dias_validos_hoja_anio.csv`](https://github.com/Leo-issacs/reto-sima-multivariados/blob/main/data/clean/cobertura_dias_validos_hoja_anio.csv) — % de días válidos por estación, año y variable.
+- [`data/clean/DICCIONARIO.csv`](https://github.com/Leo-issacs/reto-sima-multivariados/blob/main/data/clean/DICCIONARIO.csv) — diccionario completo de las bases horaria, diaria, de cobertura y del informe.
+- [`data/clean/README.md`](https://github.com/Leo-issacs/reto-sima-multivariados/blob/main/data/clean/README.md) — reglas de limpieza, en orden, con sus banderas.
+- [`notebooks/01_auditoria_datos_crudos.qmd`](https://github.com/Leo-issacs/reto-sima-multivariados/blob/main/notebooks/01_auditoria_datos_crudos.qmd) — cuaderno reproducible de auditoría sobre los Excel originales.
+- [`scripts/`](https://github.com/Leo-issacs/reto-sima-multivariados/tree/main/scripts) — importación, diagnóstico, limpieza y validación (`02`–`05`).
