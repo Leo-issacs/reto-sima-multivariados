@@ -1,57 +1,3 @@
----
-title: "Reto SIMA: calidad del aire en el Área Metropolitana de Monterrey"
-subtitle: "Etapa 1. Preparación de los datos"
-lang: es
-format:
-  docx:
-    reference-doc: plantillas/referencia_etapa1.docx
-    toc: false
-    number-sections: false
-    fig-width: 6.3
-    fig-dpi: 200
-execute:
-  echo: false
-  warning: false
-  message: false
----
-
-```{r}
-#| label: setup
-suppressPackageStartupMessages({
-  library(data.table)
-  library(ggplot2)
-  library(knitr)
-})
-miles <- function(x) formatC(x, format = "d", big.mark = ",")
-pct <- function(x, d = 1) formatC(x, format = "f", digits = d)
-
-horario <- rbindlist(lapply(2020:2025, function(a)
-  fread(sprintf("data/clean/sima_horario_limpio_%d.csv", a), encoding = "UTF-8")))
-diario <- fread("data/clean/sima_diario_2020_2025.csv", encoding = "UTF-8")
-informe <- fread("data/clean/tabla_informe_limpieza.csv", encoding = "UTF-8")
-nucleo <- fread("output/diagnostico/dias_completos_nucleo.csv", encoding = "UTF-8")
-hojas <- fread("output/diagnostico/hoja_anio_resumen.csv", encoding = "UTF-8")
-tot <- nucleo[, .(dias = sum(dias_totales), A = sum(dias_completos_A), B = sum(dias_completos_B)), by = anio]
-```
-
-**Nombres y matrículas**
-
-Nombre completo: \_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_  Matrícula: \_\_\_\_\_\_\_\_\_\_\_\_\_\_
-
-Nombre completo: \_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_  Matrícula: \_\_\_\_\_\_\_\_\_\_\_\_\_\_
-
-Nombre completo: \_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_  Matrícula: \_\_\_\_\_\_\_\_\_\_\_\_\_\_
-
-Nombre completo: \_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_  Matrícula: \_\_\_\_\_\_\_\_\_\_\_\_\_\_
-
-Curso: Análisis multivariado (MA2003B)
-
-Profesor(a):
-
-Fecha de entrega: 1 de octubre de 2026
-
-{{< pagebreak >}}
-
 # Parte I. Conociendo el negocio
 
 ## 1.1 El socio formador: SIMA
@@ -155,8 +101,6 @@ Usamos seis libros Excel proporcionados por SIMA (2020–2025), con mediciones h
 
 Los originales no se modificaron y su integridad se verificó con huellas MD5.
 
-{{< pagebreak >}}
-
 # Parte II. Comprensión y preparación de los datos
 
 ## 2.1 Importación y estructura
@@ -171,53 +115,11 @@ Características encontradas:
 - **Sin celdas no numéricas ni banderas de validez:** una celda vacía no indica la causa del faltante.
 - **8 189 horas sin registro** (1.07 % de 762 792 esperadas). La mayoría corresponde a la estación NO3, que inicia en diciembre de 2022.
 
-El diccionario resumido está en el Anexo A y el completo en GitHub (Anexo C).
-
-```{r}
-#| label: tbl-dimensiones
-#| tbl-cap: "Dimensiones de las bases limpias (SIMA, 2020–2025)."
-dim_tab <- data.frame(
-  Concepto = c("Registros (estación-hora / estación-día)",
-               "  de ellos, con fila en los Excel originales",
-               "Columnas",
-               "Estaciones",
-               "Hojas estación-año en los Excel",
-               "Variables medidas",
-               "Periodo",
-               "Estación-días 2021–2025 (periodo de modelado)"),
-  `Base horaria` = c(miles(nrow(horario)), miles(sum(hojas$filas_hoja)), ncol(horario),
-                     uniqueN(horario$estacion), nrow(hojas), 15,
-                     paste(substr(min(horario$fecha_hora), 1, 10), "a", substr(max(horario$fecha_hora), 1, 10)),
-                     "—"),
-  `Base diaria` = c(miles(nrow(diario)), "—", ncol(diario), uniqueN(diario$estacion), nrow(hojas), 15,
-                    paste(min(diario$fecha), "a", max(diario$fecha)),
-                    miles(sum(diario$en_periodo_modelado))),
-  check.names = FALSE)
-kable(dim_tab, align = c("l", "r", "r"))
-```
+El diccionario completo está en el Anexo A.
 
 ## 2.2 Calidad de los datos
 
 **Faltantes.** Sobre 762 792 horas esperadas por variable, el faltante original va de 4.7 % (radiación solar) a 26.0 % (PM2.5) (@fig-faltantes). Se concentra en 2020 y en las estaciones NE3 y NO3, que casi no miden PM2.5.
-
-```{r}
-#| label: fig-faltantes
-#| fig-cap: "% de horas sin dato tras la limpieza, por variable y estación (base horaria publicada; NO3 empieza en diciembre de 2022 y NE3 casi no mide PM2.5)."
-#| fig-height: 3.9
-vars <- c("PM10", "PM2.5", "O3", "NO2", "NO", "NOX", "CO", "SO2", "TOUT", "RH", "SR", "PRS", "RAINF", "WSR", "WDR")
-falt <- horario[, lapply(.SD, function(x) 100 * mean(is.na(x))), by = estacion, .SDcols = vars]
-falt <- melt(falt, id.vars = "estacion", variable.name = "variable", value.name = "pct")
-falt[, variable := factor(variable, levels = rev(vars))]
-ggplot(falt, aes(estacion, variable, fill = pct)) +
-  geom_tile(colour = "white", linewidth = 0.4) +
-  geom_text(aes(label = round(pct), colour = pct > 55), size = 2.4, show.legend = FALSE) +
-  scale_colour_manual(values = c("grey20", "white")) +
-  scale_fill_gradientn(colours = c("#f7fbff", "#fee8c8", "#fdbb84", "#e34a33", "#7f0000"),
-                       limits = c(0, 100), name = "% faltante") +
-  labs(x = "Estación", y = NULL) +
-  theme_minimal(base_size = 9) +
-  theme(panel.grid = element_blank(), legend.position = "right")
-```
 
 **Rangos.** Los contaminantes casi nunca violan los rangos de operación de SIMA (≤ 0.05 %). En la meteorología, esos rangos resultaron inadecuados como criterio de error:
 
@@ -246,7 +148,7 @@ Un cuaderno reproducible de auditoría documenta cada hallazgo (`notebooks/01_au
 
 La proporción de días retenidos es similar por temporada (59.2–61.5 %). Esto reduce, pero no descarta, un sesgo de selección: los faltantes podrían concentrarse en condiciones particulares.
 
-Como sensibilidad conservamos un núcleo sin PM2.5 (Anexo B).
+Como sensibilidad conservamos un núcleo sin PM2.5 (Anexo C).
 
 ## 2.4 Limpieza
 
@@ -265,20 +167,6 @@ Los extremos dentro de rango se conservaron, porque pueden ser episodios reales 
 **Imputación.** Usamos interpolación lineal en huecos de hasta 3 h, por estación y variable (Moritz & Bartz-Beielstein, 2017). No imputamos la lluvia ni las horas anuladas por la prueba espacial. Después volvimos a validar los valores imputados y revertimos los que violaban alguna regla: 3 599 en PM2.5, 252 en PM10, 54 en presión y 5 en humedad.
 
 El imputado neto fue de 0 % a 2.88 % (PM2.5) y el faltante final quedó entre 4.5 % y 23.2 % (@tbl-limpieza). Un script valida automáticamente la base publicada, y dos revisiones independientes reprodujeron exactamente los CSV.
-
-```{r}
-#| label: tbl-limpieza
-#| tbl-cap: !expr 'sprintf("Limpieza por variable, como %% de %s horas estación (87 hojas-año). Invalidado = fuera de rango, notas del PDF, saturación, saltos, PM2.5 > PM10, consistencia espacial (TOUT, RH) y rachas ≥ 24 h; final = original + invalidado − imputado. viento_uv = componentes u/v.", miles(informe$horas_esperadas[1]))'
-tab2 <- informe[, .(
-  Variable = variable,
-  `% faltante original` = pct(faltante_original_pct, 1),
-  `% invalidado` = pct(100 * (invalidada_F_rango_n + invalidada_P_nota_pdf_n + invalidada_L_saturacion_n +
-                                invalidada_S_salto_n + invalidada_R_pm25_gt_pm10_n + invalidada_E_espacial_n +
-                                invalidada_K_racha24_n) / horas_esperadas, 2),
-  `% imputado` = pct(imputada_pct, 2),
-  `% faltante final` = pct(faltante_final_pct, 1))]
-kable(tab2, align = c("l", "r", "r", "r", "r"))
-```
 
 ## 2.5 Transformación y preparación
 
@@ -299,12 +187,10 @@ kable(tab2, align = c("l", "r", "r", "r", "r"))
   - Claude Code: scripts de R de importación, diagnóstico, limpieza y validación.
   - Claude y ChatGPT, usados por integrantes del equipo: borradores de 1.1–1.4 y fichas de lectura, a partir de los PDF de las fuentes.
 - **Secciones:** Partes I y II, scripts en `scripts/` y `R/` y cuaderno de auditoría.
-- **Validación realizada por los estudiantes:** [[COMPLETAR por el equipo con lo realmente revisado]]{.mark}.
+- **Validación realizada por los estudiantes:** **[COMPLETAR por el equipo con lo realmente revisado]**.
 - Confirmamos que revisamos y verificamos el contenido final y asumimos la responsabilidad sobre él.
 
 # Referencias
-
-::: {custom-style="Referencia"}
 
 Aguirre-López, M. A., Rodríguez-González, M. A., Soto-Villalobos, R., Gómez-Sánchez, L. E., Benavides-Ríos, Á. G., Benavides-Bravo, F. G., Walle-García, O., & Pamanés-Aguilar, M. G. (2022). Statistical analysis of PM10 concentration in the Monterrey Metropolitan Area, Mexico (2010–2018). *Atmosphere, 13*(2), 297. https://doi.org/10.3390/atmos13020297
 
@@ -335,80 +221,3 @@ SEMARNAT. (2024, 25 de enero). NOM-172-SEMARNAT-2023, Lineamientos para la obten
 Sistema Integral de Monitoreo Ambiental [SIMA]. (2026, 14 de agosto). *Red de monitoreo y manejo de datos de calidad del aire* [Presentación de diapositivas]. Gobierno de Nuevo León.
 
 World Health Organization. (2021). *WHO global air quality guidelines: Particulate matter (PM2.5 and PM10), ozone, nitrogen dioxide, sulfur dioxide and carbon monoxide*. https://www.who.int/publications/i/item/9789240034228
-
-:::
-
-{{< pagebreak >}}
-
-# Anexos
-
-## Anexo A. Diccionario resumido
-
-```{r}
-#| label: tbl-diccionario
-#| tbl-cap: "Variables de medición publicadas en data/clean/ (rango de operación: mínimo–máximo entre 2020 y 2025; % faltante sobre 762 792 horas estación de las 87 hojas-año; detalle de reglas y banderas en Anexo C)."
-vars15 <- c("PM10", "PM2.5", "O3", "NO2", "NO", "NOX", "CO", "SO2", "TOUT", "RH", "SR", "PRS", "RAINF", "WSR", "WDR")
-desc <- c(
-  PM10 = "Material particulado < 10 µm", `PM2.5` = "Material particulado < 2.5 µm",
-  O3 = "Ozono", NO2 = "Dióxido de nitrógeno", NO = "Monóxido de nitrógeno",
-  NOX = "Óxidos de nitrógeno (NO + NO2)", CO = "Monóxido de carbono", SO2 = "Dióxido de azufre",
-  TOUT = "Temperatura", RH = "Humedad relativa", SR = "Radiación solar",
-  PRS = "Presión atmosférica", RAINF = "Precipitación (sin convertir; unidad sin confirmar)",
-  WSR = "Velocidad del viento", WDR = "Dirección del viento (de donde sopla)")
-unidad <- c(PM10 = "µg/m3", `PM2.5` = "µg/m3", O3 = "ppb", NO2 = "ppb", NO = "ppb", NOX = "ppb",
-           CO = "ppm", SO2 = "ppb", TOUT = "°C", RH = "%", SR = "kW/m2", PRS = "mm Hg",
-           RAINF = "mm/h", WSR = "km/h", WDR = "grados")
-
-rg <- fread("config/rangos_operacion.csv", encoding = "UTF-8")
-rg15 <- rg[, .(minimo = min(minimo), maximo = max(maximo)), by = variable]
-rango <- setNames(sprintf("%s–%s", rg15$minimo, rg15$maximo), rg15$variable)
-
-inf <- fread("data/clean/tabla_informe_limpieza.csv", encoding = "UTF-8")
-falt_o <- setNames(pct(inf$faltante_original_pct, 1), inf$variable)
-falt_f <- setNames(pct(inf$faltante_final_pct, 1), inf$variable)
-
-variable <- c("estacion", "fecha_hora", vars15)
-tabA <- data.table(
-  Variable = variable,
-  Descripción = c("Código de estación (data/metadata/estaciones.csv)",
-                  "Marca horaria (00:00–23:00), hora local fija", desc[vars15]),
-  Unidad = c("—", "AAAA-MM-DD HH:MM:SS", unidad[vars15]),
-  Tipo = c("texto", "fecha y hora", rep("numérico", 15)),
-  `Rango posible` = c("—", "—", rango[vars15]),
-  `% falt. original` = c("—", "—", falt_o[vars15]),
-  `% falt. final` = c("—", "—", falt_f[vars15]))
-k <- kable(tabA, format = "pipe", align = c("l", "l", "l", "l", "r", "r", "r"))
-pesos <- c(8, 28, 10, 10, 12, 10, 10)
-k[2] <- paste0("|", paste0(":", vapply(pesos - 1, function(n) strrep("-", n), ""), collapse = "|"), "|")
-k
-```
-
-## Anexo B. Núcleos de modelado
-
-```{r}
-#| label: fig-nucleos
-#| fig-cap: !expr 'sprintf("Estación-días completos por año en el núcleo A (PM10, O3 máx. 8 h, NO2, CO, SO2, TOUT, RH, SR, viento, PRS, RAINF) y en el núcleo B (A + PM2.5). Etiqueta: días completos (%% de los días estación del año). Total de días estación: %s. El 2020 se conserva en los datos, pero no entra al modelado.", paste(sprintf("%d: %s", tot$anio, miles(tot$dias)), collapse = "; "))'
-#| fig-height: 3.0
-larg <- melt(tot, id.vars = c("anio", "dias"), variable.name = "nucleo", value.name = "n")
-larg[, etiqueta := sprintf("%s\n(%s%%)", miles(n), pct(100 * n / dias, 0))]
-larg[, nucleo := factor(nucleo, labels = c("Núcleo A (sensibilidad)", "Núcleo B (principal)"))]
-ggplot(larg, aes(factor(anio), n, fill = nucleo)) +
-  geom_col(position = position_dodge(0.8), width = 0.75) +
-  geom_text(aes(label = etiqueta), position = position_dodge(0.8), vjust = -0.25, size = 2.4, lineheight = 0.9) +
-  scale_fill_manual(values = c("#0072B2", "#E69F00"), name = NULL) +
-  scale_y_continuous(expand = expansion(mult = c(0, 0.18)), labels = miles) +
-  labs(x = "Año", y = "Estación-días completos") +
-  theme_minimal(base_size = 9) +
-  theme(legend.position = "top", panel.grid.major.x = element_blank())
-```
-
-## Anexo C. Material completo en GitHub
-
-El repositorio es público y la rama `main` incluye, además de lo resumido en los Anexos A y B:
-
-- [`config/rangos_operacion.csv`](https://github.com/Leo-issacs/reto-sima-multivariados/blob/main/config/rangos_operacion.csv) — rangos de operación por año, con las notas del PDF del SIMA.
-- [`data/clean/cobertura_dias_validos_hoja_anio.csv`](https://github.com/Leo-issacs/reto-sima-multivariados/blob/main/data/clean/cobertura_dias_validos_hoja_anio.csv) — % de días válidos por estación, año y variable.
-- [`data/clean/DICCIONARIO.csv`](https://github.com/Leo-issacs/reto-sima-multivariados/blob/main/data/clean/DICCIONARIO.csv) — diccionario completo de las bases horaria, diaria, de cobertura y del informe.
-- [`data/clean/README.md`](https://github.com/Leo-issacs/reto-sima-multivariados/blob/main/data/clean/README.md) — reglas de limpieza, en orden, con sus banderas.
-- [`notebooks/01_auditoria_datos_crudos.qmd`](https://github.com/Leo-issacs/reto-sima-multivariados/blob/main/notebooks/01_auditoria_datos_crudos.qmd) — cuaderno reproducible de auditoría sobre los Excel originales.
-- [`scripts/`](https://github.com/Leo-issacs/reto-sima-multivariados/tree/main/scripts) — importación, diagnóstico, limpieza y validación (`02`–`05`).
