@@ -69,6 +69,7 @@ La mejora atribuible a la meteorología se cuantifica con la diferencia de AUC (
    - los días que dejan de ser evaluables por cobertura insuficiente.
 3. Componentes principales de la meteorología en lugar de las variables originales.
 4. M0 y M1 con interacción estación × temporada (agregada en v3).
+5. M0 estimado también en la muestra con solo PM2.5 válido (19 918 estación-días), porque exigir meteorología completa baja la superación de NO2 de 18.2 % a 10.0 % (agregada en v3).
 
 ## 7. Extensiones futuras (fuera del alcance de las 3 semanas)
 
@@ -102,7 +103,8 @@ El 4 de octubre se realizó una prueba de viabilidad que usó 2024–2025: `docs
   - limitación de la "fila previa".
   
   Pendiente: reproducir la pareja M0–M1 con discriminante.
-- v3 (4 oct 2026). Ambos cambios se registran **antes** de ajustar cualquier modelo:
+- v3 (4 oct 2026). Estos cambios se registran **antes** de ajustar cualquier modelo:
   - **Base `datos-v1.2` (regla D15).** La exploración de la etapa 2 encontró radiación solar distinta de cero de noche y viento físicamente imposible frente al resto de la red. Se agregaron dos pruebas a la limpieza (`scripts/03_limpiar.R`, `data/clean/README.md`, regla 8): SR se invalida en todo el día si su media entre 00 y 04 h supera 0.02 kW/m² (con ≥ 3 lecturas), y el viento se invalida en la hora con WSR > mediana de la red + 30 km/h (con ≥ 5 estaciones), o en todo el día si hay ≥ 3 horas marcadas. La regla retira 1 070 estación-días de la muestra, que pasa de 16 461 a **15 390** (64.8 % de 23 738), con 26.3 % de superación.
   - **Sensibilidad nueva:** M0 y M1 con interacción estación × temporada. La exploración mostró que el patrón estacional de la superación difiere entre estaciones, así que un M0 aditivo podría subestimar la referencia. Se reporta junto a las sensibilidades de la sección 6, sin usarse para escoger el modelo principal.
+  - **Sensibilidad nueva:** M0 estimado también en la muestra con solo PM2.5 válido (19 918 estación-días), porque exigir meteorología completa baja la superación de NO2 de 18.2 % a 10.0 % (de 1 553 a 511 estación-días; la superación global pasa de 25.7 % a 26.3 %). Se reporta junto a las demás, sin usarse para escoger el modelo principal.
 
