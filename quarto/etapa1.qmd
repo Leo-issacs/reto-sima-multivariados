@@ -274,7 +274,7 @@ tab2 <- informe[, .(
   `% faltante original` = pct(faltante_original_pct, 1),
   `% invalidado` = pct(100 * (invalidada_F_rango_n + invalidada_P_nota_pdf_n + invalidada_L_saturacion_n +
                                 invalidada_S_salto_n + invalidada_R_pm25_gt_pm10_n + invalidada_E_espacial_n +
-                                invalidada_K_racha24_n + invalidada_M_sr_nocturna_n) / horas_esperadas, 2),
+                                invalidada_K_racha24_n) / horas_esperadas, 2),
   `% imputado` = pct(imputada_pct, 2),
   `% faltante final` = pct(faltante_final_pct, 1))]
 kable(tab2, align = c("l", "r", "r", "r", "r"))
