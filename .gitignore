@@ -59,3 +59,4 @@ renv/sandbox/
 # CSV limpios publicables (los Excel siguen bloqueados por *.xlsx)
 !data/clean/
 !data/clean/*.csv
+/docs/output/
