@@ -2,7 +2,7 @@
 
 **Fuente:** Sistema Integral de Monitoreo Ambiental de Nuevo León (SIMA), libros `BD 2020.xlsx` … `BD 2025.xlsx` (6 archivos, 87 hojas estación-año, 15 estaciones). Metadatos: `Etiquetas.xlsx`, `Rangos de los parámetros del SIMA.pdf`, `Ubicación de las estaciones de monitoreo.docx`.
 **Se reproduce con:** `SIMA_DATA_DIR="<carpeta con los Excel>" Rscript scripts/03_limpiar.R` (verifica las huellas MD5 de `data/metadata/inventario_archivos_inicial.csv`; requiere `renv::restore()`, incluye `imputeTS`).
-**Generado el:** 2026-09-26. Los Excel originales no se modifican ni se publican.
+**Generado el:** 2026-10-04 (versión `datos-v1.2`: agrega la regla D15). Los Excel originales no se modifican ni se publican.
 
 ## Archivos
 
@@ -12,13 +12,14 @@
 | `sima_diario_2020_2025.csv` | Una fila por estación-día. Base para PCA/conglomerados; trae `en_nucleo_A`, `en_nucleo_B` y `en_periodo_modelado` (ver más abajo). |
 | `cobertura_dias_validos_hoja_anio.csv` | % de días válidos (≥ 18 h) por hoja-año × variable, con `cobertura_baja` = 1 si < 75 %. |
 | `tabla_informe_limpieza.csv` | Por variable: % faltante original, % invalidado por regla, % imputado y % final, con denominador. |
+| `muestra_pm25_2021_2025.csv` | Muestra del protocolo de la etapa 2 (13 estaciones, 2021–2025, PM2.5 y meteorología completos), con `supera_25` y `supera_15`. La genera `scripts/06_explorar_etapa2.R`. |
 | `DICCIONARIO.csv` | Columnas, unidades y reglas. |
 
 No se elimina ninguna hoja-año, estación ni el año 2020. El modelado principal usa el **núcleo B** (`en_nucleo_B == 1`) en **2021–2025** (`en_periodo_modelado == 1`); el núcleo A es la sensibilidad. NE3 y NO3 se conservan, pero casi nunca completan B. Detalle de días completos: `output/diagnostico/dias_completos_nucleo.csv`.
 
 ## Validación
 
-`scripts/04_validar_limpios.R` (se corre al final de `03_limpiar.R`) falla si en los CSV horarios hay PM2.5 > PM10, valores fuera del rango de su año (o de las notas del PDF) una terna NO/NO2/NOX completa con `nox_inconsistente` vacía, TOUT en el límite del sensor, una hora anulada por E/L reincorporada por imputación o un valor de TOUT/RH a más de 10 °C / 40 pp de la mediana de la red observada (con ≥ 5 estaciones). `scripts/05_probar_limpieza.R` prueba las reglas con datos sintéticos.
+`scripts/04_validar_limpios.R` (se corre al final de `03_limpiar.R`) falla si en los CSV horarios hay PM2.5 > PM10, valores fuera del rango de su año (o de las notas del PDF) una terna NO/NO2/NOX completa con `nox_inconsistente` vacía, TOUT en el límite del sensor, una hora anulada por E/L/M reincorporada por imputación, un estación-día que conserve SR con media nocturna > 0.02 kW/m², una hora que conserve WSR más de 30 km/h sobre la mediana de la red, o un valor de TOUT/RH a más de 10 °C / 40 pp de la mediana de la red observada (con ≥ 5 estaciones). `scripts/05_probar_limpieza.R` prueba las reglas con datos sintéticos.
 
 ## Reglas, en este orden (cada hora de cada variable queda con una bandera)
 
@@ -37,10 +38,35 @@ No se elimina ninguna hoja-año, estación ni el año 2020. El modelado principa
    | Observaciones tras las reglas previas (F, P, L, S, R, K), **primera pasada de E** (base de esta versión) | 447 | 299 | 4,068 |
 
    Con la repetición hasta estabilizar, E excluye **450 lecturas de TOUT y 4,120 de RH**: esas son las cifras de la limpieza; las de una pasada son solo de sensibilidad. En `datos-v1.0`, de las 614 desviaciones de TOUT, 143 eran valores imputados; de las 4,251 de RH, 183 imputadas y 4,068 observadas (descomposición de la revisión del PR #7; recalculada la suma de cada base con el importador del proyecto). El cuaderno de auditoría se ejecuta sobre los Excel originales (primera fila); no reproduce la limpieza.
-8. **NOX:** no se invalida. `nox_inconsistente` = 1 si |NOX − (NO + NO2)| > max(1 ppb, 10 % de NOX): el piso de 1 ppb evita marcar diferencias menores a la resolución del analizador. Se calcula sobre los **valores finales** publicados (tras imputar y revertir) en toda hora con NO, NO2 y NOX presentes; vacía solo si falta alguna.
-9. **Viento:** `viento_u = −WSR/3.6·sin(WDR)`, `viento_v = −WSR/3.6·cos(WDR)` en m/s (requiere WSR y WDR válidas). WSR y WDR se publican validadas y sin imputar.
-10. **I, imputación**: solo huecos internos de ≤ 3 h consecutivas, interpolación lineal (`imputeTS::na_interpolation(maxgap = 3)`), por estación y variable, sobre la serie continua 2020–2025 de la estación y antes del agregado diario. Se imputan contaminantes, TOUT, RH, SR, PRS y u/v; **no** RAINF ni WSR/WDR. Sin imputación por media. **Revalidación posterior:** después de interpolar se vuelven a aplicar el rango del año de cada hora (contaminantes: operación; meteorología: fabricante; notas del PDF), la saturación de TOUT, la consistencia espacial de TOUT y RH, el salto horario de TOUT y PRS con las horas vecinas y PM2.5 ≤ PM10. Un valor imputado que incumple una regla (incluida la consistencia espacial, contra la mediana de la red observada) vuelve a NA con bandera `X`; **nunca se modifica un valor original válido** (si PM2.5 imputada > PM10 original, se revierte la imputada; si ambas son imputadas, ambas). Se repite hasta que no haya más reversiones. Las horas anuladas por E o L quedan siempre vacías (no se imputan). En horas `I` y `X` se pierde el motivo original de invalidez (la tabla del informe sí lo separa y reporta el % imputado neto y las imputaciones revertidas).
-11. Los valores extremos que superan todas las reglas anteriores se conservan.
+8. **D15, consistencia física y espacial de SR y viento** (`datos-v1.2`, hallazgo de la exploración de la etapa 2; Estévez et al., 2011; Fiebrich et al., 2010). Ambas se aplican sobre los valores **observados**, antes de imputar; las horas invalidadas **no se imputan** y los imputados se revalidan después:
+   - **M, radiación solar nocturna.** Si la media de SR entre las 00 y las 04 h (hora local) de una estación-día es > 0.02 kW/m², con al menos 3 lecturas, se invalida SR en las 24 h de ese día: el sensor no marca cero de noche y sus lecturas diurnas tampoco son confiables. Tras imputar, si los valores imputados de la madrugada vuelven a superar el umbral, se revierten (X).
+   - **E, viento contra la red.** Se marca la hora si WSR − mediana de la red en esa hora > 30 km/h, con al menos 5 estaciones reportando. La hora marcada se invalida (WSR, WDR y, por tanto, *u* y *v*); si una estación-día acumula 3 o más horas marcadas, se invalidan WSR, WDR, *u* y *v* de **todo el día**. La prueba se repite hasta que no hay nuevas marcas (quitar lecturas cambia la mediana). Tras imputar, se revierten los *u*/*v* imputados cuya rapidez implícita supere la mediana de la red en más de 30 km/h. Sensibilidad (primera pasada; `output/diagnostico/sensibilidad_viento_red.csv`): 2,731 horas marcadas con 20 km/h, 1,800 con 30 km/h y 1,367 con 40 km/h.
+
+   Conteos por estación (`output/diagnostico/d15_por_estacion.csv`; solo estaciones con algún caso):
+
+   | Estación | Días con SR nocturna (M) | Horas de viento marcadas | Días de viento invalidados (≥ 3 marcas) | Horas de WSR invalidadas (E) |
+   |---|---:|---:|---:|---:|
+   | CE | 458 | 2 | 0 | 2 |
+   | NE | 2 | 0 | 0 | 0 |
+   | NE2 | 201 | 317 | 39 | 937 |
+   | NE3 | 3 | 0 | 0 | 0 |
+   | NO | 63 | 16 | 2 | 42 |
+   | NO2 | 541 | 3 | 1 | 19 |
+   | NO3 | 6 | 403 | 40 | 865 |
+   | NTE | 8 | 0 | 0 | 0 |
+   | SE | 0 | 1 | 0 | 1 |
+   | SE2 | 37 | 0 | 0 | 0 |
+   | SE3 | 714 | 0 | 0 | 0 |
+   | SO | 34 | 28 | 4 | 102 |
+   | SO2 | 1 | 1,029 | 105 | 2,457 |
+   | SUR | 12 | 1 | 0 | 1 |
+   | **Total** | **2,080** | **1,800** | **191** | **4,426** |
+
+   Después de la regla, el viento diario máximo es 7.53 m/s (SO, 2020-02-26) y el horario más alto de WSR, 44.5 km/h. La bandera `N` ya significaba «falta original», por eso la SR nocturna usa `M` (madrugada).
+9. **NOX:** no se invalida. `nox_inconsistente` = 1 si |NOX − (NO + NO2)| > max(1 ppb, 10 % de NOX): el piso de 1 ppb evita marcar diferencias menores a la resolución del analizador. Se calcula sobre los **valores finales** publicados (tras imputar y revertir) en toda hora con NO, NO2 y NOX presentes; vacía solo si falta alguna.
+10. **Viento:** `viento_u = −WSR/3.6·sin(WDR)`, `viento_v = −WSR/3.6·cos(WDR)` en m/s (requiere WSR y WDR válidas). WSR y WDR se publican validadas y sin imputar.
+11. **I, imputación**: solo huecos internos de ≤ 3 h consecutivas, interpolación lineal (`imputeTS::na_interpolation(maxgap = 3)`), por estación y variable, sobre la serie continua 2020–2025 de la estación y antes del agregado diario. Se imputan contaminantes, TOUT, RH, SR, PRS y u/v; **no** RAINF ni WSR/WDR. Sin imputación por media. **Revalidación posterior:** después de interpolar se vuelven a aplicar el rango del año de cada hora (contaminantes: operación; meteorología: fabricante; notas del PDF), la saturación de TOUT, la consistencia espacial de TOUT y RH, el salto horario de TOUT y PRS con las horas vecinas y PM2.5 ≤ PM10. Un valor imputado que incumple una regla (incluida la consistencia espacial, contra la mediana de la red observada) vuelve a NA con bandera `X`; **nunca se modifica un valor original válido** (si PM2.5 imputada > PM10 original, se revierte la imputada; si ambas son imputadas, ambas). Se repite hasta que no haya más reversiones. Las horas anuladas por E o L quedan siempre vacías (no se imputan). En horas `I` y `X` se pierde el motivo original de invalidez (la tabla del informe sí lo separa y reporta el % imputado neto y las imputaciones revertidas).
+12. Los valores extremos que superan todas las reglas anteriores se conservan.
 
 **Duplicados:** no existen marcas duplicadas en los seis libros (verificado); el código conservaría el primer valor numérico de cada marca.
 
