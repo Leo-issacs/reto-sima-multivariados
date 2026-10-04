@@ -4,7 +4,9 @@
 #   S salto > umbral en 1 h (SIMA h) R PM2.5 > PM10 (SIMA r): se invalidan ambas
 #   K racha >= 24 h identicos invalidada
 #   L saturacion del sensor (TOUT en el limite del fabricante, |TOUT| >= 49.9)
-#   E consistencia espacial: TOUT (>10 C) o RH (>40 pp) lejos de la mediana de la red en esa hora
+#   E consistencia espacial: TOUT (>10 C) o RH (>40 pp) lejos de la mediana de la red en esa hora;
+#     WSR/WDR/u/v (regla D15): hora con WSR > mediana de la red + 30 km/h, o dia entero si tiene >= 3
+#   M radiacion solar nocturna (regla D15): media de SR entre 00 y 04 h > 0.02 kW/m2 -> SR de todo el dia
 #   C racha >= 6 h identicos marcada pero conservada
 #   I imputada (interpolacion lineal, huecos internos <= 3 h)
 #   X imputacion revertida: el valor interpolado incumplia una regla y volvio a NA
@@ -30,6 +32,15 @@ HORAS_MIN_DIA_LIMPIO <- 18L
 UMBRAL_E <- c(TOUT = 10, RH = 40)         # grados C / puntos porcentuales
 MIN_ESTACIONES_E <- 5L
 SATURACION_TOUT <- 49.9                   # |TOUT| >= 49.9 = sensor pegado al limite del fabricante (+-50)
+# Regla D15 (datos-v1.2). SR nocturna: si la media de SR entre 00 y 04 h es > 0.02 kW/m2 con >= 3 lecturas,
+# el sensor no marca cero de noche y se invalida SR en las 24 h del dia (bandera M).
+SR_NOCHE_HORAS <- 0:4
+SR_NOCHE_UMBRAL <- 0.02
+SR_NOCHE_MIN_LECTURAS <- 3L
+# Viento contra la red: WSR > mediana de la red + 30 km/h (con >= 5 estaciones) marca la hora; con >= 3
+# horas marcadas en el dia se invalidan WSR, WDR, u y v de todo el dia (bandera E).
+UMBRAL_WSR_RED <- 30
+WSR_HORAS_MARCADAS_DIA <- 3L
 # Notas del PDF (solo en su anio): var, anios, tipo de limite sobre el rango de operacion.
 NOTAS_PDF <- data.frame(
   variable = c("WSR", "SR", "SR", "PRS"), anio = c(2020, 2020, 2021, 2020),
@@ -145,14 +156,41 @@ limpiar_hoja <- function(datos_hoja, rangos_op, rangos_fab, red = NULL, solo_fas
     FL[marca & FL[, v] == "V", v] <- "C"
   }
 
-  # Fin de la fase 1: solo TOUT y RH observados (F, P, L, S, R y K aplicadas) para la mediana de la red.
-  if (solo_fase1) return(list(fecha = fecha, X = X[, c("TOUT", "RH")]))
+  # M (D15): SR nocturna. Bloques de 24 h desde 00:00 (la malla empieza a medianoche).
+  hora <- (seq_len(n) - 1L) %% 24L
+  dia_id <- (seq_len(n) - 1L) %/% 24L
+  sr_noche_mala <- function(x) {      # TRUE en todas las horas de los dias que incumplen
+    k <- hora %in% SR_NOCHE_HORAS & !is.na(x)
+    nl <- tabulate(dia_id[k] + 1L, nbins = n %/% 24L)
+    sm <- vapply(split(x[k], factor(dia_id[k], levels = 0:(n %/% 24L - 1L))), sum, numeric(1L))
+    malo <- nl >= SR_NOCHE_MIN_LECTURAS & sm / pmax(nl, 1L) > SR_NOCHE_UMBRAL
+    malo[dia_id + 1L]
+  }
+  invalidar("SR", sr_noche_mala(X[, "SR"]), "M")
+
+  # Fin de la fase 1: TOUT, RH y WSR observados (F, P, L, S, R, K y M aplicadas) para la mediana de la red.
+  if (solo_fase1) return(list(fecha = fecha, X = X[, c("TOUT", "RH", "WSR")]))
   # E: consistencia espacial sobre datos OBSERVADOS, antes de imputar. `red` lista, por variable,
   # las lecturas a quitar (punto fijo de la red) y la mediana/numero de estaciones final por hora.
   t_num <- as.numeric(fecha)
   if (!is.null(red)) for (v in c("TOUT", "RH")) {
     tq <- red[[v]]$quitar$t[red[[v]]$quitar$hoja == hoja]
     invalidar(v, t_num %in% tq, "E")
+  }
+  # E (D15): viento contra la red. `red$WSR$quitar` trae las horas marcadas y las de dias con >= 3 marcas.
+  if (!is.null(red) && !is.null(red[["WSR"]])) {
+    tq <- red$WSR$quitar$t[red$WSR$quitar$hoja == hoja]
+    dq <- red$WSR$dias$dia[red$WSR$dias$hoja == hoja]
+    mw <- t_num %in% tq | as.character(as.Date(fecha)) %in% dq
+    invalidar("WSR", mw, "E"); invalidar("WDR", mw, "E")
+  }
+  viento_viola <- function(u, v) {      # rapidez implicita de u/v imputados contra la red observada
+    if (is.null(red) || is.null(red[["WSR"]])) return(rep(FALSE, n))
+    i <- match(t_num, red$WSR$ref$t)
+    w <- sqrt(u^2 + v^2) * 3.6
+    m <- !is.na(w) & !is.na(i) & red$WSR$ref$n[i] >= MIN_ESTACIONES_E & (w - red$WSR$ref$mediana[i]) > UMBRAL_WSR_RED
+    m[is.na(m)] <- FALSE
+    m
   }
   espacial_viola <- function(v, x) {   # para revalidar imputados contra la red observada
     if (is.null(red)) return(rep(FALSE, n))
@@ -205,6 +243,8 @@ limpiar_hoja <- function(datos_hoja, rangos_op, rangos_fab, red = NULL, solo_fas
     # Las horas anuladas por consistencia espacial (E) o saturacion (L) NO se imputan nunca: la
     # validacion espacial de un imputado depende de tener >= 5 estaciones, y E puede dejar menos.
     if (v %in% c("TOUT", "RH")) idx <- idx[!(flags0[idx, v] %in% c("E", "L"))]
+    if (v == "SR") idx <- idx[flags0[idx, "SR"] != "M"]
+    if (v %in% c("viento_u", "viento_v")) idx <- idx[flags0[idx, "f_uv"] != "E"]
     V1[idx, v] <- y[idx]; IMP[idx, v] <- TRUE
   }
   # Revalidacion: un valor imputado que incumple una regla vuelve a NA (bandera X). Nunca se
@@ -221,6 +261,10 @@ limpiar_hoja <- function(datos_hoja, rangos_op, rangos_fab, red = NULL, solo_fas
       cambio <- revertir(v, incumple_rango(v, V1[, v])) || cambio
     for (v in c("TOUT", "RH"))                                              # consistencia espacial
       cambio <- revertir(v, espacial_viola(v, V1[, v])) || cambio
+    cambio <- revertir("SR", sr_noche_mala(V1[, "SR"]) & hora %in% SR_NOCHE_HORAS) || cambio   # D15 SR
+    vv <- viento_viola(V1[, "viento_u"], V1[, "viento_v"])                  # D15 viento
+    cambio <- revertir("viento_u", vv) || cambio
+    cambio <- revertir("viento_v", vv) || cambio
     for (v in names(SALTO_MAX)) {                                         # salto contra hora vecina
       x <- V1[, v]
       salto <- abs(c(NA_real_, diff(x))) > SALTO_MAX[[v]] | abs(c(diff(x), NA_real_)) > SALTO_MAX[[v]]
@@ -311,4 +355,37 @@ red_espacial <- function(fase1, umbral = UMBRAL_E) {
     salida[[v]] <- list(ref = as.data.frame(est), quitar = as.data.frame(d[quitado == TRUE, .(hoja, t)]))
   }
   list(red = salida, sens = sens)
+}
+
+
+# Regla D15, viento contra la red. `fase1`: lista por hoja con `fecha` y `X` (incluye WSR observado).
+# Marca la hora si WSR - mediana de la red > UMBRAL_WSR_RED con >= 5 estaciones; si una estacion-dia
+# acumula >= WSR_HORAS_MARCADAS_DIA marcas, se quita el dia entero. Se repite hasta un punto fijo (quitar
+# lecturas cambia la mediana), asi ninguna lectura conservada incumple respecto de SU mediana final.
+red_viento <- function(fase1, umbral = UMBRAL_WSR_RED) {
+  d <- data.table::rbindlist(lapply(names(fase1), function(h) {
+    x <- fase1[[h]]$X[, "WSR"]; k <- !is.na(x)
+    data.table::data.table(hoja = h, t = as.numeric(fase1[[h]]$fecha[k]),
+                           dia = as.character(as.Date(fase1[[h]]$fecha[k])), x = x[k])
+  }))
+  d[, `:=`(n0 = .N, med0 = stats::median(x)), by = t]
+  d[, dev0 := x - med0]
+  sens <- d[, .(hoja, t, dia, n0, dev0)]
+  d[, `:=`(marcada = FALSE, quitado = FALSE, k_dia = 0L, n_act = NA_integer_, med_act = NA_real_)]
+  repeat {
+    est <- d[quitado == FALSE, .(n = .N, mediana = stats::median(x)), by = t]
+    d[, `:=`(n_act = NA_integer_, med_act = NA_real_)]
+    d[est, on = "t", `:=`(n_act = i.n, med_act = i.mediana)]
+    nueva <- !d$quitado & !is.na(d$n_act) & d$n_act >= MIN_ESTACIONES_E & (d$x - d$med_act) > umbral
+    if (!any(nueva)) break
+    d[nueva, marcada := TRUE]
+    d[, k_dia := sum(marcada), by = .(hoja, dia)]
+    d[marcada == TRUE | k_dia >= WSR_HORAS_MARCADAS_DIA, quitado := TRUE]
+  }
+  dias <- unique(d[k_dia >= WSR_HORAS_MARCADAS_DIA, .(hoja, dia, horas_marcadas = k_dia)])
+  list(red = list(ref = as.data.frame(d[quitado == FALSE, .(n = .N, mediana = stats::median(x)), by = t]),
+                  quitar = as.data.frame(d[quitado == TRUE, .(hoja, t)]),
+                  dias = as.data.frame(dias),
+                  marcadas = as.data.frame(d[marcada == TRUE, .(hoja, t, dia)])),
+       sens = sens)
 }
