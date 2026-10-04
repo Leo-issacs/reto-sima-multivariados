@@ -1,0 +1,8 @@
+"requisito","n","pct_del_universo"
+"Universo (13 estaciones x 2021-2025)",23738,100
+"Pierde por PM2.5 (< 18 h válidas)",3820,16.1
+"Pierde por meteorología incompleta (algún predictor de M1 < 18 h)",4638,19.5
+"  de ellos: solo falta PM2.5",2639,11.1
+"  de ellos: solo falta meteorología",3457,14.6
+"  de ellos: faltan ambos",1181,5
+"Muestra final (PM2.5 y meteorología completas)",16461,69.3

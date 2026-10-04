@@ -1,0 +1,5 @@
+"concepto","n","pct_de_la_muestra"
+"Días de la muestra (16 461 por protocolo)",16461,100
+"Días comparables (>=18 h observadas, sin imputar)",16018,97.31
+"  de ellos: cambian de clase en supera_25",103,0.63
+"Días que dejan de ser evaluables (quedan < 18 h observadas)",443,2.69
