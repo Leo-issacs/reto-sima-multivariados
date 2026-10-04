@@ -1,4 +1,4 @@
-# Protocolo de análisis — Reto SIMA (versión 2, 4 de octubre de 2026)
+# Protocolo de análisis — Reto SIMA (versión 3, 4 de octubre de 2026)
 
 Este protocolo se fija **antes** de ajustar los modelos definitivos. Cualquier cambio posterior se registra al final con su fecha y su razón.
 
@@ -23,7 +23,7 @@ La mejora atribuible a la meteorología se cuantifica con la diferencia de AUC (
 ## 3. Definiciones fijas
 
 - **Unidad:** estación-día.
-- **Muestra:** 2021–2025; 13 estaciones (sin NE3 ni NO3, que casi no miden PM2.5); PM2.5 diario válido (≥ 18 h) y meteorología completa. Son 16 461 estación-días de 23 738 posibles.
+- **Muestra:** 2021–2025; 13 estaciones (sin NE3 ni NO3, que casi no miden PM2.5); PM2.5 diario válido (≥ 18 h) y meteorología completa. Son 15 390 estación-días de 23 738 posibles (base `datos-v1.2`; ver v3 en el registro de cambios).
 - **Respuesta:** `supera_25` = 1 si PM2.5 > 25 µg/m³.
   - 25 µg/m³ es el valor del quinto año de aplicación de la NOM-025-SSA1-2021.
   - Se usa como **referencia fija para comparar todo el periodo**. **No** es una evaluación del cumplimiento normativo histórico: en 2021–2025 los límites aplicables cambiaron (norma anterior de 2014 y gradualidad de la de 2021), y la evaluación normativa tiene reglas propias de suficiencia, redondeo y percentil.
@@ -68,6 +68,7 @@ La mejora atribuible a la meteorología se cuantifica con la diferencia de AUC (
    - los días comparables que cambian de clase;
    - los días que dejan de ser evaluables por cobertura insuficiente.
 3. Componentes principales de la meteorología en lugar de las variables originales.
+4. M0 y M1 con interacción estación × temporada (agregada en v3).
 
 ## 7. Extensiones futuras (fuera del alcance de las 3 semanas)
 
@@ -85,7 +86,7 @@ El 4 de octubre se realizó una prueba de viabilidad que usó 2024–2025: `docs
 
 - Los resultados son **asociaciones retrospectivas**: la meteorología del mismo día no permite anticipar.
 - Para SIMA, una mejora de M1 sobre M0 es **evidencia preliminar** para valorar investigaciones posteriores, por ejemplo con meteorología pronosticada. Por sí sola no justifica invertir en un sistema operativo.
-- El 26.6 % de superación describe la **muestra seleccionada**, no todos los días de la ZMM.
+- El 26.3 % de superación describe la **muestra seleccionada**, no todos los días de la ZMM.
 
 ## Registro de cambios
 
@@ -101,3 +102,7 @@ El 4 de octubre se realizó una prueba de viabilidad que usó 2024–2025: `docs
   - limitación de la "fila previa".
   
   Pendiente: reproducir la pareja M0–M1 con discriminante.
+- v3 (4 oct 2026). Ambos cambios se registran **antes** de ajustar cualquier modelo:
+  - **Base `datos-v1.2` (regla D15).** La exploración de la etapa 2 encontró radiación solar distinta de cero de noche y viento físicamente imposible frente al resto de la red. Se agregaron dos pruebas a la limpieza (`scripts/03_limpiar.R`, `data/clean/README.md`, regla 8): SR se invalida en todo el día si su media entre 00 y 04 h supera 0.02 kW/m² (con ≥ 3 lecturas), y el viento se invalida en la hora con WSR > mediana de la red + 30 km/h (con ≥ 5 estaciones), o en todo el día si hay ≥ 3 horas marcadas. La regla retira 1 070 estación-días de la muestra, que pasa de 16 461 a **15 390** (64.8 % de 23 738), con 26.3 % de superación.
+  - **Sensibilidad nueva:** M0 y M1 con interacción estación × temporada. La exploración mostró que el patrón estacional de la superación difiere entre estaciones, así que un M0 aditivo podría subestimar la referencia. Se reporta junto a las sensibilidades de la sección 6, sin usarse para escoger el modelo principal.
+
