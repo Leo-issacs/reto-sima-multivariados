@@ -33,6 +33,7 @@ references/materiales/*
 output/*
 !output/README.md
 !output/diagnostico/
+!output/etapa2/
 _output/
 .quarto/
 _freeze/
