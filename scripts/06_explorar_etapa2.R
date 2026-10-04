@@ -175,7 +175,7 @@ escribir(cambios[, .(estacion, fecha, n_obs, pm25_actual, supera_25_actual, pm25
          "output/etapa2/sensibilidad_imputacion_cambios_clase.csv")
 
 sens_imp <- data.table(
-  concepto = c("Días de la muestra (16 461 por protocolo)", "Días comparables (>=18 h observadas, sin imputar)",
+  concepto = c(sprintf("Días de la muestra (%s)", fmt(nrow(muestra))), "Días comparables (>=18 h observadas, sin imputar)",
               "  de ellos: cambian de clase en supera_25", "Días que dejan de ser evaluables (quedan < 18 h observadas)"),
   n = c(nrow(muestra), nrow(comparables), nrow(cambios), nrow(no_evaluables)),
   pct_de_la_muestra = round(100 * c(nrow(muestra), nrow(comparables), nrow(cambios), nrow(no_evaluables)) / nrow(muestra), 2))
