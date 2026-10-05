@@ -291,7 +291,11 @@ puntuacion <- as.vector(m1$z_tr %*% w)
 interp <- data.table(predictor = colnames(m1$z_tr), coef_estandarizado = w / max(abs(w)),
                      correlacion_estructura = as.vector(cor(m1$z_tr, puntuacion)))
 escribir(interp, "m1_coeficientes_estructura.csv")
-cargas <- data.table(variable = MET, (pca_tr$rotation[, 1:3] %*% diag(pca_tr$sdev[1:3])))
+# El signo de un componente es arbitrario: lo orientamos como en decisiones_etapa3.md
+# (PC1 con TOUT positiva, PC2 con RH positiva, PC3 con PRS negativa). Solo afecta al reporte.
+cargas_m <- pca_tr$rotation[, 1:3] %*% diag(pca_tr$sdev[1:3])
+signo <- c(sign(cargas_m["TOUT", 1]), sign(cargas_m["RH", 2]), -sign(cargas_m["PRS", 3]))
+cargas <- data.table(variable = MET, sweep(cargas_m, 2, signo, `*`))
 setnames(cargas, c("variable", "PC1", "PC2", "PC3"))
 escribir(cargas, "pca_cargas_anomalia.csv")
 escribir(data.table(componente = paste0("PC", 1:8), valor_propio = pca_tr$sdev^2,
@@ -335,7 +339,7 @@ cl[, variable := factor(variable, levels = rev(MET))]
 g4 <- ggplot(cl, aes(componente, variable, fill = carga)) +
   geom_tile(colour = "white") + geom_text(aes(label = sprintf("%.2f", carga)), size = 3) +
   scale_fill_gradient2(low = "#2166AC", mid = "white", high = "#B2182B", limits = c(-1, 1), name = "Carga") +
-  labs(x = NULL, y = NULL, title = "Cargas del PCA (anomalía por estación, entrenamiento)") +
+  labs(x = NULL, y = NULL, title = "Cargas del PCA", subtitle = "Anomalía por estación, entrenamiento") +
   theme_minimal(base_size = 10) + theme(panel.grid = element_blank())
 ggsave(file.path(FIGURAS, "pca_cargas.png"), g4, width = 5, height = 4.5, dpi = 150)
 
