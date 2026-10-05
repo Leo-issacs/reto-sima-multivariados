@@ -1,0 +1,17 @@
+# Registro de la evaluacion de la prueba (2024-2025)
+
+Commit que cierra las decisiones (fase A): eb1946ebcd0916b220957fb51f292f412f269ce9
+
+## Corrida del 2026-10-04 18:47:08 CST
+Commit de decisiones (fase A): eb1946ebcd0916b220957fb51f292f412f269ce9
+Commit del codigo al correr: bf51e34b16b214f6833492eb46b1e0adccc9e007
+Primera (y unica prevista) evaluacion de la prueba.
+
+Salidas escritas. Resultados en output/etapa3/RESUMEN.md
+## Corrida del 2026-10-04 18:48:22 CST
+Commit de decisiones (fase A): eb1946ebcd0916b220957fb51f292f412f269ce9
+Commit del codigo al correr: 033ccf365b1e100f0f4f39afb6f1d34eba4b9b8a
+Motivo de la nueva corrida: Presentacion: el titulo del mapa de cargas salia cortado y los signos de las cargas del PCA (arbitrarios) estaban invertidos respecto de decisiones_etapa3.md. No cambia ningun modelo ni ninguna metrica; se verifica que las cifras sean identicas a la primera corrida.
+
+Salidas escritas. Resultados en output/etapa3/RESUMEN.md
+Verificacion de la segunda corrida: prueba_metricas_m0_m1.csv, prueba_bootstrap_replicas.csv, prueba_dauc_por_temporada.csv, prueba_sensibilidades.csv, m1_coeficientes_estructura.csv y pca_valores_propios.csv son identicos byte a byte a los de la primera corrida; solo cambia el signo de las columnas de pca_cargas_anomalia.csv.
