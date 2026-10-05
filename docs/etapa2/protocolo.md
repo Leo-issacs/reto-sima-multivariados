@@ -1,4 +1,4 @@
-# Protocolo de análisis — Reto SIMA (versión 3, 4 de octubre de 2026)
+# Protocolo de análisis — Reto SIMA (versión 4, 5 de octubre de 2026)
 
 Este protocolo se fija **antes** de ajustar los modelos definitivos. Cualquier cambio posterior se registra al final con su fecha y su razón.
 
@@ -107,4 +107,8 @@ El 4 de octubre se realizó una prueba de viabilidad que usó 2024–2025: `docs
   - **Base `datos-v1.2` (regla D15).** La exploración de la etapa 2 encontró radiación solar distinta de cero de noche y viento físicamente imposible frente al resto de la red. Se agregaron dos pruebas a la limpieza (`scripts/03_limpiar.R`, `data/clean/README.md`, regla 8): SR se invalida en todo el día si su media entre 00 y 04 h supera 0.02 kW/m² (con ≥ 3 lecturas), y el viento se invalida en la hora con WSR > mediana de la red + 30 km/h (con ≥ 5 estaciones), o en todo el día si hay ≥ 3 horas marcadas. La regla retira 1 070 estación-días de la muestra, que pasa de 16 461 a **15 390** (64.8 % de 23 738), con 26.3 % de superación.
   - **Sensibilidad nueva:** M0 y M1 con interacción estación × temporada. La exploración mostró que el patrón estacional de la superación difiere entre estaciones, así que un M0 aditivo podría subestimar la referencia. Se reporta junto a las sensibilidades de la sección 6, sin usarse para escoger el modelo principal.
   - **Sensibilidad nueva:** M0 estimado también en la muestra con solo PM2.5 válido (19 918 estación-días), porque exigir meteorología completa baja la superación de NO2 de 18.2 % a 10.0 % (de 1 553 a 511 estación-días; la superación global pasa de 25.7 % a 26.3 %). Se reporta junto a las demás, sin usarse para escoger el modelo principal.
-
+- v4 (5 oct 2026): decisiones cerradas con validación progresiva en 2021–2023, antes de abrir la prueba (ver docs/etapa3/decisiones_etapa3.md):
+  - D16: sin transformaciones; log de la rapidez del viento como sensibilidad;
+  - D17: PRS como anomalía de su estación, con medias de entrenamiento;
+  - nuevas métricas secundarias: puntaje de Brier y ΔAUC por temporada con IC por bootstrap;
+  - sensibilidad con PCs como predictores: k = 3 (Kaiser en el entrenamiento).

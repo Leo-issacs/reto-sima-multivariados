@@ -1,0 +1,16 @@
+version,medida,variable,valor
+sin transformar (D16),M de Box chi2,8 meteorologicas,3651.01594637137
+sin transformar (D16),M de Box gl,8 meteorologicas,36
+sin transformar (D16),razon DE clase1/clase0,TOUT,0.918386207652505
+sin transformar (D16),razon DE clase1/clase0,RH,0.984369500719959
+sin transformar (D16),razon DE clase1/clase0,SR,0.833754509824399
+sin transformar (D16),razon DE clase1/clase0,PRS,0.992771755221106
+sin transformar (D16),razon DE clase1/clase0,viento_rapidez_ms,1.07576836209967
+sin transformar (D16),razon DE clase1/clase0,viento_u,0.866515550339656
+sin transformar (D16),razon DE clase1/clase0,viento_v,0.805183309704907
+sin transformar (D16),razon DE clase1/clase0,horas_lluvia,0.375512905043816
+sin transformar (D16),asimetria clase 0,horas_lluvia,7.23412502625626
+sin transformar (D16),asimetria clase 1,horas_lluvia,21.0931103604667
+sin transformar (D16),asimetria,viento_rapidez_ms,0.37240905163897
+sin transformar (D16),asimetria de log,viento_rapidez_ms,-0.983707189125182
+sin transformar (D16),% de dias sin lluvia,horas_lluvia,93.952802359882
