@@ -16,7 +16,8 @@ base_hoja <- function(hoja, anios) {
     d$CO <- 1 + 0.1 * sin(t / 7); d$NO <- 5 + sin(t / 5); d$NO2 <- 20 + sin(t / 6)
     d$NOX <- d$NO + d$NO2; d$O3 <- 40 + sin(t / 9); d$PM10 <- 100 + sin(t / 4)
     d$PM2.5 <- 20 + sin(t / 3); d$PRS <- 715 + sin(t / 40); d$RAINF <- 0
-    d$RH <- 50 + sin(t / 8); d$SO2 <- 3 + sin(t / 11) * 0.5; d$SR <- 0.3 + 0.1 * sin(t / 13)
+    d$RH <- 50 + sin(t / 8); d$SO2 <- 3 + sin(t / 11) * 0.5
+    d$SR <- ifelse((t - 1) %% 24 %in% 7:18, 0.3 + 0.1 * sin(t / 13), 0)   # cero de noche
     d$TOUT <- 20 + 5 * sin(t / 50); d$WSR <- 5 + sin(t / 12); d$WDR <- 180 + 50 * sin(t / 15)
     d
   }))
@@ -118,4 +119,38 @@ ok(is.na(rq$Q1$imp[kq, "RH"]) && rq$Q1$flags[kq, "RH"] == "E", "5 -> 4 estacione
 ok(all(rq$Q2$imp[kq + (-1:1), "RH"] == c(90, 40, 90)), "5 -> 4 estaciones: las otras estaciones no cambian")
 ok(rq$Q1$flags_obs[kq, "TOUT"] == "L" && is.na(rq$Q1$imp[kq, "TOUT"]) && rq$Q1$flags[kq, "TOUT"] == "L",
    "L: la hora saturada entre dos valores validos NO se imputa (queda NA, bandera L)")
+
+# 9. D15, SR nocturna (bandera M): media 00-04 h > 0.02 con >= 3 lecturas invalida SR de todo el dia.
+d <- base_hoja("T9", 2022)
+a <- pos(d, "2022-03-10 00:00"); d$SR[a + 0:4] <- 0.05                        # 5 lecturas, media 0.05
+b <- pos(d, "2022-03-12 00:00"); d$SR[b + 0:1] <- 0.05; d$SR[b + 2:4] <- NA     # solo 2 lecturas
+c0 <- pos(d, "2022-03-14 00:00"); d$SR[c0 + 0:4] <- c(0.02, 0.02, 0.02, NA, NA)  # media = 0.02 (no >)
+r <- limpiar_hoja(d, rangos_op, rangos_fab)
+ok(all(r$flags[a + 0:23, "SR"] == "M") && all(is.na(r$imp[a + 0:23, "SR"])), "M: dia con media nocturna 0.05 invalida SR en las 24 h y no se imputa")
+ok(all(r$flags[a + 24:47, "SR"] %in% c("V", "C")), "M: el dia siguiente no se toca")
+ok(all(r$flags_obs[b + 0:1, "SR"] %in% c("V", "C")), "M: con < 3 lecturas nocturnas no se evalua")
+ok(all(r$flags[b + 2:4, "SR"] == "X") && all(is.na(r$imp[b + 2:4, "SR"])), "M: imputados que elevan la media nocturna sobre 0.02 se revierten (X)")
+ok(all(r$flags_obs[c0 + 0:23, "SR"] != "M"), "M: media nocturna igual a 0.02 no se invalida")
+
+# 10. D15, viento contra la red (bandera E en WSR, WDR y u/v).
+estw <- paste0("W", 1:6)
+dw <- setNames(lapply(estw, function(h) base_hoja(h, 2022)), estw)
+k1 <- pos(dw$W1, "2022-05-10 10:00"); dw$W1$WSR[k1 + 0:2] <- dw$W1$WSR[k1 + 0:2] + 40    # 3 horas -> dia
+k2 <- pos(dw$W1, "2022-05-11 10:00"); dw$W2$WSR[k2] <- dw$W2$WSR[k2] + 40                # 1 hora -> hora
+k3 <- pos(dw$W1, "2022-05-12 10:00")
+for (h in c("W5", "W6")) dw[[h]]$WSR[k3 + 0:2] <- NA                                     # 4 estaciones
+dw$W3$WSR[k3 + 0:2] <- dw$W3$WSR[k3 + 0:2] + 60                                          # sin evaluar
+f1 <- lapply(dw, function(d) limpiar_hoja(d, rangos_op, rangos_fab, solo_fase1 = TRUE))
+redw <- c(red_espacial(f1)$red, list(WSR = red_viento(f1)$red))
+rw <- lapply(dw, function(d) limpiar_hoja(d, rangos_op, rangos_fab, red = redw))
+dia1 <- pos(dw$W1, "2022-05-10 00:00") + 0:23
+ok(all(rw$W1$flags[dia1, "WSR"] == "E") && all(rw$W1$flags[dia1, "WDR"] == "E") && all(rw$W1$flags[dia1, "f_uv"] == "E"),
+   "viento: 3 horas a > 30 km/h de la red invalidan WSR, WDR y u/v de todo el dia")
+ok(all(is.na(rw$W1$imp[dia1, "viento_u"])), "viento: el dia invalidado no se imputa")
+ok(rw$W2$flags[k2, "WSR"] == "E" && rw$W2$flags[k2, "f_uv"] == "E" && is.na(rw$W2$imp[k2, "viento_u"]),
+   "viento: una hora aislada a > 30 km/h se invalida y no se imputa")
+ok(all(rw$W2$flags[setdiff(pos(dw$W1, "2022-05-11 00:00") + 0:23, k2), "WSR"] %in% c("V", "C")),
+   "viento: con < 3 horas marcadas el resto del dia se conserva")
+ok(all(rw$W3$flags[k3 + 0:2, "WSR"] %in% c("V", "C")), "viento: horas con < 5 estaciones no se evaluan")
+ok(all(rw$W4$flags[dia1, "WSR"] %in% c("V", "C")), "viento: las otras estaciones no cambian")
 message("Todas las pruebas de limpieza pasaron.")

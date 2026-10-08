@@ -26,11 +26,13 @@ hojas <- sort(unique(imp$datos$hoja))
 fase1 <- setNames(lapply(hojas, function(h) {
   limpiar_hoja(imp$datos[imp$datos$hoja == h, ], rangos_op, rangos_fab, solo_fase1 = TRUE)
 }), hojas)
-message("Consistencia espacial de la red (TOUT, RH)...")
+message("Consistencia espacial de la red (TOUT, RH) y viento contra la red (D15)...")
 esp <- red_espacial(fase1)
+vien <- red_viento(fase1)
+red_total <- c(esp$red, list(WSR = vien$red))
 message("Limpiando por estacion (fase 2: regla E, imputacion y revalidacion)...")
 res <- setNames(lapply(hojas, function(h) {
-  limpiar_hoja(imp$datos[imp$datos$hoja == h, ], rangos_op, rangos_fab, red = esp$red)
+  limpiar_hoja(imp$datos[imp$datos$hoja == h, ], rangos_op, rangos_fab, red = red_total)
 }), hojas)
 
 # ---- Tabla horaria (una fila por estacion-hora de la malla completa del anio) ----------
@@ -80,6 +82,8 @@ diario <- do.call(rbind, lapply(hojas, diario_hoja, version = "imp"))
 diario_obs <- do.call(rbind, lapply(hojas, diario_hoja, version = "obs"))
 
 # ---- Marcas de nucleo y periodo (deben existir antes de escribir el diario) --------------------
+# Los nucleos A y B son indicadores de cobertura de la etapa 1. La entrada principal de la etapa 2
+# es data/clean/muestra_pm25_2021_2025.csv (15 390 estacion-dias), que arma scripts/06_explorar_etapa2.R.
 var_dia_n <- c(PM10 = "PM10", O3_max8h = "O3_max8h", NO2 = "NO2", CO = "CO", SO2 = "SO2",
                TOUT = "TOUT", RH = "RH", SR = "SR", viento_u = "viento_u", PRS = "PRS",
                RAINF = "horas_lluvia", PM2.5 = "PM2.5")
@@ -130,13 +134,14 @@ den <- nrow(fl_obs)
 filas <- lapply(c(VARIABLES_SIMA, "f_uv"), function(v) {
   o <- fl_obs[, v]; f <- fl_fin[, v]
   n <- function(cod) sum(o == cod)
-  invalida <- n("N") + n("F") + n("P") + n("L") + n("S") + n("R") + n("E") + n("K")
+  invalida <- n("N") + n("F") + n("P") + n("L") + n("S") + n("R") + n("E") + n("K") + n("M")
   data.frame(
     variable = sub("^f_", "", v), horas_esperadas = den,
     faltante_original_n = n("N"), invalidada_F_rango_n = n("F"), invalidada_P_nota_pdf_n = n("P"),
     invalidada_S_salto_n = n("S"), invalidada_R_pm25_gt_pm10_n = n("R"),
     invalidada_L_saturacion_n = n("L"), invalidada_E_espacial_n = n("E"),
-    invalidada_K_racha24_n = n("K"), marcada_C_racha6_conservada_n = sum(f == "C"),
+    invalidada_K_racha24_n = n("K"), invalidada_M_sr_nocturna_n = n("M"),
+    marcada_C_racha6_conservada_n = sum(f == "C"),
     imputada_bruta_n = sum(f %in% c("I", "X")), imputacion_revertida_n = sum(f == "X"),
     imputada_n = sum(f == "I"), faltante_final_n = invalida - sum(f == "I"),
     stringsAsFactors = FALSE)
@@ -178,6 +183,24 @@ esp_est <- do.call(rbind, lapply(hojas, function(h) data.frame(
   TOUT_L_saturacion = sum(res[[h]]$flags_obs[, "TOUT"] == "L"),
   RH_E_espacial = sum(res[[h]]$flags_obs[, "RH"] == "E"))))
 escribir(esp_est, "output/diagnostico/consistencia_espacial_por_estacion.csv")
+
+# ---- Regla D15 por estacion (SR nocturna y viento contra la red) ------------------------------------
+d15 <- do.call(rbind, lapply(hojas, function(h) {
+  r <- res[[h]]; fo <- r$flags_obs; dia <- as.character(as.Date(r$fecha))
+  data.frame(estacion = h,
+             SR_dias_M = length(unique(dia[fo[, "SR"] == "M"])), SR_horas_M = sum(fo[, "SR"] == "M"),
+             WSR_horas_marcadas = sum(vien$red$marcadas$hoja == h),
+             WSR_dias_invalidados = sum(vien$red$dias$hoja == h),
+             WSR_horas_E = sum(fo[, "WSR"] == "E"), WDR_horas_E = sum(fo[, "WDR"] == "E"),
+             uv_horas_E = sum(fo[, "f_uv"] == "E"))
+}))
+d15 <- rbind(d15, data.frame(estacion = "TOTAL", t(colSums(d15[, -1]))))
+escribir(d15, "output/diagnostico/d15_por_estacion.csv")
+ev_w <- vien$sens[n0 >= MIN_ESTACIONES_E]
+sens_w <- data.frame(umbral_kmh = c(20, 30, 40), lecturas_evaluables_5_estaciones = nrow(ev_w),
+                     marcadas_una_pasada = sapply(c(20, 30, 40), function(u) sum(ev_w$dev0 > u)),
+                     adoptado = c(20, 30, 40) == UMBRAL_WSR_RED)
+escribir(sens_w, "output/diagnostico/sensibilidad_viento_red.csv")
 
 # ---- Consistencia NOX por estacion (con la tolerancia adoptada) --------------------------------
 nox <- do.call(rbind, lapply(hojas, function(h) {
@@ -224,7 +247,7 @@ corte <- grep("^## Parte B", previo)
 if (length(corte)) previo <- previo[seq_len(corte[1L] - 1L)]
 inval <- tab$invalidada_F_rango_n + tab$invalidada_P_nota_pdf_n + tab$invalidada_L_saturacion_n +
   tab$invalidada_S_salto_n + tab$invalidada_R_pm25_gt_pm10_n + tab$invalidada_E_espacial_n +
-  tab$invalidada_K_racha24_n
+  tab$invalidada_K_racha24_n + tab$invalidada_M_sr_nocturna_n
 filas_tab <- sprintf("| %s | %s | %s | %s | %s | %s |", tab$variable, fmt(tab$faltante_original_pct, 1),
                      fmt(100 * inval / den, 2), fmt(tab$imputada_pct, 2), fmt(tab$imputacion_revertida_n),
                      fmt(tab$faltante_final_pct, 1))
@@ -238,10 +261,11 @@ tam <- file.size(list.files("data/clean", pattern = "\\.csv$", full.names = TRUE
 nombres_csv <- list.files("data/clean", pattern = "\\.csv$")
 nueva <- c(
   "", "## Parte B. Limpieza y publicación", "",
-  sprintf("Generado por `scripts/03_limpiar.R` el %s. Reglas completas en `data/clean/README.md`: rango duro (contaminantes: operación del año; meteorología: fabricante; RAINF: 0 al máximo de operación del año), notas del PDF, saturación de TOUT (|TOUT| ≥ 49.9, L), salto horario (TOUT/PRS), PM2.5 > PM10, rachas ≥ 24 h (marcadas desde 6 h) consistencia espacial sobre lo observado (TOUT a más de 10 °C y RH a más de 40 pp de la mediana de la red en esa hora, con ≥ 5 estaciones; bandera E) e imputación lineal de huecos ≤ 3 h, con revalidación posterior (incluida la regla espacial) (un valor imputado que incumple rango, salto o PM2.5 ≤ PM10 vuelve a NA, bandera X; nunca se toca un original). Denominador de las tablas: %s horas esperadas por variable (%d hojas-año).",
+  sprintf("Generado por `scripts/03_limpiar.R` el %s. Reglas completas en `data/clean/README.md`: rango duro (contaminantes: operación del año; meteorología: fabricante; RAINF: 0 al máximo de operación del año), notas del PDF, saturación de TOUT (|TOUT| ≥ 49.9, L), salto horario (TOUT/PRS), PM2.5 > PM10, rachas ≥ 24 h (marcadas desde 6 h), SR nocturna (D15, bandera M), consistencia espacial sobre lo observado (TOUT a más de 10 °C y RH a más de 40 pp de la mediana de la red en esa hora, con ≥ 5 estaciones; bandera E; viento: WSR > mediana + 30 km/h, D15) e imputación lineal de huecos ≤ 3 h, con revalidación posterior (incluida la regla espacial) (un valor imputado que incumple rango, salto o PM2.5 ≤ PM10 vuelve a NA, bandera X; nunca se toca un original). Denominador de las tablas: %s horas esperadas por variable (%d hojas-año).",
           format(Sys.Date()), fmt(den), n_hojas),
   "", "| Variable | % falt. original | % invalidado | % imputado neto | Imputaciones revertidas (n) | % falt. final |", "|---|---|---|---|---|---|",
   filas_tab, "",
+  # Nucleos A/B: indicadores de la etapa 1; la etapa 2 usa muestra_pm25_2021_2025.csv (15 390 estacion-dias).
   sprintf("**Núcleos (días estación completos, 2021–2025, sobre %s días).** Núcleo A (PM10, O3 máx. 8 h, NO2, CO, SO2, TOUT, RH, SR, viento, PRS, RAINF): %s (%.1f%%). Núcleo B (A + PM2.5, conjunto principal de modelado): %s (%.1f%%). Por estación, B va de %.0f%% (%s) a %.0f%% (%s); NE3 y NO3 casi nunca completan B. `sima_diario_2020_2025.csv` trae `en_nucleo_A`, `en_nucleo_B` y `en_periodo_modelado`.",
           fmt(tot_m[["dias_totales"]]), fmt(tot_m[["dias_completos_A"]]), 100 * tot_m[["dias_completos_A"]] / tot_m[["dias_totales"]],
           fmt(tot_m[["dias_completos_B"]]), 100 * tot_m[["dias_completos_B"]] / tot_m[["dias_totales"]],
@@ -266,6 +290,11 @@ nueva <- c(
           fmt(tab$invalidada_L_saturacion_n[tab$variable == "TOUT"]),
           paste(sprintf("> %g °C: %s h", sens_esp$umbral[sens_esp$variable == "TOUT"], fmt(sens_esp$invalidadas_una_pasada[sens_esp$variable == "TOUT"])), collapse = "; "),
           paste(sprintf("> %g pp: %s h", sens_esp$umbral[sens_esp$variable == "RH"], fmt(sens_esp$invalidadas_una_pasada[sens_esp$variable == "RH"])), collapse = "; ")),
+  "",
+  sprintf("**Regla D15 (datos-v1.2).** SR nocturna (media de SR entre 00 y 04 h > %.2f kW/m², con ≥ %d lecturas): %s estación-días con SR invalidada (%s horas, bandera M). Viento contra la red (WSR > mediana + %g km/h con ≥ 5 estaciones): %s horas marcadas; %s estación-días con ≥ %d marcas invalidan WSR, WDR, u y v de todo el día (bandera E; %s horas de WSR en total). Detalle por estación en `d15_por_estacion.csv`.",
+          SR_NOCHE_UMBRAL, SR_NOCHE_MIN_LECTURAS, fmt(d15$SR_dias_M[d15$estacion == "TOTAL"]), fmt(d15$SR_horas_M[d15$estacion == "TOTAL"]),
+          UMBRAL_WSR_RED, fmt(d15$WSR_horas_marcadas[d15$estacion == "TOTAL"]), fmt(d15$WSR_dias_invalidados[d15$estacion == "TOTAL"]),
+          WSR_HORAS_MARCADAS_DIA, fmt(d15$WSR_horas_E[d15$estacion == "TOTAL"])),
   "",
   sprintf("**RAINF.** %s horas sobre el máximo de operación del año se invalidaron (bandera F). Con lo que queda: %.2f%% de %s horas válidas tienen lluvia > 0; valor positivo más frecuente 0.01. La cantidad no se usa (unidad sin confirmar); el diario publica `horas_lluvia` y `llovio`.",
           fmt(tab$invalidada_F_rango_n[tab$variable == "RAINF"]), ll$pct_horas_mayor_0[ll$anio == "total"],

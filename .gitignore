@@ -33,6 +33,7 @@ references/materiales/*
 output/*
 !output/README.md
 !output/diagnostico/
+!output/etapa2/
 _output/
 .quarto/
 _freeze/
@@ -58,3 +59,4 @@ renv/sandbox/
 # CSV limpios publicables (los Excel siguen bloqueados por *.xlsx)
 !data/clean/
 !data/clean/*.csv
+/docs/output/
