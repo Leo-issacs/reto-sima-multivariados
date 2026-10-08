@@ -78,7 +78,7 @@ nuevas <- rbindlist(lapply(names(desc_pub), function(col) data.table(
   unidad = "", descripcion = desc_pub[[col]],
   fuente_o_regla = "scripts/06_explorar_etapa2.R, sobre data/clean/sima_diario_2020_2025.csv")))
 dic <- dic[archivo != A]   # reemplaza si ya existia (idempotente)
-dic <- rbind(dic, nuevas)
+dic <- rbind(dic, nuevas, fill = TRUE)   # dominio y % de nulos: scripts/06b_anexo_c_diccionario.R
 escribir(dic, "data/clean/DICCIONARIO.csv")
 
 # ---- 2. Perdidas de la muestra -------------------------------------------------------------
