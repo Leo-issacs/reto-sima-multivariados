@@ -1,6 +1,6 @@
 # Etapa 2 · Exploración descriptiva de la muestra (sin PCA ni modelos)
 
-Generado por `scripts/06_explorar_etapa2.R` el 2026-10-04, sobre `docs/etapa2/protocolo.md` y la base `datos-v1.2` (con la regla D15). Solo describe la muestra que define el protocolo; el modelado (PCA, discriminante, logística) es la etapa 3.
+Generado por `scripts/06_explorar_etapa2.R` el 2026-10-08, sobre `docs/etapa2/protocolo.md` y la base `datos-v1.2` (con la regla D15). Solo describe la muestra que define el protocolo; el modelado (PCA, discriminante, logística) es la etapa 3.
 
 ## 1. Muestra
 
@@ -8,7 +8,7 @@ Universo: 13 estaciones (excluye NE3 y NO3) × 2021–2025 = **23,738 estación-
 
 ## 2. Pérdidas de la muestra
 
-De 23,738 estación-días posibles: 3,820 (16.1 %) pierden por PM2.5 sin 18 h válidas y 5,763 (24.3 %) por faltar al menos un predictor meteorológico; 1,235 pierden por ambos motivos y se cuentan en los dos grupos. De las pérdidas meteorológicas, **1,070 días se retiran por la regla D15** (930 por SR nocturna y 141 por viento contra la red; un día puede caer en ambas). Detalle en `perdidas_muestra.csv` y por estación en `anexo_d15_por_estacion.csv`.
+De 23,738 estación-días posibles: 3,820 (16.1 %) pierden por PM2.5 sin 18 h válidas y 5,763 (24.3 %) por faltar al menos un predictor meteorológico; 1,235 pierden por ambos motivos y se cuentan en los dos grupos. De las pérdidas meteorológicas, **1,071 días se retiran por la regla D15** (931 por SR nocturna y 141 por viento contra la red; un día puede caer en ambas). Detalle en `perdidas_muestra.csv` y por estación en `anexo_d15_por_estacion.csv`.
 
 Retención por estación (`retencion_por_estacion.csv`): de 28 % (NO2, 511 días) a 95.5 % (NTE2, 1,743 días). Por temporada (`retencion_por_temporada.csv`): de 63.7 % a 65.6 %.
 

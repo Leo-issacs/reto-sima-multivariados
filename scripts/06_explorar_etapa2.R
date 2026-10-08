@@ -94,34 +94,35 @@ perdidas <- data.table(
   n = c(n_univ, n_falta_pm, n_falta_met, n_solo_pm, n_solo_met, n_ambos, nrow(muestra)),
   pct_del_universo = round(100 * c(n_univ, n_falta_pm, n_falta_met, n_solo_pm, n_solo_met, n_ambos, nrow(muestra)) / n_univ, 1))
 
-# Dias retirados por la regla D15 (datos-v1.2): dias que estarian en la muestra si las horas con bandera
-# M (SR nocturna) y E de viento contaran como validas. Se reconstruye con las banderas horarias.
-message("Contando dias retirados por D15...")
+# Dias retirados por la regla D15 (datos-v1.2). Se comparan las claves estacion-fecha de la muestra
+# construida con la base anterior a D15 (etiqueta git `datos-v1.1`, el escenario "sin D15") contra la
+# muestra final: los dias que estaban y ya no estan son los que retiro D15. Requiere el repositorio git.
+message("Contando dias retirados por D15 (comparacion de claves con datos-v1.1)...")
+v11 <- fread(cmd = paste0('git -c safe.directory="', normalizePath(getwd(), winslash = "/"),
+                          '" show datos-v1.1:data/clean/sima_diario_2020_2025.csv'), encoding = "UTF-8")
+v11 <- v11[estacion %in% ESTACIONES_13 & anio %in% ANIOS & !is.na(`PM2.5`)]
+v11 <- v11[Reduce(function(a, b) a & b, lapply(MET, function(v) !is.na(v11[[v]])))]
+clave <- function(d) paste(d$estacion, d$fecha)
+stopifnot(all(clave(muestra) %in% clave(v11)))          # D15 solo retira dias, nunca agrega
+u2 <- copy(universo)[, retirado_d15 := clave(universo) %in% setdiff(clave(v11), clave(muestra))]
+u2[, por_sr := retirado_d15 & is.na(SR)]                # SR quedo invalida en el dia (bandera M)
+u2[, por_viento := retirado_d15 & is.na(viento_u)]      # viento invalido en el dia (bandera E)
+stopifnot(all(u2[retirado_d15 == TRUE, por_sr | por_viento]))
+# Dias con al menos una hora invalidada por cada prueba (descriptivo, de las banderas horarias)
 hd15 <- rbindlist(lapply(ANIOS, function(a) {
   d <- fread(sprintf("data/clean/sima_horario_limpio_%d.csv", a), encoding = "UTF-8",
-             select = c("estacion", "fecha_hora", "SR", "f_SR", "viento_u", "f_uv"),
-             colClasses = list(character = "fecha_hora"))
+             select = c("estacion", "fecha_hora", "f_SR", "f_uv"), colClasses = list(character = "fecha_hora"))
   d[estacion %in% ESTACIONES_13]
 }))
 hd15[, fecha := as.Date(substr(fecha_hora, 1, 10))]
-d15_dia <- hd15[, .(sr_M = sum(f_SR == "M"), sr_validas = sum(!is.na(SR)),
-                    w_E = sum(f_uv == "E"), w_validas = sum(!is.na(viento_u))), by = .(estacion, fecha)]
-u2 <- merge(universo[, c("estacion", "fecha", "PM2.5", MET), with = FALSE], d15_dia, by = c("estacion", "fecha"), all.x = TRUE)
-otras <- setdiff(MET, c("SR", "viento_u", "viento_v", "viento_rapidez_ms"))
-u2[, otras_ok := Reduce(function(a, b) a & b, lapply(otras, function(v) !is.na(get(v))))]
-u2[, sr_ok_sin := !is.na(SR) | (sr_M > 0 & sr_validas + sr_M >= HORAS_MIN_DIA)]
-u2[, w_ok_sin := !is.na(viento_u) | (w_E > 0 & w_validas + w_E >= HORAS_MIN_DIA)]
-u2[, en_muestra := !is.na(`PM2.5`) & otras_ok & !is.na(SR) & !is.na(viento_u)]
-u2[, sin_d15 := !is.na(`PM2.5`) & otras_ok & sr_ok_sin & w_ok_sin]
-u2[, retirado_d15 := sin_d15 & !en_muestra]
-u2[, por_sr := retirado_d15 & is.na(SR)]
-u2[, por_viento := retirado_d15 & is.na(viento_u)]
+d15_dia <- hd15[, .(sr_M = sum(f_SR == "M"), w_E = sum(f_uv == "E")), by = .(estacion, fecha)]
+u2 <- merge(u2, d15_dia, by = c("estacion", "fecha"), all.x = TRUE)
 n_d15 <- sum(u2$retirado_d15)
 perdidas <- rbind(perdidas[1:6],
   data.table(requisito = c("  de la meteorología: días retirados por la regla D15 (SR nocturna o viento contra la red)",
-                           "    por SR nocturna", "    por viento contra la red"),
-             n = c(n_d15, sum(u2$por_sr), sum(u2$por_viento)),
-             pct_del_universo = round(100 * c(n_d15, sum(u2$por_sr), sum(u2$por_viento)) / n_univ, 1)),
+                           "    por SR nocturna", "    por viento contra la red", "    por ambas (se cuentan en las dos filas anteriores)"),
+             n = c(n_d15, sum(u2$por_sr), sum(u2$por_viento), sum(u2$por_sr & u2$por_viento)),
+             pct_del_universo = round(100 * c(n_d15, sum(u2$por_sr), sum(u2$por_viento), sum(u2$por_sr & u2$por_viento)) / n_univ, 1)),
   perdidas[7])
 escribir(perdidas, "output/etapa2/perdidas_muestra.csv")
 d15_est <- u2[, .(dias_retirados_d15 = sum(retirado_d15), por_sr_nocturna = sum(por_sr),
