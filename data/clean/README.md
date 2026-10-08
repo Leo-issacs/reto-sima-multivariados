@@ -9,13 +9,13 @@
 | Archivo | Contenido |
 |---|---|
 | `sima_horario_limpio_AAAA.csv` | Una fila por estación-hora de la malla completa del año (24 × días; las horas sin fila en el Excel aparecen con todo vacío), 15 variables + viento u/v + una bandera por variable. Un archivo por año (< 18 MB cada uno). |
-| `sima_diario_2020_2025.csv` | Una fila por estación-día. Base para PCA/conglomerados; trae `en_nucleo_A`, `en_nucleo_B` y `en_periodo_modelado` (ver más abajo). |
+| `sima_diario_2020_2025.csv` | Una fila por estación-día. Trae `en_nucleo_A`, `en_nucleo_B` y `en_periodo_modelado`, indicadores de la etapa 1 (ver más abajo). |
 | `cobertura_dias_validos_hoja_anio.csv` | % de días válidos (≥ 18 h) por hoja-año × variable, con `cobertura_baja` = 1 si < 75 %. |
 | `tabla_informe_limpieza.csv` | Por variable: % faltante original, % invalidado por regla, % imputado y % final, con denominador. |
 | `muestra_pm25_2021_2025.csv` | Muestra del protocolo de la etapa 2 (13 estaciones, 2021–2025, PM2.5 y meteorología completos), con `supera_25` y `supera_15`. La genera `scripts/06_explorar_etapa2.R`. |
 | `DICCIONARIO.csv` | Columnas, unidades y reglas. |
 
-No se elimina ninguna hoja-año, estación ni el año 2020. El modelado principal usa el **núcleo B** (`en_nucleo_B == 1`) en **2021–2025** (`en_periodo_modelado == 1`); el núcleo A es la sensibilidad. NE3 y NO3 se conservan, pero casi nunca completan B. Detalle de días completos: `output/diagnostico/dias_completos_nucleo.csv`.
+No se elimina ninguna hoja-año, estación ni el año 2020. Los núcleos A y B (`en_nucleo_A`, `en_nucleo_B`) son indicadores de cobertura de la **etapa 1**; la entrada principal de la etapa 2 en adelante es **`muestra_pm25_2021_2025.csv`** (15 390 estación-días; criterio en `docs/etapa2/protocolo.md`). NE3 y NO3 se conservan, pero casi nunca completan B. Detalle de días completos: `output/diagnostico/dias_completos_nucleo.csv`.
 
 ## Validación
 
@@ -74,10 +74,12 @@ No se elimina ninguna hoja-año, estación ni el año 2020. El modelado principa
 
 Valor diario solo con ≥ 18 h válidas de esa variable (incluidas imputadas); `n_horas_*` da el conteo. O3: máximo diario del promedio móvil de 8 h (≥ 6 de 8 horas). RAINF: `horas_lluvia` (horas con 0 < RAINF ≤ máximo de operación del año) y `llovio` (0/1); la cantidad **no se usa porque la unidad no está confirmada**. Viento: medias de u, v y de la rapidez. `temporada`: seca_fria (nov–feb), seca_calida (mar–may), calida_humeda (jun–oct) — definición operativa del equipo; nombres según Hernández-Romero et al. (2026); cortes según la climatología del PIGECA 2023–2033. `confinamiento_2020` = 1 del 2020-04-01 al 2020-05-31.
 
-## Núcleos de modelado (columnas del diario)
+## Núcleos de la etapa 1 (columnas del diario)
+
+Son indicadores de cobertura de la etapa 1 y se conservan por trazabilidad. La etapa 2 no los usa: su entrada principal es `muestra_pm25_2021_2025.csv` (13 estaciones, 2021–2025, PM2.5 y los 8 predictores meteorológicos con ≥ 18 h; 15 390 estación-días).
 
 - `en_nucleo_A` = 1 si el estación-día tiene ≥ 18 h válidas en PM10, O3 (máximo de 8 h), NO2, CO, SO2, TOUT, RH, SR, viento (u/v), PRS y RAINF (`horas_lluvia`).
-- `en_nucleo_B` = A + PM2.5 (conjunto principal). NOX queda fuera de ambos núcleos y solo lleva bandera de inconsistencia.
+- `en_nucleo_B` = A + PM2.5. NOX queda fuera de ambos núcleos y solo lleva bandera de inconsistencia.
 - `en_periodo_modelado` = 1 si el año está entre 2021 y 2025.
 
 ## Advertencias

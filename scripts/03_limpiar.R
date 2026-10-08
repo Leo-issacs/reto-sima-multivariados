@@ -82,6 +82,8 @@ diario <- do.call(rbind, lapply(hojas, diario_hoja, version = "imp"))
 diario_obs <- do.call(rbind, lapply(hojas, diario_hoja, version = "obs"))
 
 # ---- Marcas de nucleo y periodo (deben existir antes de escribir el diario) --------------------
+# Los nucleos A y B son indicadores de cobertura de la etapa 1. La entrada principal de la etapa 2
+# es data/clean/muestra_pm25_2021_2025.csv (15 390 estacion-dias), que arma scripts/06_explorar_etapa2.R.
 var_dia_n <- c(PM10 = "PM10", O3_max8h = "O3_max8h", NO2 = "NO2", CO = "CO", SO2 = "SO2",
                TOUT = "TOUT", RH = "RH", SR = "SR", viento_u = "viento_u", PRS = "PRS",
                RAINF = "horas_lluvia", PM2.5 = "PM2.5")
@@ -263,6 +265,7 @@ nueva <- c(
           format(Sys.Date()), fmt(den), n_hojas),
   "", "| Variable | % falt. original | % invalidado | % imputado neto | Imputaciones revertidas (n) | % falt. final |", "|---|---|---|---|---|---|",
   filas_tab, "",
+  # Nucleos A/B: indicadores de la etapa 1; la etapa 2 usa muestra_pm25_2021_2025.csv (15 390 estacion-dias).
   sprintf("**Núcleos (días estación completos, 2021–2025, sobre %s días).** Núcleo A (PM10, O3 máx. 8 h, NO2, CO, SO2, TOUT, RH, SR, viento, PRS, RAINF): %s (%.1f%%). Núcleo B (A + PM2.5, conjunto principal de modelado): %s (%.1f%%). Por estación, B va de %.0f%% (%s) a %.0f%% (%s); NE3 y NO3 casi nunca completan B. `sima_diario_2020_2025.csv` trae `en_nucleo_A`, `en_nucleo_B` y `en_periodo_modelado`.",
           fmt(tot_m[["dias_totales"]]), fmt(tot_m[["dias_completos_A"]]), 100 * tot_m[["dias_completos_A"]] / tot_m[["dias_totales"]],
           fmt(tot_m[["dias_completos_B"]]), 100 * tot_m[["dias_completos_B"]] / tot_m[["dias_totales"]],
