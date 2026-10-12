@@ -75,6 +75,18 @@ Copia los seis Excel (`BD 2020.xlsx` … `BD 2025.xlsx`) a `data/raw/` o define 
 
 El protocolo de la etapa 2 (pregunta, modelos M0/M1, métricas y sensibilidades) está en [`docs/etapa2/protocolo.md`](docs/etapa2/protocolo.md).
 
+## Interfaz
+
+La etapa 3 incluye una interfaz gráfica para usar el modelo final (LDA, M0 y M1) y revisar su desempeño en la prueba 2024–2025. Está en [`app/`](app/) y lee el modelo congelado `output/etapa3/modelo_final.rds`; no reentrena nada.
+
+1. Si no existe `output/etapa3/modelo_final.rds`, genéralo con `Rscript scripts/07c_diagnostico_errores.R` (también escribe los diagnósticos de `output/etapa3/diagnostico/` y `RESUMEN_DIAGNOSTICO.md`).
+2. Abre `sima.Rproj` y corre `shiny::runApp("app")`.
+3. Pruebas: `Rscript tests/test_app_predicciones.R` comprueba que la app reproduce las probabilidades de la prueba (tolerancia 1e-10) y que no falla con los deslizadores en sus extremos.
+
+Pestañas: **Calcular** (probabilidad de superación según M0 y M1 para una estación, temporada o fecha y valores meteorológicos; contribución de cada variable), **Desempeño 2024–2025** (métricas y serie de tiempo con falsos positivos y negativos) y **Acerca de**. Es una clasificación retrospectiva con meteorología observada, no un pronóstico. Capturas: `output/etapa3/figuras/app_*.png`.
+
+Publicación en shinyapps.io (opcional; solo cuando el equipo lo decida): copia `output/etapa3/modelo_final.rds` dentro de `app/`, instala `rsconnect`, configura la cuenta con `rsconnect::setAccountInfo()` y ejecuta `rsconnect::deployApp("app")`.
+
 ## Cómo nos organizamos
 
 Cada tarea tiene una persona responsable y otra que la revisa. Hacemos cambios pequeños en una rama y los integramos mediante una pull request. Los pasos están en [CONTRIBUTING.md](CONTRIBUTING.md).
