@@ -19,7 +19,7 @@ No se elimina ninguna hoja-año, estación ni el año 2020. Los núcleos A y B (
 
 ## Validación
 
-`scripts/04_validar_limpios.R` (se corre al final de `03_limpiar.R`) falla si en los CSV horarios hay PM2.5 > PM10, valores fuera del rango de su año (o de las notas del PDF) una terna NO/NO2/NOX completa con `nox_inconsistente` vacía, TOUT en el límite del sensor, una hora anulada por E/L/M reincorporada por imputación, un estación-día que conserve SR con media nocturna > 0.02 kW/m², una hora que conserve WSR más de 30 km/h sobre la mediana de la red, o un valor de TOUT/RH a más de 10 °C / 40 pp de la mediana de la red observada (con ≥ 5 estaciones). `scripts/05_probar_limpieza.R` prueba las reglas con datos sintéticos.
+`scripts/04_validar_limpios.R` (se corre al final de `03_limpiar.R`) falla si en los CSV horarios hay PM2.5 > PM10, valores fuera del rango de su año (o de las notas del PDF) una terna NO/NO2/NOX completa con `nox_inconsistente` vacía, TOUT en el límite del sensor, una hora anulada por E/L/M reincorporada por imputación, un estación-día que conserve SR con media nocturna > 0.02 kW/m², una hora que conserve WSR más de 30 km/h sobre la mediana de la red, una hora con bandera E en el viento que conserve WSR, WDR, u o v, componentes u/v incoherentes con WSR/WDR o imputadas con rapidez implícita más de 30 km/h sobre la red, o un valor de TOUT/RH a más de 10 °C / 40 pp de la mediana de la red observada (con ≥ 5 estaciones). `scripts/05_probar_limpieza.R` prueba las reglas con datos sintéticos y comprueba que 04 rechaza tres alteraciones sembradas en una copia temporal del CSV de 2022.
 
 ## Reglas, en este orden (cada hora de cada variable queda con una bandera)
 

@@ -153,4 +153,44 @@ ok(all(rw$W2$flags[setdiff(pos(dw$W1, "2022-05-11 00:00") + 0:23, k2), "WSR"] %i
    "viento: con < 3 horas marcadas el resto del dia se conserva")
 ok(all(rw$W3$flags[k3 + 0:2, "WSR"] %in% c("V", "C")), "viento: horas con < 5 estaciones no se evaluan")
 ok(all(rw$W4$flags[dia1, "WSR"] %in% c("V", "C")), "viento: las otras estaciones no cambian")
+
+# 11. D15 viento en los limites (revision del PR #9, punto 7). Red de 5 estaciones con WSR = 5 km/h.
+#     a) Z1 a 45 km/h (+40): se invalida y la red queda con 4; la hora rechazada no se imputa.
+#     b) Z1 a 35 km/h (exactamente +30): la regla exige "> 30", asi que se conserva.
+h5 <- paste0("Z", 1:5)
+dz <- setNames(lapply(h5, function(h) base_hoja(h, 2022)), h5)
+ka <- pos(dz$Z1, "2022-05-10 12:00"); kb <- ka + 48
+for (h in h5) { dz[[h]]$WSR[ka + (-1:1)] <- c(7, 5, 7); dz[[h]]$WSR[kb + (-1:1)] <- c(7, 5, 7) }
+dz$Z1$WSR[ka] <- 45; dz$Z1$WSR[kb] <- 35
+f1 <- lapply(dz, function(d) limpiar_hoja(d, rangos_op, rangos_fab, solo_fase1 = TRUE))
+redz <- c(red_espacial(f1)$red, list(WSR = red_viento(f1)$red))
+rz <- lapply(dz, function(d) limpiar_hoja(d, rangos_op, rangos_fab, red = redz))
+ok(rz$Z1$flags[ka, "WSR"] == "E" && rz$Z1$flags[ka, "f_uv"] == "E" &&
+   all(is.na(rz$Z1$imp[ka, c("WSR", "WDR", "viento_u", "viento_v")])),
+   "viento 5 -> 4 estaciones: la hora a +40 km/h queda vacia en WSR, WDR y u/v (no se imputa)")
+ok(all(sapply(h5[-1], function(h) rz[[h]]$flags[ka, "WSR"] %in% c("V", "C"))), "viento 5 -> 4 estaciones: las otras 4 no cambian")
+ok(rz$Z1$imp[kb, "WSR"] == 35 && rz$Z1$flags[kb, "WSR"] %in% c("V", "C"), "viento exactamente a +30 km/h de la red se conserva")
+
+# 12. El validador (04) rechaza los tres errores que sembro la revision del PR #9 (punto 1).
+#     Se valida una copia de data/clean/ (solo 2022 y el diario) en una carpeta temporal; nunca los
+#     CSV publicados. Fila: la primera hora de 2022 con WSR, WDR y u/v en E (NE2, 2022-02-10 23:00).
+options(sima.validar.solo_definir = TRUE); source("scripts/04_validar_limpios.R"); options(sima.validar.solo_definir = NULL)
+copia <- file.path(tempdir(), "validador_mutado"); dir.create(copia, showWarnings = FALSE)
+stopifnot(file.copy(c("data/clean/sima_horario_limpio_2022.csv", "data/clean/sima_diario_2020_2025.csv"), copia, overwrite = TRUE))
+arch <- file.path(copia, "sima_horario_limpio_2022.csv")
+original <- fread(arch, encoding = "UTF-8", colClasses = list(character = "fecha_hora"))
+fila <- which(original$f_WSR == "E" & original$f_WDR == "E" & original$f_uv == "E")[1]
+falla <- function() tryCatch({ suppressMessages(validar_limpios(copia, n_archivos = 1L)); "" }, error = conditionMessage)
+ok(falla() == "", sprintf("validador: la copia sin alterar pasa (fila %s %s)", original$estacion[fila], original$fecha_hora[fila]))
+mutaciones <- list(
+  "WSR = 10 km/h con f_WSR = E" = function(x) x[fila, WSR := 10],
+  "WDR = 180 grados con f_WDR = E" = function(x) x[fila, WDR := 180],
+  "u = 50 m/s, v = 0 imputados (f_uv = I)" = function(x) x[fila, `:=`(f_uv = "I", viento_u = 50, viento_v = 0)])
+esperado <- c("conservan WSR", "conservan WDR", "rapidez supera la mediana")
+for (i in seq_along(mutaciones)) {
+  m <- mutaciones[[i]](copy(original)); fwrite(m, arch)
+  msg <- falla()
+  ok(grepl(esperado[i], msg, fixed = TRUE), paste("validador rechaza:", names(mutaciones)[i]))
+}
+fwrite(original, arch); unlink(copia, recursive = TRUE)
 message("Todas las pruebas de limpieza pasaron.")
