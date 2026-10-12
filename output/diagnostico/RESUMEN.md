@@ -65,7 +65,7 @@ Generado por `scripts/03_limpiar.R` el 2026-10-04. Reglas completas en `data/cle
 | WDR | 9.3 | 0.60 | 0.00 | 0 | 9.9 |
 | viento_uv | 12.5 | 0.59 | 1.07 | 0 | 12.0 |
 
-**Núcleos (días estación completos, 2021–2025, sobre 27,025 días).** Núcleo A (PM10, O3 máx. 8 h, NO2, CO, SO2, TOUT, RH, SR, viento, PRS, RAINF): 16,783 (62.1%). Núcleo B (A + PM2.5, conjunto principal de modelado): 13,648 (50.5%). Por estación, B va de 1% (NE3) a 79% (NTE2); NE3 y NO3 casi nunca completan B. `sima_diario_2020_2025.csv` trae `en_nucleo_A`, `en_nucleo_B` y `en_periodo_modelado`.
+**Núcleos (días estación completos, 2021–2025, sobre 27,025 días).** Núcleo A (PM10, O3 máx. 8 h, NO2, CO, SO2, TOUT, RH, SR, viento, PRS, RAINF): 16,783 (62.1%). Núcleo B (A + PM2.5; indicador de la etapa 1): 13,648 (50.5%). Por estación, B va de 1% (NE3) a 79% (NTE2); NE3 y NO3 casi nunca completan B. `sima_diario_2020_2025.csv` trae `en_nucleo_A`, `en_nucleo_B` y `en_periodo_modelado`.
 
 **NOX.** Horas con |NOX − (NO + NO2)| > max(1 ppb, 10% de NOX), sobre las horas comparables de cada estación, con los valores finales publicados (incluye imputados): NE3 11.50% (de 41,076); NTE2 8.45% (de 43,573); CE 1.87% (de 48,550); NTE 0.94% (de 40,744); NO 0.79% (de 40,308). El resto de estaciones queda bajo 0.5%.
 
