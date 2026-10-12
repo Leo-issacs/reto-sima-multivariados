@@ -193,4 +193,26 @@ for (i in seq_along(mutaciones)) {
   ok(grepl(esperado[i], msg, fixed = TRUE), paste("validador rechaza:", names(mutaciones)[i]))
 }
 fwrite(original, arch); unlink(copia, recursive = TRUE)
+
+# 13. Conteo de D15 por claves (revision del PR #9, punto 2): SO 2023-10-24 debe contarse como
+#     retirado por D15. En datos-v1.1 ese dia tenia 19 h de SR (17 originales + 2 imputadas) y entraba
+#     en la muestra; D15 (SR nocturna) anula su SR. Un conteo que reconstruye horas lo pierde; la
+#     comparacion de claves estacion-fecha de 06 lo cuenta. Requiere la etiqueta git datos-v1.1.
+MET <- c("TOUT", "RH", "SR", "PRS", "viento_u", "viento_v", "viento_rapidez_ms", "horas_lluvia")
+v11 <- fread(cmd = paste0('git -c safe.directory="', normalizePath(getwd(), winslash = "/"),
+                          '" show datos-v1.1:data/clean/sima_diario_2020_2025.csv'), encoding = "UTF-8")
+final <- fread("data/clean/sima_diario_2020_2025.csv", encoding = "UTF-8")
+muestra <- fread("data/clean/muestra_pm25_2021_2025.csv", encoding = "UTF-8")
+completo <- function(d) !is.na(d$`PM2.5`) & Reduce(`&`, lapply(MET, function(v) !is.na(d[[v]])))
+caso_v11 <- v11[estacion == "SO" & as.character(fecha) == "2023-10-24"]
+caso_fin <- final[estacion == "SO" & as.character(fecha) == "2023-10-24"]
+en_muestra <- nrow(muestra[estacion == "SO" & as.character(fecha) == "2023-10-24"]) > 0
+ok(caso_v11$n_horas_SR == 19 && completo(caso_v11), "D15 conteo: SO 2023-10-24 estaba completo en datos-v1.1 (19 h de SR)")
+ok(is.na(caso_fin$SR) && !en_muestra, "D15 conteo: SO 2023-10-24 pierde SR y sale de la muestra final")
+h23 <- fread("data/clean/sima_horario_limpio_2023.csv", encoding = "UTF-8", colClasses = list(character = "fecha_hora"))
+dia_so <- h23[estacion == "SO" & substr(fecha_hora, 1, 10) == "2023-10-24"]
+ok(nrow(dia_so) == 24 && all(is.na(dia_so$SR)) && all(dia_so$f_SR %in% c("M", "F")) && sum(dia_so$f_SR == "M") == 17,
+   "D15 conteo: las 24 h de SR quedan vacias (17 con M; las 7 con F ya estaban fuera de rango)")
+retirado <- completo(caso_v11) && !en_muestra && is.na(caso_fin$SR)   # misma logica que 06
+ok(retirado, "D15 conteo: SO 2023-10-24 se cuenta como retirado por D15 (por SR nocturna)")
 message("Todas las pruebas de limpieza pasaron.")
