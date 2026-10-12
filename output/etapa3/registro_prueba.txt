@@ -15,3 +15,7 @@ Motivo de la nueva corrida: Presentacion: el titulo del mapa de cargas salia cor
 
 Salidas escritas. Resultados en output/etapa3/RESUMEN.md
 Verificacion de la segunda corrida: prueba_metricas_m0_m1.csv, prueba_bootstrap_replicas.csv, prueba_dauc_por_temporada.csv, prueba_sensibilidades.csv, m1_coeficientes_estructura.csv y pca_valores_propios.csv son identicos byte a byte a los de la primera corrida; solo cambia el signo de las columnas de pca_cargas_anomalia.csv.
+
+## Diagnósticos posteriores (07c)
+Diagnósticos posteriores (07c): no modifican modelos ni métricas.
+Diagnósticos posteriores motivados por información del socio formador recibida el 9-oct-2026 (cambios de instrumentos en 2021 y 2025); el modelo principal no cambia.
