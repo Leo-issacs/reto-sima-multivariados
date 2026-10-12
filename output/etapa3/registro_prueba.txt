@@ -19,3 +19,6 @@ Verificacion de la segunda corrida: prueba_metricas_m0_m1.csv, prueba_bootstrap_
 ## Diagnósticos posteriores (07c)
 Diagnósticos posteriores (07c): no modifican modelos ni métricas.
 Diagnósticos posteriores motivados por información del socio formador recibida el 9-oct-2026 (cambios de instrumentos en 2021 y 2025); el modelo principal no cambia.
+
+## Integración de etapa 2 (11-oct-2026)
+La rama analisis/etapa3 integró analisis/etapa2 por merge (sin rebase ni force-push), así que la historia no se reescribió y los hashes citados en este registro siguen vigentes: fase A eb1946ebcd0916b220957fb51f292f412f269ce9 (etiqueta etapa3-decisiones-cerradas), código de las corridas bf51e34 y 033ccf3. Los CSV de data/clean/ (incluida muestra_pm25_2021_2025.csv) quedaron idénticos byte a byte tras el merge, salvo DICCIONARIO.csv (columnas del Anexo C), y el paso 0 de 07c reproduce los mismos AUC.
