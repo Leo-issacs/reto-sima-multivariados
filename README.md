@@ -84,7 +84,7 @@ La etapa 3 incluye una interfaz gráfica para usar el modelo final (LDA, M0 y M1
 2. Abre `sima.Rproj` y corre `shiny::runApp("app")`.
 3. Pruebas: `Rscript tests/test_app_predicciones.R` comprueba que la app reproduce las probabilidades de la prueba (tolerancia 1e-10) y que no falla con los deslizadores en sus extremos.
 
-Pestañas: **Calcular** (probabilidad de superación según M0 y M1 para una estación, temporada o fecha y valores meteorológicos; contribución de cada variable), **Desempeño 2024–2025** (métricas y serie de tiempo con falsos positivos y negativos) y **Acerca de**. Es una clasificación retrospectiva con meteorología observada, no un pronóstico. Capturas: `output/etapa3/figuras/app_*.png`.
+Pestañas: **Calcular** (probabilidad de superación según M0 y M1 para una estación, temporada o fecha y valores meteorológicos; contribución de cada variable), **Desempeño 2024–2025** (métricas y serie de tiempo con falsos positivos y negativos) y **Acerca de**. Es una clasificación retrospectiva con meteorología observada, no un pronóstico. Capturas: `output/etapa3/figuras/app_*.png`; se tomaron con el paquete `webshot2`, que no está en `renv.lock` y no hace falta para correr la app.
 
 Publicación en shinyapps.io (opcional; solo cuando el equipo lo decida): copia `output/etapa3/modelo_final.rds` dentro de `app/`, instala `rsconnect`, configura la cuenta con `rsconnect::setAccountInfo()` y ejecuta `rsconnect::deployApp("app")`.
 

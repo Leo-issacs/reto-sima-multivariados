@@ -208,7 +208,7 @@ server <- function(input, output, session) {
     ggplot(d, aes(aporte, variable, fill = aporte > 0)) + geom_col(show.legend = FALSE) +
       geom_vline(xintercept = 0, colour = "grey40") +
       scale_fill_manual(values = c(`FALSE` = "#0072B2", `TRUE` = "#D55E00")) +
-      labs(x = "Aporte al puntaje (positivo = hacia superación)", y = NULL) + theme_minimal(base_size = 17)
+      labs(x = "Aporte al puntaje\n(positivo = hacia superación)", y = NULL) + theme_minimal(base_size = 17)
   })
 
   # 4g. Desempeño en la prueba para el subconjunto elegido.
