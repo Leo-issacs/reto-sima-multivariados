@@ -34,7 +34,7 @@ function nota(encabezado) {
 const pres = new pptxgen();
 pres.layout = "LAYOUT_WIDE";            // 13.333 x 7.5 in
 pres.theme = { headFontFace: FONT, bodyFontFace: FONT };
-pres.title = "¿Cuánto ayuda el clima a identificar los días de PM2.5 alto en Monterrey?";
+pres.title = "¿Cuánto ayuda la meteorología del día a identificar los días de PM2.5 alto en Monterrey?";
 pres.author = "Equipo 1 · Grupo 201 · MA2003B";
 pres.company = "Reto SIMA";
 
@@ -66,8 +66,8 @@ const T = (opts) => Object.assign({ isTextBox: true, fontFace: FONT, margin: 0 }
   const s = pres.addSlide({ masterName: "PORTADA" });
   s.addText("Reto SIMA · Etapa 3: modelado y evaluación", T({ x: 0.6, y: 0.55, w: 7.4, h: 0.45,
     fontSize: 22, color: COL.m1, bold: true, objectName: "subtitulo" }));
-  s.addText("¿Cuánto ayuda el clima a identificar los días de PM2.5 alto en Monterrey?", T({
-    x: 0.6, y: 1.1, w: 7.4, h: 2.2, fontSize: 40, bold: true, color: COL.texto, valign: "top", objectName: "titulo" }));
+  s.addText("¿Cuánto ayuda la meteorología del día a identificar los días de PM2.5 alto en Monterrey?", T({
+    x: 0.6, y: 1.05, w: 7.4, h: 2.45, fontSize: 40, bold: true, color: COL.texto, valign: "top", objectName: "titulo" }));
   s.addText([
     { text: "Equipo 1 · Grupo 201 · Análisis multivariado (MA2003B)", options: { breakLine: true } },
     { text: "Socio formador: SIMA" },
@@ -93,16 +93,16 @@ const T = (opts) => Object.assign({ isTextBox: true, fontFace: FONT, margin: 0 }
   s.addText("Qué queremos hacer y con qué datos", { placeholder: "titulo" });
   s.addText([
     { text: "Objetivo: ", options: { bold: true } },
-    { text: "medir cuánto mejora la meteorología del día la identificación de días-estación con PM2.5 > 25 µg/m³ (24 h, NOM-025-SSA1-2021), frente a solo conocer estación y temporada.", options: { breakLine: true } },
+    { text: "medir cuánto mejora la meteorología del día la clasificación retrospectiva de días-estación con PM2.5 > 25 µg/m³ (24 h), frente a solo conocer estación y temporada. Los 25 µg/m³ (NOM-025-SSA1-2021) son una referencia fija, no una evaluación normativa.", options: { breakLine: true } },
     { text: "Por qué: ", options: { bold: true } },
     { text: "el PM2.5 se asocia con efectos en la salud por exposición de corto plazo; orienta la vigilancia de SIMA.", options: { breakLine: true } },
     { text: "Datos: ", options: { bold: true } },
     { text: "13 estaciones · 2021–2025 · PM2.5 + 8 variables meteorológicas · 15 390 estación-días" },
-  ], T({ x: 0.5, y: 1.2, w: 6.2, h: 3.55, fontSize: 20, color: COL.texto, valign: "top", paraSpaceAfter: 8,
+  ], T({ x: 0.5, y: 1.15, w: 6.85, h: 3.6, fontSize: 20, color: COL.texto, valign: "top", paraSpaceAfter: 8,
          objectName: "objetivo_datos" }));
-  s.addImage({ path: fig("docs/presentacion/figuras/mapa_estaciones_diapositiva.png"), x: 6.95, y: 1.15, w: 5.88, h: 5.88 * 3.2 / 6.2,
+  s.addImage({ path: fig("docs/presentacion/figuras/mapa_estaciones_diapositiva.png"), x: 7.55, y: 1.25, w: 5.28, h: 5.28 * 3.2 / 6.2,
     altText: "Mapa de las 13 estaciones con el porcentaje de días con superación", objectName: "mapa" });
-  s.addText("% de días con superación, 2021–2025", T({ x: 6.95, y: 4.22, w: 5.88, h: 0.4, fontSize: 20,
+  s.addText("% de días con superación, 2021–2025", T({ x: 7.55, y: 4.1, w: 5.28, h: 0.4, fontSize: 20,
     color: COL.gris, align: "center", objectName: "pie_mapa" }));
 
   // Tarjetas de preparacion de datos.
@@ -130,15 +130,15 @@ const T = (opts) => Object.assign({ isTextBox: true, fontFace: FONT, margin: 0 }
 {
   const s = pres.addSlide({ masterName: "CONTENIDO" });
   s.addText("Cómo lo analizamos y qué encontramos", { placeholder: "titulo" });
-  const y = 1.2, h = 2.05, g = 0.15;
+  const y = 1.2, h = 2.4, g = 0.15;
   const ws = [3.75, 3.75, 2.25, 2.13];
   const tarjetas = [
     { n: [{ text: "0.72", options: { color: COL.m0 } }, { text: " → ", options: { color: COL.grisClaro } }, { text: "0.79", options: { color: COL.m1 } }],
       d: "AUC de M0 → M1: +0.07 (IC 95 %: 0.05–0.09)" },
     { n: [{ text: "73 %", options: { color: COL.m1 } }, { text: " vs ", options: { color: COL.grisClaro, fontSize: 30 } }, { text: "58 %", options: { color: COL.m0 } }],
-      d: "de las superaciones detectadas (M1 vs M0)" },
+      d: "de las superaciones detectadas (M1 vs M0); falsas alarmas: 30 % vs 27 %" },
     { n: [{ text: "89 %", options: { color: COL.m1 } }], d: "de los episodios > 40 µg/m³ (M1)" },
-    { n: [{ text: "+0.14", options: { color: COL.m1 } }], d: "en mar–may; casi nada en lluvias" },
+    { n: [{ text: "+0.14", options: { color: COL.m1 } }], d: "en mar–may; sin mejora concluyente en lluvias" },
   ];
   let x = 0.5;
   tarjetas.forEach((c, k) => {
@@ -150,12 +150,12 @@ const T = (opts) => Object.assign({ isTextBox: true, fontFace: FONT, margin: 0 }
     x += w + g;
   });
   s.addText(vinetas([
-    "PCA (interdependencia): 3 ejes del clima explican el 67 %",
-    "LDA (dependencia): M0 estación + temporada frente a M1 + clima",
-    "Entrenamiento 2021–2023, prueba 2024–2025; decisiones fijadas antes",
+    "PCA (interdependencia): 3 ejes meteorológicos explican el 67 %",
+    "LDA (dependencia): M0 estación + temporada frente a M1 + meteorología",
+    "Entrenamiento 2021–2023, prueba 2024–2025; decisiones fijadas antes del ajuste definitivo (ensayo preliminar con 2024–2025, declarado)",
     "Se asocia con presión baja, más temperatura y menos viento",
-  ]), T({ x: 0.5, y: 3.6, w: 5.85, h: 3.4, valign: "top", objectName: "tecnicas" }));
-  s.addImage({ path: fig("docs/presentacion/figuras/dauc_temporada_diapositiva.png"), x: 6.6, y: 3.5, w: 6.23, h: 3.5,
+  ]), T({ x: 0.5, y: 3.8, w: 5.85, h: 3.4, valign: "top", objectName: "tecnicas" }));
+  s.addImage({ path: fig("docs/presentacion/figuras/dauc_temporada_diapositiva.png"), x: 6.75, y: 3.8, w: 6.08, h: 6.08 * 3.6 / 6.4,
     altText: "Mejora del AUC por temporada con intervalos de confianza", objectName: "dauc_temporada" });
   s.addNotes(nota("Diapositiva 2"));
 }
@@ -170,29 +170,35 @@ const T = (opts) => Object.assign({ isTextBox: true, fontFace: FONT, margin: 0 }
     "Viento (SO2, NE2 en 2021) y radiación nocturna (NO2, SE3, CE): regla nueva",
     "Cambios de equipos 2021/2025: revisados, no cambian la conclusión",
     "Retención desigual entre estaciones",
-  ])], T({ x: 0.5, y: 1.25, w: 4.35, h: 3.35, valign: "top", objectName: "problemas" }));
+  ])], T({ x: 0.5, y: 1.25, w: 3.85, h: 3.4, valign: "top", objectName: "problemas" }));
   s.addText([encabezado("Qué sigue"), ...vinetas([
     "Meteorología pronosticada (alerta real)",
     "PM2.5 del día anterior",
     "Cortes por estación",
-  ])], T({ x: 0.5, y: 4.75, w: 4.35, h: 2.3, valign: "top", objectName: "que_sigue" }));
+  ])], T({ x: 0.5, y: 4.7, w: 3.85, h: 2.0, valign: "top", objectName: "que_sigue" }));
 
   // Hecho: captura de la interfaz.
-  tarjeta(s, 5.05, 1.25, 4.05, 5.8, COL.tarjeta, "tarjeta_app");
-  s.addText("Hecho: interfaz Shiny", T({ x: 5.27, y: 1.4, w: 3.6, h: 0.45, fontSize: 22, bold: true, color: COL.texto, objectName: "titulo_app" }));
-  s.addImage({ path: fig("output/etapa3/figuras/app_calcular.png"), x: 5.27, y: 2.0, w: 3.6, h: 3.6 * 1386 / 1500,
+  tarjeta(s, 4.5, 1.25, 4.95, 5.45, COL.tarjeta, "tarjeta_app");
+  s.addText("Hecho: interfaz Shiny", T({ x: 4.72, y: 1.38, w: 4.5, h: 0.45, fontSize: 22, bold: true, color: COL.texto, objectName: "titulo_app" }));
+  s.addImage({ path: fig("output/etapa3/figuras/app_calcular.png"), x: 4.82, y: 1.9, w: 4.3, h: 4.3 * 1386 / 1500,
     altText: "Captura de la interfaz Shiny: pestaña Calcular", objectName: "captura_app" });
-  s.addText("Estación, temporada y clima → probabilidad de superación", T({ x: 5.27, y: 5.5, w: 3.6, h: 1.4,
+  s.addText("Estación, temporada y meteorología → probabilidad de superación", T({ x: 4.72, y: 5.95, w: 4.5, h: 0.7,
     fontSize: 20, color: COL.gris, valign: "top", objectName: "pie_app" }));
 
   // Preguntas para SIMA.
-  tarjeta(s, 9.3, 1.25, 3.53, 5.8, COL.tarjetaFria, "tarjeta_preguntas");
+  tarjeta(s, 9.6, 1.25, 3.23, 5.45, COL.tarjetaFria, "tarjeta_preguntas");
   s.addText([encabezado("Preguntas para SIMA", COL.m0), ...vinetas([
     "Fechas de cambio de sensores; ¿reubicaciones en 2021?",
     "¿Hora local? ¿Unidad de la lluvia?",
     "¿Qué fuentes explican Juárez (SE2) y Santa Catarina (SO)?",
     "¿Les serviría una alerta con pronóstico?",
-  ])], T({ x: 9.5, y: 1.4, w: 3.18, h: 5.5, valign: "top", objectName: "preguntas" }));
+  ])], T({ x: 9.78, y: 1.38, w: 2.9, h: 5.25, valign: "top", objectName: "preguntas" }));
+  // Enlace al repositorio (codigo, app y reportes).
+  const repo = "https://github.com/Leo-issacs/reto-sima-multivariados";
+  s.addText([
+    { text: "Código y app: ", options: { bold: true, color: COL.texto } },
+    { text: "github.com/Leo-issacs/reto-sima-multivariados", options: { color: COL.m0, hyperlink: { url: repo } } },
+  ], T({ x: 0.5, y: 6.85, w: 12.33, h: 0.4, fontSize: 20, objectName: "enlace_repositorio" }));
   s.addNotes(nota("Diapositiva 3"));
 }
 

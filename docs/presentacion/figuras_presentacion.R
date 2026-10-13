@@ -57,13 +57,13 @@ mf <- readRDS("output/etapa3/modelo_final.rds"); pr <- mf$predicciones_prueba
 roc0 <- pROC::roc(pr$supera_25, pr$p_M0, levels = c(0, 1), direction = "<", quiet = TRUE)
 roc1 <- pROC::roc(pr$supera_25, pr$p_M1, levels = c(0, 1), direction = "<", quiet = TRUE)
 curvas <- rbind(data.table(modelo = sprintf("M0: estación + temporada (AUC %.2f)", pROC::auc(roc0)), fpr = 1 - roc0$specificities, tpr = roc0$sensitivities),
-                data.table(modelo = sprintf("M1: + clima del día (AUC %.2f)", pROC::auc(roc1)), fpr = 1 - roc1$specificities, tpr = roc1$sensitivities))
+                data.table(modelo = sprintf("M1: + meteorología del día (AUC %.2f)", pROC::auc(roc1)), fpr = 1 - roc1$specificities, tpr = roc1$sensitivities))
 g <- ggplot(curvas[order(modelo, fpr, tpr)], aes(fpr, tpr, colour = modelo)) +
   geom_abline(linetype = "dotted", colour = "grey55") + geom_path(linewidth = 1.6) +
   scale_colour_manual(values = c("#0072B2", "#D55E00"), name = NULL) + coord_equal() +
   labs(x = "Falsas alarmas (1 − especificidad)", y = "Detección (sensibilidad)") +
   theme_minimal(base_size = 17) +
-  theme(legend.position = "inside", legend.position.inside = c(0.6, 0.15), legend.text = element_text(size = 14),
+  theme(legend.position = "inside", legend.position.inside = c(0.56, 0.15), legend.text = element_text(size = 13.5),
         panel.grid.minor = element_blank())
 ggsave("docs/presentacion/figuras/roc_m0_m1_diapositiva.png", g, width = 5.6, height = 5.6, dpi = 200, bg = "white")
 cat("Figuras escritas en docs/presentacion/figuras/\n")
