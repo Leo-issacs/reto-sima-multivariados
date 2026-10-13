@@ -64,3 +64,6 @@ renv/sandbox/
 
 # Word del informe de la etapa 3 (lleva matriculas; no se publica)
 docs/etapa3/*.docx
+
+# Imagenes de revision de la presentacion (se regeneran; no se publican)
+docs/presentacion/revision/
