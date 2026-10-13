@@ -7,13 +7,16 @@ if (!exists("VARIABLES_SIMA")) source("R/importar_sima.R")
 if (!exists("cargar_rangos")) source("R/diagnostico.R")
 if (!exists("cargar_rangos_fabricante")) source("R/limpieza.R")
 
-validar_limpios <- function(carpeta = "data/clean") {
+# `n_archivos`: cuantos CSV horarios se esperan (6 en data/clean; las pruebas de 05 validan una copia
+# con un solo anio).
+validar_limpios <- function(carpeta = "data/clean", n_archivos = 6L) {
   rangos_op <- cargar_rangos(); rangos_fab <- cargar_rangos_fabricante()
   archivos <- sort(list.files(carpeta, pattern = "^sima_horario_limpio_\\d{4}\\.csv$", full.names = TRUE))
-  stopifnot(length(archivos) == 6L)
+  stopifnot(length(archivos) == n_archivos)
   fallos <- character()
+  viento_max <- NULL
   for (f in archivos) {
-    d <- data.table::fread(f, encoding = "UTF-8")
+    d <- data.table::fread(f, encoding = "UTF-8", colClasses = list(character = "fecha_hora"))
     anio <- as.integer(substr(d$fecha_hora, 1, 4)); stopifnot(length(unique(anio)) == 1L)
     a <- anio[1L]
     # 1. PM2.5 <= PM10 en toda hora con ambas
@@ -68,11 +71,57 @@ validar_limpios <- function(carpeta = "data/clean") {
       n_rein <- sum(m & (!is.na(d[[v]]) | !(d[[paste0("f_", v)]] %in% c("E", "L"))))
       if (n_rein) fallos <- c(fallos, sprintf("%s: %d horas de %s anuladas por E/L reincorporadas (imputadas)", basename(f), n_rein, v))
     }
+    # 7. D15 SR nocturna: ningun dia conserva SR con media entre 00 y 04 h > umbral (>= 3 lecturas)
+    noc <- d[as.integer(substr(fecha_hora, 12, 13)) %in% SR_NOCHE_HORAS & !is.na(SR),
+             .(n = .N, m = mean(SR)), by = .(estacion, dia = substr(fecha_hora, 1, 10))]
+    n_sr <- noc[n >= SR_NOCHE_MIN_LECTURAS & m > SR_NOCHE_UMBRAL + 0.0006, .N]
+    if (n_sr) fallos <- c(fallos, sprintf("%s: %d estacion-dias conservan SR con media nocturna > %s", basename(f), n_sr, SR_NOCHE_UMBRAL))
+    n_m <- sum(d$f_SR == "M" & !is.na(d$SR))
+    if (n_m) fallos <- c(fallos, sprintf("%s: %d horas de SR con bandera M tienen valor (imputadas)", basename(f), n_m))
+    # 8. D15 viento: ninguna hora conservada con WSR > mediana de la red + umbral, con >= 5 estaciones
+    obs_w <- d$f_WSR %in% c("V", "C") & !is.na(d$WSR)
+    w <- d[obs_w, .(estacion, fecha_hora, WSR)]
+    w[, `:=`(nr = .N, med = stats::median(WSR)), by = fecha_hora]
+    n_w <- w[nr >= MIN_ESTACIONES_E & WSR - med > UMBRAL_WSR_RED + 0.001, .N]
+    if (n_w) fallos <- c(fallos, sprintf("%s: %d horas conservan WSR a mas de %s km/h sobre la mediana de la red", basename(f), n_w, UMBRAL_WSR_RED))
+    n_uv <- sum(d$f_uv == "E" & (!is.na(d$viento_u) | !is.na(d$viento_v)))
+    if (n_uv) fallos <- c(fallos, sprintf("%s: %d horas de u/v con bandera E tienen valor (imputadas)", basename(f), n_uv))
+    # 8b. Anulacion conjunta: si WSR, WDR o u/v tienen bandera E en una hora, los cuatro valores quedan
+    #     vacios. (Las banderas no siempre coinciden: una hora sin WSR original conserva N y WDR pasa a E.)
+    e_viento <- d$f_WSR == "E" | d$f_WDR == "E" | d$f_uv == "E"
+    for (v in c("WSR", "WDR")) {
+      n_e <- sum(e_viento & !is.na(d[[v]]))
+      if (n_e) fallos <- c(fallos, sprintf("%s: %d horas de viento con bandera E conservan %s", basename(f), n_e, v))
+    }
+    n_e_uv <- sum(e_viento & (!is.na(d$viento_u) | !is.na(d$viento_v)))
+    if (n_e_uv) fallos <- c(fallos, sprintf("%s: %d horas de viento con bandera E conservan u/v", basename(f), n_e_uv))
+    # 8c. Coherencia de u/v: en horas con WSR y WDR, u y v salen de ellos (tolerancia por redondeo);
+    #     sin WSR o WDR, u/v solo pueden existir si se imputaron (f_uv = I).
+    con_w <- !is.na(d$WSR) & !is.na(d$WDR)
+    du <- abs(d$viento_u + d$WSR / 3.6 * sin(d$WDR * pi / 180)); dv <- abs(d$viento_v + d$WSR / 3.6 * cos(d$WDR * pi / 180))
+    n_coh <- sum(con_w & (is.na(d$viento_u) | du > 0.001 | dv > 0.001))
+    if (n_coh) fallos <- c(fallos, sprintf("%s: %d horas con u/v incoherentes con WSR y WDR", basename(f), n_coh))
+    n_sin <- sum(!con_w & !is.na(d$viento_u) & d$f_uv != "I")
+    if (n_sin) fallos <- c(fallos, sprintf("%s: %d horas con u/v sin WSR/WDR y sin bandera I", basename(f), n_sin))
+    # 8d. Rapidez implicita de las componentes imputadas: sqrt(u^2 + v^2) en km/h no puede superar la
+    #     mediana de WSR observado de la red + umbral, si esa hora reportan >= 5 estaciones (regla D15).
+    ref <- unique(w[, .(fecha_hora, nr, med)])
+    imp <- d[f_uv == "I" & !is.na(viento_u), .(estacion, fecha_hora, rapidez = sqrt(viento_u^2 + viento_v^2) * 3.6)]
+    imp <- merge(imp, ref, by = "fecha_hora")
+    n_imp <- imp[nr >= MIN_ESTACIONES_E & rapidez - med > UMBRAL_WSR_RED + 0.01, .N]
+    if (n_imp) fallos <- c(fallos, sprintf("%s: %d horas con u/v imputados cuya rapidez supera la mediana de la red + %s km/h", basename(f), n_imp, UMBRAL_WSR_RED))
+    viento_max <- rbind(viento_max, data.frame(archivo = basename(f), wsr_horario_max_kmh = max(d$WSR, na.rm = TRUE)))
   }
   if (length(fallos)) stop("Validacion de CSV limpios FALLO:\n - ", paste(fallos, collapse = "\n - "), call. = FALSE)
-  message("Validacion OK: sin PM2.5 > PM10, sin valores fuera de rango del anio, nox_inconsistente coherente, sin saturacion de TOUT y consistencia espacial de TOUT/RH (",
+  message("Validacion OK: sin PM2.5 > PM10, sin valores fuera de rango del anio, nox_inconsistente coherente, sin saturacion de TOUT, consistencia espacial de TOUT/RH y regla D15 (SR nocturna; viento contra la red, anulacion conjunta y rapidez de u/v imputados) (",
           length(archivos), " CSV horarios).")
+  dd <- data.table::fread(file.path(carpeta, "sima_diario_2020_2025.csv"), select = c("estacion", "fecha", "viento_rapidez_ms"))
+  k <- which.max(dd$viento_rapidez_ms)
+  message(sprintf("Viento diario maximo: %.2f m/s (%s, %s). Maximo horario de WSR por anio: %s km/h.",
+                  dd$viento_rapidez_ms[k], dd$estacion[k], dd$fecha[k],
+                  paste(sprintf("%s %.1f", sub("^.*_(\\d{4})\\.csv$", "\\1", viento_max$archivo), viento_max$wsr_horario_max_kmh), collapse = "; ")))
   invisible(TRUE)
 }
 
-validar_limpios()
+# 05_probar_limpieza.R define la opcion para cargar la funcion sin validar data/clean.
+if (!isTRUE(getOption("sima.validar.solo_definir"))) validar_limpios()

@@ -16,7 +16,8 @@ base_hoja <- function(hoja, anios) {
     d$CO <- 1 + 0.1 * sin(t / 7); d$NO <- 5 + sin(t / 5); d$NO2 <- 20 + sin(t / 6)
     d$NOX <- d$NO + d$NO2; d$O3 <- 40 + sin(t / 9); d$PM10 <- 100 + sin(t / 4)
     d$PM2.5 <- 20 + sin(t / 3); d$PRS <- 715 + sin(t / 40); d$RAINF <- 0
-    d$RH <- 50 + sin(t / 8); d$SO2 <- 3 + sin(t / 11) * 0.5; d$SR <- 0.3 + 0.1 * sin(t / 13)
+    d$RH <- 50 + sin(t / 8); d$SO2 <- 3 + sin(t / 11) * 0.5
+    d$SR <- ifelse((t - 1) %% 24 %in% 7:18, 0.3 + 0.1 * sin(t / 13), 0)   # cero de noche
     d$TOUT <- 20 + 5 * sin(t / 50); d$WSR <- 5 + sin(t / 12); d$WDR <- 180 + 50 * sin(t / 15)
     d
   }))
@@ -118,4 +119,100 @@ ok(is.na(rq$Q1$imp[kq, "RH"]) && rq$Q1$flags[kq, "RH"] == "E", "5 -> 4 estacione
 ok(all(rq$Q2$imp[kq + (-1:1), "RH"] == c(90, 40, 90)), "5 -> 4 estaciones: las otras estaciones no cambian")
 ok(rq$Q1$flags_obs[kq, "TOUT"] == "L" && is.na(rq$Q1$imp[kq, "TOUT"]) && rq$Q1$flags[kq, "TOUT"] == "L",
    "L: la hora saturada entre dos valores validos NO se imputa (queda NA, bandera L)")
+
+# 9. D15, SR nocturna (bandera M): media 00-04 h > 0.02 con >= 3 lecturas invalida SR de todo el dia.
+d <- base_hoja("T9", 2022)
+a <- pos(d, "2022-03-10 00:00"); d$SR[a + 0:4] <- 0.05                        # 5 lecturas, media 0.05
+b <- pos(d, "2022-03-12 00:00"); d$SR[b + 0:1] <- 0.05; d$SR[b + 2:4] <- NA     # solo 2 lecturas
+c0 <- pos(d, "2022-03-14 00:00"); d$SR[c0 + 0:4] <- c(0.02, 0.02, 0.02, NA, NA)  # media = 0.02 (no >)
+r <- limpiar_hoja(d, rangos_op, rangos_fab)
+ok(all(r$flags[a + 0:23, "SR"] == "M") && all(is.na(r$imp[a + 0:23, "SR"])), "M: dia con media nocturna 0.05 invalida SR en las 24 h y no se imputa")
+ok(all(r$flags[a + 24:47, "SR"] %in% c("V", "C")), "M: el dia siguiente no se toca")
+ok(all(r$flags_obs[b + 0:1, "SR"] %in% c("V", "C")), "M: con < 3 lecturas nocturnas no se evalua")
+ok(all(r$flags[b + 2:4, "SR"] == "X") && all(is.na(r$imp[b + 2:4, "SR"])), "M: imputados que elevan la media nocturna sobre 0.02 se revierten (X)")
+ok(all(r$flags_obs[c0 + 0:23, "SR"] != "M"), "M: media nocturna igual a 0.02 no se invalida")
+
+# 10. D15, viento contra la red (bandera E en WSR, WDR y u/v).
+estw <- paste0("W", 1:6)
+dw <- setNames(lapply(estw, function(h) base_hoja(h, 2022)), estw)
+k1 <- pos(dw$W1, "2022-05-10 10:00"); dw$W1$WSR[k1 + 0:2] <- dw$W1$WSR[k1 + 0:2] + 40    # 3 horas -> dia
+k2 <- pos(dw$W1, "2022-05-11 10:00"); dw$W2$WSR[k2] <- dw$W2$WSR[k2] + 40                # 1 hora -> hora
+k3 <- pos(dw$W1, "2022-05-12 10:00")
+for (h in c("W5", "W6")) dw[[h]]$WSR[k3 + 0:2] <- NA                                     # 4 estaciones
+dw$W3$WSR[k3 + 0:2] <- dw$W3$WSR[k3 + 0:2] + 60                                          # sin evaluar
+f1 <- lapply(dw, function(d) limpiar_hoja(d, rangos_op, rangos_fab, solo_fase1 = TRUE))
+redw <- c(red_espacial(f1)$red, list(WSR = red_viento(f1)$red))
+rw <- lapply(dw, function(d) limpiar_hoja(d, rangos_op, rangos_fab, red = redw))
+dia1 <- pos(dw$W1, "2022-05-10 00:00") + 0:23
+ok(all(rw$W1$flags[dia1, "WSR"] == "E") && all(rw$W1$flags[dia1, "WDR"] == "E") && all(rw$W1$flags[dia1, "f_uv"] == "E"),
+   "viento: 3 horas a > 30 km/h de la red invalidan WSR, WDR y u/v de todo el dia")
+ok(all(is.na(rw$W1$imp[dia1, "viento_u"])), "viento: el dia invalidado no se imputa")
+ok(rw$W2$flags[k2, "WSR"] == "E" && rw$W2$flags[k2, "f_uv"] == "E" && is.na(rw$W2$imp[k2, "viento_u"]),
+   "viento: una hora aislada a > 30 km/h se invalida y no se imputa")
+ok(all(rw$W2$flags[setdiff(pos(dw$W1, "2022-05-11 00:00") + 0:23, k2), "WSR"] %in% c("V", "C")),
+   "viento: con < 3 horas marcadas el resto del dia se conserva")
+ok(all(rw$W3$flags[k3 + 0:2, "WSR"] %in% c("V", "C")), "viento: horas con < 5 estaciones no se evaluan")
+ok(all(rw$W4$flags[dia1, "WSR"] %in% c("V", "C")), "viento: las otras estaciones no cambian")
+
+# 11. D15 viento en los limites (revision del PR #9, punto 7). Red de 5 estaciones con WSR = 5 km/h.
+#     a) Z1 a 45 km/h (+40): se invalida y la red queda con 4; la hora rechazada no se imputa.
+#     b) Z1 a 35 km/h (exactamente +30): la regla exige "> 30", asi que se conserva.
+h5 <- paste0("Z", 1:5)
+dz <- setNames(lapply(h5, function(h) base_hoja(h, 2022)), h5)
+ka <- pos(dz$Z1, "2022-05-10 12:00"); kb <- ka + 48
+for (h in h5) { dz[[h]]$WSR[ka + (-1:1)] <- c(7, 5, 7); dz[[h]]$WSR[kb + (-1:1)] <- c(7, 5, 7) }
+dz$Z1$WSR[ka] <- 45; dz$Z1$WSR[kb] <- 35
+f1 <- lapply(dz, function(d) limpiar_hoja(d, rangos_op, rangos_fab, solo_fase1 = TRUE))
+redz <- c(red_espacial(f1)$red, list(WSR = red_viento(f1)$red))
+rz <- lapply(dz, function(d) limpiar_hoja(d, rangos_op, rangos_fab, red = redz))
+ok(rz$Z1$flags[ka, "WSR"] == "E" && rz$Z1$flags[ka, "f_uv"] == "E" &&
+   all(is.na(rz$Z1$imp[ka, c("WSR", "WDR", "viento_u", "viento_v")])),
+   "viento 5 -> 4 estaciones: la hora a +40 km/h queda vacia en WSR, WDR y u/v (no se imputa)")
+ok(all(sapply(h5[-1], function(h) rz[[h]]$flags[ka, "WSR"] %in% c("V", "C"))), "viento 5 -> 4 estaciones: las otras 4 no cambian")
+ok(rz$Z1$imp[kb, "WSR"] == 35 && rz$Z1$flags[kb, "WSR"] %in% c("V", "C"), "viento exactamente a +30 km/h de la red se conserva")
+
+# 12. El validador (04) rechaza los tres errores que sembro la revision del PR #9 (punto 1).
+#     Se valida una copia de data/clean/ (solo 2022 y el diario) en una carpeta temporal; nunca los
+#     CSV publicados. Fila: la primera hora de 2022 con WSR, WDR y u/v en E (NE2, 2022-02-10 23:00).
+options(sima.validar.solo_definir = TRUE); source("scripts/04_validar_limpios.R"); options(sima.validar.solo_definir = NULL)
+copia <- file.path(tempdir(), "validador_mutado"); dir.create(copia, showWarnings = FALSE)
+stopifnot(file.copy(c("data/clean/sima_horario_limpio_2022.csv", "data/clean/sima_diario_2020_2025.csv"), copia, overwrite = TRUE))
+arch <- file.path(copia, "sima_horario_limpio_2022.csv")
+original <- fread(arch, encoding = "UTF-8", colClasses = list(character = "fecha_hora"))
+fila <- which(original$f_WSR == "E" & original$f_WDR == "E" & original$f_uv == "E")[1]
+falla <- function() tryCatch({ suppressMessages(validar_limpios(copia, n_archivos = 1L)); "" }, error = conditionMessage)
+ok(falla() == "", sprintf("validador: la copia sin alterar pasa (fila %s %s)", original$estacion[fila], original$fecha_hora[fila]))
+mutaciones <- list(
+  "WSR = 10 km/h con f_WSR = E" = function(x) x[fila, WSR := 10],
+  "WDR = 180 grados con f_WDR = E" = function(x) x[fila, WDR := 180],
+  "u = 50 m/s, v = 0 imputados (f_uv = I)" = function(x) x[fila, `:=`(f_uv = "I", viento_u = 50, viento_v = 0)])
+esperado <- c("conservan WSR", "conservan WDR", "rapidez supera la mediana")
+for (i in seq_along(mutaciones)) {
+  m <- mutaciones[[i]](copy(original)); fwrite(m, arch)
+  msg <- falla()
+  ok(grepl(esperado[i], msg, fixed = TRUE), paste("validador rechaza:", names(mutaciones)[i]))
+}
+fwrite(original, arch); unlink(copia, recursive = TRUE)
+
+# 13. Conteo de D15 por claves (revision del PR #9, punto 2): SO 2023-10-24 debe contarse como
+#     retirado por D15. En datos-v1.1 ese dia tenia 19 h de SR (17 originales + 2 imputadas) y entraba
+#     en la muestra; D15 (SR nocturna) anula su SR. Un conteo que reconstruye horas lo pierde; la
+#     comparacion de claves estacion-fecha de 06 lo cuenta. Requiere la etiqueta git datos-v1.1.
+MET <- c("TOUT", "RH", "SR", "PRS", "viento_u", "viento_v", "viento_rapidez_ms", "horas_lluvia")
+v11 <- fread(cmd = paste0('git -c safe.directory="', normalizePath(getwd(), winslash = "/"),
+                          '" show datos-v1.1:data/clean/sima_diario_2020_2025.csv'), encoding = "UTF-8")
+final <- fread("data/clean/sima_diario_2020_2025.csv", encoding = "UTF-8")
+muestra <- fread("data/clean/muestra_pm25_2021_2025.csv", encoding = "UTF-8")
+completo <- function(d) !is.na(d$`PM2.5`) & Reduce(`&`, lapply(MET, function(v) !is.na(d[[v]])))
+caso_v11 <- v11[estacion == "SO" & as.character(fecha) == "2023-10-24"]
+caso_fin <- final[estacion == "SO" & as.character(fecha) == "2023-10-24"]
+en_muestra <- nrow(muestra[estacion == "SO" & as.character(fecha) == "2023-10-24"]) > 0
+ok(caso_v11$n_horas_SR == 19 && completo(caso_v11), "D15 conteo: SO 2023-10-24 estaba completo en datos-v1.1 (19 h de SR)")
+ok(is.na(caso_fin$SR) && !en_muestra, "D15 conteo: SO 2023-10-24 pierde SR y sale de la muestra final")
+h23 <- fread("data/clean/sima_horario_limpio_2023.csv", encoding = "UTF-8", colClasses = list(character = "fecha_hora"))
+dia_so <- h23[estacion == "SO" & substr(fecha_hora, 1, 10) == "2023-10-24"]
+ok(nrow(dia_so) == 24 && all(is.na(dia_so$SR)) && all(dia_so$f_SR %in% c("M", "F")) && sum(dia_so$f_SR == "M") == 17,
+   "D15 conteo: las 24 h de SR quedan vacias (17 con M; las 7 con F ya estaban fuera de rango)")
+retirado <- completo(caso_v11) && !en_muestra && is.na(caso_fin$SR)   # misma logica que 06
+ok(retirado, "D15 conteo: SO 2023-10-24 se cuenta como retirado por D15 (por SR nocturna)")
 message("Todas las pruebas de limpieza pasaron.")

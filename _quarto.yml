@@ -6,6 +6,7 @@ project:
     - quarto/reporte.qmd
     - quarto/presentacion.qmd
     - quarto/etapa1.qmd
+    - quarto/etapa2.qmd
 
 lang: es
 format:

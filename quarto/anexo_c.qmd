@@ -1,0 +1,40 @@
+---
+title: "Anexo C. Diccionario de datos de las tres bases"
+subtitle: "Reto SIMA, etapa 2"
+lang: es
+format:
+  docx:
+    reference-doc: plantillas/referencia_anexo_horizontal.docx
+    toc: false
+    number-sections: false
+execute:
+  echo: false
+  warning: false
+  message: false
+---
+
+```{r}
+#| label: datos
+suppressPackageStartupMessages(library(data.table))
+ac <- fread("output/etapa2/anexo_c_diccionario.csv", encoding = "UTF-8", colClasses = "character")
+n_base <- ac[, .N, by = base]
+```
+
+Una fila por columna de cada base publicada en `data/clean/`: horaria (`sima_horario_limpio_AAAA.csv`, `r n_base[base == "horaria", N]` columnas), diaria (`sima_diario_2020_2025.csv`, `r n_base[base == "diaria", N]`) y muestra de la etapa 2 (`muestra_pm25_2021_2025.csv`, `r n_base[base == "muestra", N]`). Lo genera `scripts/06b_anexo_c_diccionario.R`, que también agrega el dominio y los porcentajes de nulos a `data/clean/DICCIONARIO.csv`.
+
+**% nulos antes:** porcentaje de horas faltantes de la variable en el Excel original, sobre las 762 792 horas de la malla de todas las hojas-año 2020–2025, incluidas las 8 189 horas sin fila; en las bases diaria y muestra se repite el de la variable horaria de origen. Las columnas construidas en la limpieza (banderas, conteos de horas, componentes del viento, temporada, núcleos, indicadores) dicen "no aplica (derivada)". **% nulos después:** porcentaje de celdas vacías en la base publicada. **Dominio:** para una medición, el rango de validez aplicado por hora y el rango observado después de la limpieza; para una bandera, los códigos presentes; para una categórica, sus valores.
+
+```{r}
+#| label: tabla
+#| results: asis
+celda <- function(x) gsub("|", "\\|", x, fixed = TRUE)
+nombres_base <- c(horaria = "Horaria", diaria = "Diaria", muestra = "Muestra")
+anchos <- c(7, 13, 23, 9, 9, 43, 9, 8)   # proporcion de ancho de cada columna
+encabezado <- c("Base", "Columna", "Descripción", "Tipo", "Unidad", "Dominio o valores permitidos",
+                "% nulos antes", "% nulos después")
+filas <- ac[, paste("|", nombres_base[base], "|", celda(columna), "|", celda(descripcion), "|", tipo, "|", unidad, "|",
+                    celda(dominio), "|", pct_nulos_antes, "|", pct_nulos_despues, "|")]
+cat("|", paste(encabezado, collapse = " | "), "|\n",
+    "|", paste(strrep("-", anchos), collapse = "|"), "|\n",
+    paste(filas, collapse = "\n"), "\n", sep = "")
+```
