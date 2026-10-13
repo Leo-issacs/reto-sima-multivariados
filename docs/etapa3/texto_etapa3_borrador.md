@@ -12,7 +12,7 @@
 - La comparación por temporada pasó de descriptiva a objetivo, porque la exploración mostró que la superación depende mucho de la temporada.
 - La presión se usa como anomalía de su estación, para separar la altitud del sitio de su efecto meteorológico (Sección 2).
 
-Las decisiones de modelado se cerraron con validación progresiva en 2021–2023 **antes** de evaluar la prueba (commit `eb1946e`). Los años 2024–2025 se evaluaron una sola vez. Ya se habían usado en una prueba de viabilidad preliminar, declarada en el protocolo.
+Las decisiones de modelado se cerraron con validación progresiva en 2021–2023 **antes** de evaluar la prueba (commit `eb1946e`). La evaluación principal de 2024–2025 se hizo con las decisiones ya fijadas. Hubo una segunda corrida solo para corregir la presentación de una figura (cifras idénticas), y después se agregaron diagnósticos posteriores, declarados como tales. Esos años ya se habían usado en una prueba de viabilidad preliminar, declarada en el protocolo.
 
 ## 2. Datos y preparación para el modelado
 
@@ -29,22 +29,22 @@ Las decisiones de modelado se cerraron con validación progresiva en 2021–2023
 
 **Preparación.**
 - **Limpieza horaria (etapas 1 y 2):**
-  - Faltaba el 12.3 % de las horas en los archivos originales (26.0 % en PM2.5).
+  - Faltaba el 12.3 % de los valores horarios esperados de las 15 variables medidas en 2020–2025 (26.0 % en PM2.5). Las horas sin ningún registro son solo el 1.1 %.
   - Se invalidó el 0.7 % por lecturas inconsistentes: radiación nocturna, desviaciones frente a la red, rachas idénticas de 24 h, saltos y valores fuera de rango.
   - Se imputó el 1.0 %, solo huecos de hasta 3 h.
 - **Partición temporal:**
   - entrenamiento 2021–2023: n = 10 170, 25.8 % de superación;
   - prueba 2024–2025: n = 5 220, 27.2 % de superación.
 - **Escalado:** las variables se estandarizan con medias y desviaciones del entrenamiento.
-- **Presión como anomalía (D17):** se usa la diferencia respecto de la media de su estación, calculada solo con el entrenamiento. Es una combinación lineal de la presión y de las indicadoras de estación, así que **no cambia el ajuste ni el AUC** (0.8286 en ambos casos en la validación). Lo que corrige es un efecto de supresión: con la presión cruda, los coeficientes de estación compensaban la altitud de cada sitio, que va de 701 a 731 mm Hg.
-- **Transformaciones (D16):** ninguna. En la validación progresiva, el logaritmo del viento solo subió el AUC entre 0.004 y 0.007, y sobrecorregía la asimetría (de +0.37 a −0.98). Queda como sensibilidad.
+- **Presión como anomalía (D17):** se usa la diferencia respecto de la media de su estación, calculada solo con el entrenamiento. Es una combinación lineal de la presión y de las indicadoras de estación, así que **no cambia el ajuste ni el AUC** (0.8286 en ambos casos en la validación). Lo que corrige es un efecto de supresión: con la presión cruda, los coeficientes de estación compensaban la altitud de cada sitio (la presión media va de 701 a 731 mm Hg según la estación).
+- **Transformaciones (D16):** ninguna. En la validación progresiva, transformar a la vez la lluvia (log(1 + x)) y el viento (logaritmo) solo subió el AUC 0.003 y 0.007. Además, el logaritmo sobrecorregía la asimetría del viento (de +0.37 a −0.98). El logaritmo del viento queda como sensibilidad.
 - **Cambios de instrumentos (información del socio formador).** SIMA informó (comunicación personal, 9 de octubre de 2026) dos cambios de equipo. En 2021 renovó los sensores de viento de todas las estaciones y los analizadores de gases. En 2025 instaló equipos nuevos de PM2.5 (Thermo 5014i) en SE2, NTE2, SUR, SO2 y NO. Esto tiene tres consecuencias:
-  - **El viento de 2020 no es comparable.** En nuestros datos su nivel cambia entre marzo y abril de 2021; por ejemplo, la mediana diaria de SE3 pasa de 0.6 a 2.7 m/s. Esto respalda haber excluido 2020 del modelado.
-  - **Las lecturas sospechosas de viento de SO2 (junio–octubre de 2021)** ocurrieron poco después de la instalación.
+  - **El viento de 2020 no es comparable.** En nuestros datos su nivel cambia entre marzo y abril de 2021; por ejemplo, la mediana mensual de SE3 pasa de 0.96 m/s en marzo a 2.74 m/s en abril. Esto respalda haber excluido 2020 del modelado.
+  - **Las lecturas sospechosas de viento de SO2 (junio–octubre de 2021)** ocurrieron el mismo año de la renovación. Sin las fechas de instalación no podemos relacionarlas directamente.
   - **El cambio de equipo de PM2.5 cae dentro del año de prueba.** Por eso se agregaron diagnósticos posteriores, declarados como tales, que no cambian el modelo principal (Anexo A3):
     - La mejora es parecida en 2024 (ΔAUC 0.066 [0.033, 0.097]) y en 2025 (0.078 [0.045, 0.124]).
     - En las 5 estaciones con equipo nuevo, en 2025 la mejora no disminuye (0.098 [0.063, 0.143]).
-    - Entrenar solo desde abril de 2021, ya con los sensores de viento nuevos, da 0.067 [0.045, 0.091].
+    - Una sensibilidad exploratoria que entrena solo desde abril de 2021, cuando cambia el nivel del viento en la mayoría de las estaciones, da 0.067 [0.045, 0.091].
     - No hay señal de que los cambios de instrumentos alteren la conclusión.
 
 ## 3. Técnicas y justificación
@@ -73,9 +73,9 @@ Lectura de las cargas (Figura 1):
 - **PC2 (17 %), «día húmedo y lluvioso»:** RH 0.67, lluvia 0.48, *v* 0.43, *u* −0.58.
 - **PC3 (13 %), «presión baja y poco viento»:** PRS −0.63, rapidez −0.43, TOUT 0.33, lluvia 0.34.
 
-**Interpretación.** PC1 junta en un mismo eje variables que empujan la superación en sentidos contrarios: el calor la favorece y el viento la reduce (Sección 4.4). Maximizar la varianza no maximiza la separación entre clases, y por eso el PCA es exploratorio. Aun así, usar PC1–PC3 en lugar de las 8 variables casi no pierde desempeño (AUC 0.786 frente a 0.792; Tabla 2). La información meteorológica útil está concentrada en pocos ejes.
+**Interpretación.** PC1 junta en un mismo eje variables que se asocian con la superación en sentidos contrarios: dentro de cada temporada, más temperatura se asocia con más superaciones y más viento con menos (Sección 4.4). Maximizar la varianza no maximiza la separación entre clases, y por eso el PCA es exploratorio. Aun así, usar PC1–PC3 en lugar de las 8 variables casi no pierde desempeño (AUC 0.786 frente a 0.792; Tabla 2). La información meteorológica útil está concentrada en pocos ejes.
 
-![](../output/etapa3/figuras/pca_cargas.png)
+![](../../output/etapa3/figuras/pca_cargas.png)
 **Figura 1.** Cargas de los tres primeros componentes (anomalías por estación, entrenamiento 2021–2023).
 
 ### 4.2 Desempeño de M0 y M1 en la prueba (2024–2025)
@@ -91,11 +91,11 @@ Lectura de las cargas (Figura 1):
 | Puntaje de Brier | 0.175 | 0.156 | −0.019 |
 
 - **La mejora es clara.** El intervalo de ΔAUC no incluye el cero; en las 1 000 réplicas, ΔAUC va de 0.036 a 0.111. Además, es parecida a la mejora de la validación progresiva (+0.066 en 2022 y +0.080 en 2023). Eso indica que la mejora es estable y no un efecto del año de prueba.
-- **Qué significa en la práctica.** M1 detecta el **73 %** de los días con superación, contra el **58 %** de M0, a cambio de una pequeña pérdida de especificidad (de 0.73 a 0.70). Para vigilancia ambiental, ese intercambio favorece a M1, porque no detectar un episodio cuesta más que una falsa alarma.
-- **Calibración.** El Brier menor de M1 indica mejores probabilidades, aunque el Brier combina calibración y discriminación. La recalibración (logística de la superación observada sobre logit(p)) da una pendiente de 0.76 en M0 y en M1, cuando el ideal es 1: las probabilidades son algo extremas. Por ejemplo, en el decil más alto M1 predice 0.81 y se observa 0.72 (Anexo A1). Para clasificar no importa, porque el AUC y el corte no dependen de la escala. Para comunicar probabilidades a SIMA, en cambio, habría que recalibrar.
+- **Qué significa en la práctica.** M1 detecta el **73 %** de los días con superación, contra el **58 %** de M0, a cambio de una pequeña pérdida de especificidad (de 0.73 a 0.70). Si para la vigilancia no detectar un episodio cuesta más que una falsa alarma, ese intercambio favorece a M1. Valorar esos costos corresponde a SIMA; este estudio no los cuantifica.
+- **Calibración.** El Brier menor de M1 indica mejores probabilidades, aunque el Brier combina calibración y discriminación. La recalibración (logística de la superación observada sobre logit(p)) da una pendiente de 0.76 en M0 y en M1, cuando el ideal es 1: las probabilidades son algo extremas. Por ejemplo, en el decil más alto M1 predice 0.81 y se observa 0.72 (Anexo A1). Una recalibración (transformación creciente de las probabilidades) no cambia el AUC, pero con el mismo corte numérico sí cambia algunas clasificaciones: 70 de 5 220 en la prueba. Para comunicar probabilidades a SIMA habría que recalibrar con el entrenamiento y ajustar el corte en consecuencia.
 - **Lectura correcta del AUC.** Un AUC de 0.79 no significa 79 % de aciertos. Es la probabilidad de que un día con superación reciba un puntaje mayor que uno sin superación.
 
-![](../output/etapa3/figuras/roc_m0_m1_prueba.png) ![](../output/etapa3/figuras/dauc_temporada.png)
+![](../../output/etapa3/figuras/roc_m0_m1_prueba.png) ![](../../output/etapa3/figuras/dauc_temporada.png)
 **Figura 2.** (a) Curvas ROC de M0 y M1 en la prueba. (b) ΔAUC por temporada con IC del 95 %.
 
 **Por temporada (Figura 2b):**
@@ -138,7 +138,7 @@ M1 mejora en los dos extremos. Lo que no resuelve son los días cercanos a 25 µ
 
 M0 es todavía más extremo: en varias estaciones clasifica todos los días de una temporada igual, con sensibilidad 0 o 1. Cortes específicos por estación, elegidos con el entrenamiento, son una mejora natural para un uso operativo.
 
-![](../output/etapa3/figuras/errores_magnitud_pm25.png)
+![](../../output/etapa3/figuras/errores_magnitud_pm25.png)
 **Figura 3.** Porcentaje de días clasificados como superación según la magnitud del PM2.5, para M0 y M1 (prueba 2024–2025). Por debajo de 25 µg/m³ corresponde a falsas alarmas y por encima a detecciones.
 
 ### 4.4 Variables más importantes
@@ -169,7 +169,7 @@ Los dos métodos coinciden: **las variables meteorológicas que importan son la 
 - La presión está centrada solo por estación, así que conserva su ciclo estacional, y parte de su importancia se comparte con la temporada.
 - Con predictores correlacionados, la permutación individual puede repartir mal la importancia (Strobl et al., 2008). Por eso también se permutó el grupo «viento» (*u*, *v* y rapidez juntos), con una caída de 0.020.
 
-![](../output/etapa3/figuras/importancia_permutacion.png)
+![](../../output/etapa3/figuras/importancia_permutacion.png)
 **Figura 4.** Importancia por permutación en la prueba (caída media del AUC e intervalo de percentiles 2.5–97.5).
 
 **M0.** La estación y la temporada pesan parecido: caídas del AUC de 0.114 y 0.100. Las estaciones con más superación (SE2 y SO) y con menos (SUR y SE) concentran los coeficientes de estación.
@@ -181,10 +181,10 @@ Los dos métodos coinciden: **las variables meteorológicas que importan son la 
 | Supuesto | Verificación | Resultado | Tratamiento |
 |---|---|---|---|
 | Normalidad multivariada por clase (LDA) | Asimetría por clase; prueba de Mardia | No se cumple. Mardia rechaza en ambas clases (asimetría χ² = 85 936 y 206 313, gl = 120; p < 0.001). La lluvia tiene asimetría de 7.2 y 21.1 (94 % de días en cero), y las indicadoras no son normales por definición | El LDA se usa como clasificador lineal. La logística, que no supone normalidad, da la misma conclusión (ΔAUC 0.060 [0.039, 0.082]) |
-| Covarianzas iguales entre clases | M de Box (Box, 1949) y razón de desviaciones estándar | Rechazada (χ² = 3 651, gl = 36, p < 0.001; n grande). La diferencia se concentra en la lluvia (razón 0.38); en lo demás, 0.81–1.08 | Igual que el anterior; se reporta |
+| Covarianzas iguales entre clases | M de Box (Box, 1949) y razón de desviaciones estándar | Rechazada con las ocho variables meteorológicas del modelo final, con la presión como anomalía (χ² = 3 530, gl = 36, p < 0.001). El valor p debe leerse con cautela por la falta de normalidad, la dependencia y el n grande. La diferencia se concentra en la lluvia (razón de desviaciones 0.38); en lo demás, 0.81–1.08 | Igual que el anterior; se reporta |
 | Multicolinealidad | Correlaciones, VIF y número de condición | *u* y rapidez ρ = −0.61; VIF máximo de 2.14 (TOUT); número de condición de 3.03: colinealidad baja | Coeficientes interpretados en conjunto; presión como anomalía; sensibilidad con PCs (Tabla 2) |
 | Independencia | Autocorrelación del residuo de M1 por estación; correlación entre estaciones el mismo día | No se cumple. La autocorrelación es de 0.44 a 1 día y de 0.10 a 14 días; la correlación entre estaciones el mismo día es de 0.38 | Bootstrap por bloques de 14 días con todas las estaciones. Con bloques de 28 días, el IC sigue sin incluir el cero [0.041, 0.100] |
-| Linealidad de la frontera | Comparación con la interacción estación × temporada | ΔAUC 0.056 [0.036, 0.076] | La conclusión se mantiene |
+| Especificación de estación y temporada | Sensibilidad con interacción estación × temporada | ΔAUC 0.056 [0.036, 0.076] | La conclusión se mantiene. La linealidad de las variables meteorológicas no se evaluó directamente (pendiente: términos no lineales) |
 | Adecuación del PCA | KMO y Bartlett | KMO 0.65; Bartlett p < 0.001 | Adecuado; se usa como exploratorio |
 
 ### 4.6 Robustez y sensibilidades
@@ -202,7 +202,7 @@ Los dos métodos coinciden: **las variables meteorológicas que importan son la 
 | Interacción estación × temporada | 0.741 | 0.797 | 0.056 [0.036, 0.076] |
 | Logaritmo de la rapidez del viento | 0.722 | 0.795 | 0.074 [0.048, 0.099] |
 
-La mejora se mantiene entre +0.056 y +0.093 en todos los análisis. Además, M0 estimado en la muestra amplia con solo PM2.5 válido (prueba n = 7 250) da un AUC de 0.706 [0.669, 0.741], cercano al de la muestra principal (0.722). Exigir meteorología completa no infló la referencia.
+La mejora se mantiene entre +0.056 y +0.093 en todos los análisis. Además, M0 estimado en la muestra amplia con solo PM2.5 válido (prueba n = 7 250) da un AUC de 0.706 [0.669, 0.741], cercano al de la muestra principal (0.722). Como las poblaciones de prueba son distintas, esto no descarta un sesgo de selección, pero no sugiere que la referencia esté fuertemente inflada.
 
 ### 4.7 Interfaz para usar el modelo
 
@@ -218,12 +218,12 @@ La aplicación Shiny (`app/`; se ejecuta con `shiny::runApp("app")`) tiene tres 
 
 La app advierte que la clasificación es retrospectiva, con meteorología observada, y no un pronóstico.
 
-![](../output/etapa3/figuras/app_calcular.png)
+![](../../output/etapa3/figuras/app_calcular.png)
 **Figura 5.** Pestaña «Calcular» de la interfaz.
 
 ## 5. Discusión
 
-**Interpretación sustantiva.** Saber qué estación y qué temporada son ya separa buena parte de los días con superación (AUC 0.72). La meteorología del día agrega información real y estable (+0.07). Esa información viene sobre todo de:
+**Interpretación sustantiva.** Saber qué estación y qué temporada son ya separa buena parte de los días con superación (AUC 0.72). La meteorología del día agrega información estable a la clasificación retrospectiva (+0.07). Esa información viene sobre todo de:
 - **la presión baja** respecto de lo normal en el sitio;
 - **la temperatura**, una vez fijada la temporada;
 - **la ventilación**: menor rapidez del viento.
@@ -232,10 +232,10 @@ Es coherente con la acumulación de partículas en condiciones de viento débil 
 
 **Para SIMA.**
 - La meteorología sirve más en **marzo–mayo**, cuando el riesgo varía de un día a otro.
-- En la temporada de lluvias las superaciones son raras y difíciles de anticipar con estas variables.
+- En la temporada de lluvias las superaciones son raras y difíciles de clasificar con estas variables.
 - Los episodios graves (> 40 µg/m³) se detectan en el 89 % de los casos; los errores se concentran cerca del umbral.
 - Un mismo corte para toda la red sobrealerta en SE2 y SO y subdetecta en SUR y NO2. Para un uso operativo convendrían cortes por estación.
-- Las pruebas de consistencia que agregamos (radiación nocturna y viento frente a la red) detectaron fallas de sensores que podrían incorporarse a su control de calidad.
+- Las pruebas de consistencia que agregamos (radiación nocturna y viento frente a la red) detectaron lecturas sospechosas de sensores; estas pruebas podrían incorporarse a su control de calidad.
 
 **Limitaciones.**
 1. **Es retrospectivo:** usa la meteorología observada del mismo día. Para una alerta se necesita meteorología pronosticada, cuyo error reduciría la mejora.
