@@ -60,3 +60,6 @@ renv/sandbox/
 !data/clean/
 !data/clean/*.csv
 /docs/output/
+
+# Word del informe de la etapa 3 (lleva matriculas; no se publica)
+docs/etapa3/*.docx
