@@ -1,0 +1,9 @@
+variante,valida,auc
+sin_transformar,2022,0.776742698329822
+sin_transformar,2023,0.828593919419754
+log1p_lluvia,2022,0.777387843979684
+log1p_lluvia,2023,0.82821848852748
+llovio_en_lugar_de_horas,2022,0.777166041240836
+llovio_en_lugar_de_horas,2023,0.827727540437583
+log1p_lluvia_y_log_viento,2022,0.780209406390017
+log1p_lluvia_y_log_viento,2023,0.835458003810317

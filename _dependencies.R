@@ -69,6 +69,8 @@ if (FALSE) {
   library(processx)
   library(progress)
   library(ps)
+  library(MASS)
+  library(pROC)
   library(purrr)
   library(ragg)
   library(rappdirs)
