@@ -160,46 +160,47 @@ const T = (opts) => Object.assign({ isTextBox: true, fontFace: FONT, margin: 0 }
   s.addNotes(nota("Diapositiva 2"));
 }
 
-// ---- 7. Diapositiva 3: problemas, que sigue y preguntas para SIMA ----------------------------------------
+// ---- 7. Diapositiva 3: problemas, que sigue y valor para SIMA ---------------------------------------------
 {
   const s = pres.addSlide({ masterName: "CONTENIDO" });
-  s.addText("Problemas, qué sigue y preguntas para SIMA", { placeholder: "titulo" });
+  s.addText("Problemas, qué sigue y valor para SIMA", { placeholder: "titulo" });
   const encabezado = (t, color) => ({ text: t, options: { bold: true, fontSize: 22, color: color || COL.texto, breakLine: true, paraSpaceAfter: 6 } });
 
   s.addText([encabezado("Problemas"), ...vinetas([
-    "Viento (SO2, NE2 en 2021) y radiación nocturna (NO2, SE3, CE): regla nueva",
-    "Cambios de equipos 2021/2025: revisados, no cambian la conclusión",
+    "Lecturas imposibles (viento > 100 km/h, radiación nocturna): reglas nuevas",
+    "Cambios de equipos (2021, 2025) y 6 estaciones reubicadas (2021–22): revisados, no cambian la conclusión",
     "Retención desigual entre estaciones",
-  ])], T({ x: 0.5, y: 1.25, w: 3.85, h: 3.4, valign: "top", objectName: "problemas" }));
-  s.addText([encabezado("Qué sigue"), ...vinetas([
-    "Meteorología pronosticada (alerta real)",
-    "PM2.5 del día anterior",
-    "Cortes por estación",
-  ])], T({ x: 0.5, y: 4.7, w: 3.85, h: 2.0, valign: "top", objectName: "que_sigue" }));
+  ])], T({ x: 0.5, y: 1.2, w: 5.1, h: 3.0, valign: "top", objectName: "problemas" }));
+  s.addText([encabezado("Qué sigue · etapa 4 (24 oct)"), ...vinetas([
+    "Recalibrar probabilidades y cortes por estación",
+    "Integrar las respuestas de SIMA",
+    "Después: probar con meteorología pronosticada",
+  ])], T({ x: 0.5, y: 4.4, w: 5.1, h: 2.4, valign: "top", objectName: "que_sigue" }));
 
   // Hecho: captura de la interfaz.
-  tarjeta(s, 4.5, 1.25, 4.95, 5.45, COL.tarjeta, "tarjeta_app");
-  s.addText("Hecho: interfaz Shiny", T({ x: 4.72, y: 1.38, w: 4.5, h: 0.45, fontSize: 22, bold: true, color: COL.texto, objectName: "titulo_app" }));
-  s.addImage({ path: fig("output/etapa3/figuras/app_calcular.png"), x: 4.82, y: 1.9, w: 4.3, h: 4.3 * 1386 / 1500,
+  tarjeta(s, 5.75, 1.25, 3.05, 5.45, COL.tarjeta, "tarjeta_app");
+  s.addText("Hecho: interfaz Shiny", T({ x: 5.93, y: 1.38, w: 2.7, h: 0.45, fontSize: 22, bold: true, color: COL.texto, objectName: "titulo_app" }));
+  s.addImage({ path: fig("output/etapa3/figuras/app_calcular.png"), x: 5.9, y: 1.95, w: 2.75, h: 2.75 * 1386 / 1500,
     altText: "Captura de la interfaz Shiny: pestaña Calcular", objectName: "captura_app" });
-  s.addText("Estación, temporada y meteorología → probabilidad de superación", T({ x: 4.72, y: 5.95, w: 4.5, h: 0.7,
+  s.addText("Estación, temporada y meteorología → probabilidad de superación", T({ x: 5.93, y: 4.6, w: 2.7, h: 2.0,
     fontSize: 20, color: COL.gris, valign: "top", objectName: "pie_app" }));
 
-  // Preguntas para SIMA.
-  tarjeta(s, 9.6, 1.25, 3.23, 5.45, COL.tarjetaFria, "tarjeta_preguntas");
-  s.addText([encabezado("Preguntas para SIMA", COL.m0), ...vinetas([
-    "Fechas de cambio de sensores; ¿reubicaciones en 2021?",
-    "¿Hora local? ¿Unidad de la lluvia?",
-    "¿Qué fuentes explican Juárez (SE2) y Santa Catarina (SO)?",
-    "¿Les serviría una alerta con pronóstico?",
-  ])], T({ x: 9.78, y: 1.38, w: 2.9, h: 5.25, valign: "top", objectName: "preguntas" }));
+  // Para SIMA (tarjeta destacada, mismo estilo que las cifras de la diapositiva 2).
+  tarjeta(s, 8.95, 1.25, 3.88, 5.45, COL.tarjeta, "tarjeta_para_sima");
+  s.addShape(pres.shapes.RECTANGLE, { x: 8.95 + 0.2, y: 1.25 + 0.22, w: 0.08, h: 0.5, fill: { color: COL.m1 }, line: { color: COL.m1 }, objectName: "acento_para_sima" });
+  s.addText("Para SIMA", T({ x: 9.35, y: 1.25 + 0.2, w: 3.3, h: 0.55, fontSize: 32, bold: true, color: COL.m1, valign: "middle", objectName: "titulo_para_sima" }));
+  s.addText(vinetas([
+    "La meteorología ayuda sobre todo en mar–may: base para una alerta con pronóstico",
+    "2 reglas de control de calidad que detectaron sensores con fallas",
+    "Base limpia y código abiertos, reproducibles",
+  ]), T({ x: 9.15, y: 2.15, w: 3.5, h: 4.4, valign: "top", objectName: "texto_para_sima" }));
   // Enlace al repositorio (codigo, app y reportes).
   const repo = "https://github.com/Leo-issacs/reto-sima-multivariados";
   s.addText([
     { text: "Código y app: ", options: { bold: true, color: COL.texto } },
     { text: "github.com/Leo-issacs/reto-sima-multivariados", options: { color: COL.m0, hyperlink: { url: repo } } },
   ], T({ x: 0.5, y: 6.85, w: 12.33, h: 0.4, fontSize: 20, objectName: "enlace_repositorio" }));
-  s.addNotes(nota("Diapositiva 3"));
+  s.addNotes(nota("Diapositiva 3") + "\n\n" + nota("Cierre"));
 }
 
 // ---- 8. Guardar -------------------------------------------------------------------------------------------
