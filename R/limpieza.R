@@ -74,17 +74,15 @@ runs_identicos <- function(x) {   # longitud de la racha a la que pertenece cada
   r <- rle(x); rep(r$lengths, r$lengths)
 }
 
-limpiar_hoja <- function(datos_hoja, rangos_op, rangos_fab, red = NULL, solo_fase1 = FALSE) {
-  hoja <- datos_hoja$hoja[1L]
-  g <- malla_hoja(datos_hoja)
-  fecha <- g$fecha; X <- g$X; n <- length(fecha)
+# Reglas que dependen de la malla horaria de una hoja: anio y hora de cada fila, rangos y red.
+# Las usan limpiar_hoja() (originales) e imputar_y_revalidar() (imputados), en 03_limpiar.R y en
+# scripts/08b_construir_base_v2.R. `fecha` es la malla continua desde las 00:00.
+reglas_hoja <- function(fecha, rangos_op, rangos_fab, red = NULL) {
+  n <- length(fecha)
   anio <- as.integer(format(fecha, "%Y"))
-  FL <- matrix(ifelse(is.na(X), "N", "V"), n, ncol(X), dimnames = dimnames(X))
-  invalidar <- function(v, mascara, codigo) {
-    m <- mascara & FL[, v] %in% c("V", "C") & !is.na(X[, v])
-    m[is.na(m)] <- FALSE
-    X[m, v] <<- NA_real_; FL[m, v] <<- codigo
-  }
+  hora <- (seq_len(n) - 1L) %% 24L
+  dia_id <- (seq_len(n) - 1L) %/% 24L
+  t_num <- as.numeric(fecha)
   lim_op <- function(v) {
     i <- match(paste(v, anio), paste(rangos_op$variable, rangos_op$anio))
     list(lo = rangos_op$minimo[i], hi = rangos_op$maximo[i])
@@ -111,6 +109,126 @@ limpiar_hoja <- function(datos_hoja, rangos_op, rangos_fab, red = NULL, solo_fas
     malo[is.na(malo)] <- FALSE
     malo
   }
+  # M (D15): SR nocturna. Bloques de 24 h desde 00:00 (la malla empieza a medianoche).
+  sr_noche_mala <- function(x) {      # TRUE en todas las horas de los dias que incumplen
+    k <- hora %in% SR_NOCHE_HORAS & !is.na(x)
+    nl <- tabulate(dia_id[k] + 1L, nbins = n %/% 24L)
+    sm <- vapply(split(x[k], factor(dia_id[k], levels = 0:(n %/% 24L - 1L))), sum, numeric(1L))
+    malo <- nl >= SR_NOCHE_MIN_LECTURAS & sm / pmax(nl, 1L) > SR_NOCHE_UMBRAL
+    malo[dia_id + 1L]
+  }
+  viento_viola <- function(u, v) {      # rapidez implicita de u/v imputados contra la red observada
+    if (is.null(red) || is.null(red[["WSR"]])) return(rep(FALSE, n))
+    i <- match(t_num, red$WSR$ref$t)
+    w <- sqrt(u^2 + v^2) * 3.6
+    m <- !is.na(w) & !is.na(i) & red$WSR$ref$n[i] >= MIN_ESTACIONES_E & (w - red$WSR$ref$mediana[i]) > UMBRAL_WSR_RED
+    m[is.na(m)] <- FALSE
+    m
+  }
+  espacial_viola <- function(v, x) {   # para revalidar imputados contra la red observada
+    if (is.null(red)) return(rep(FALSE, n))
+    i <- match(t_num, red[[v]]$ref$t)
+    m <- !is.na(x) & !is.na(i) & red[[v]]$ref$n[i] >= MIN_ESTACIONES_E &
+      abs(x - red[[v]]$ref$mediana[i]) > UMBRAL_E[[v]]
+    m[is.na(m)] <- FALSE
+    m
+  }
+  list(n = n, anio = anio, hora = hora, dia_id = dia_id, t_num = t_num, lim_op = lim_op,
+       limites = limites, incumple_rango = incumple_rango, sr_noche_mala = sr_noche_mala,
+       viento_viola = viento_viola, espacial_viola = espacial_viola)
+}
+
+# Imputa una serie horaria con un metodo de imputeTS. `metodo`: "linear", "spline" o "stine"
+# (interpolacion), "ma_exp" (media movil exponencial, k = 4), "kalman" (StructTS suavizado),
+# "seadec" (descomposicion estacional con ciclo de 24 h) o "locf". Devuelve la serie completa;
+# quien la llama decide que huecos conservar. Lo usan imputar_y_revalidar() y el enmascaramiento (08a).
+imputar_serie <- function(x, metodo, maxgap = Inf) {
+  switch(metodo,
+    linear = , spline = , stine = imputeTS::na_interpolation(x, option = metodo, maxgap = maxgap),
+    ma_exp = imputeTS::na_ma(x, k = 4, weighting = "exponential", maxgap = maxgap),
+    kalman = imputeTS::na_kalman(x, model = "StructTS", smooth = TRUE, maxgap = maxgap),
+    seadec = as.numeric(imputeTS::na_seadec(stats::ts(x, frequency = 24), maxgap = maxgap)),
+    locf = imputeTS::na_locf(x, option = "locf", maxgap = maxgap),
+    stop("Metodo de imputacion desconocido: ", metodo, call. = FALSE))
+}
+
+# Metodo de la etapa 1 (datos-v1.2): interpolacion lineal de huecos internos <= 3 h en VARS_IMPUTAR.
+METODOS_V12 <- setNames(rep(list(list(metodo = "linear", maxgap = MAX_HUECO_H)), length(VARS_IMPUTAR)),
+                        VARS_IMPUTAR)
+
+# I + X: imputa huecos internos y revalida lo imputado. `V0` y `flags0` son la matriz validada sin
+# imputar y sus banderas (con f_uv); `rg` sale de reglas_hoja(); `metodos` es una lista por variable
+# con `metodo` y `maxgap`. Las horas E, L y M nunca se imputan. Un imputado que incumple una regla
+# vuelve a NA (bandera X); nunca se modifica un valor original.
+imputar_y_revalidar <- function(V0, flags0, rg, metodos = METODOS_V12) {
+  n <- rg$n; hora <- rg$hora
+  V1 <- V0; flags1 <- flags0
+  IMP <- matrix(FALSE, n, ncol(V0), dimnames = dimnames(V0))
+  for (v in names(metodos)) {
+    x <- V0[, v]; maxgap <- metodos[[v]]$maxgap
+    if (sum(!is.na(x)) < 2L || maxgap < 1L) next
+    r <- rle(is.na(x)); fin <- cumsum(r$lengths); ini <- fin - r$lengths + 1L
+    hueco <- which(r$values & r$lengths <= maxgap & ini > 1L & fin < n)
+    if (!length(hueco)) next
+    y <- imputar_serie(x, metodos[[v]]$metodo, maxgap)
+    idx <- unlist(mapply(seq, ini[hueco], fin[hueco], SIMPLIFY = FALSE))
+    idx <- idx[!is.na(y[idx])]
+    # Las horas anuladas por consistencia espacial (E) o saturacion (L) NO se imputan nunca: la
+    # validacion espacial de un imputado depende de tener >= 5 estaciones, y E puede dejar menos.
+    if (v %in% c("TOUT", "RH")) idx <- idx[!(flags0[idx, v] %in% c("E", "L"))]
+    if (v == "SR") idx <- idx[flags0[idx, "SR"] != "M"]
+    if (v %in% c("viento_u", "viento_v")) idx <- idx[flags0[idx, "f_uv"] != "E"]
+    V1[idx, v] <- y[idx]; IMP[idx, v] <- TRUE
+  }
+  # Revalidacion: un valor imputado que incumple una regla vuelve a NA (bandera X). Nunca se
+  # modifica un valor original. Se repite hasta que ya no haya reversiones.
+  revertida <- matrix(FALSE, n, ncol(V0), dimnames = dimnames(V0))
+  revertir <- function(v, m) {
+    m <- m & IMP[, v]; m[is.na(m)] <- FALSE
+    if (any(m)) { V1[m, v] <<- NA_real_; IMP[m, v] <<- FALSE; revertida[m, v] <<- TRUE }
+    any(m)
+  }
+  repeat {
+    cambio <- FALSE
+    for (v in setdiff(VARS_IMPUTAR, c("viento_u", "viento_v")))            # rango del anio de cada hora
+      cambio <- revertir(v, rg$incumple_rango(v, V1[, v])) || cambio
+    for (v in c("TOUT", "RH"))                                              # consistencia espacial
+      cambio <- revertir(v, rg$espacial_viola(v, V1[, v])) || cambio
+    cambio <- revertir("SR", rg$sr_noche_mala(V1[, "SR"]) & hora %in% SR_NOCHE_HORAS) || cambio   # D15 SR
+    vv <- rg$viento_viola(V1[, "viento_u"], V1[, "viento_v"])               # D15 viento
+    cambio <- revertir("viento_u", vv) || cambio
+    cambio <- revertir("viento_v", vv) || cambio
+    for (v in names(SALTO_MAX)) {                                         # salto contra hora vecina
+      x <- V1[, v]
+      salto <- abs(c(NA_real_, diff(x))) > SALTO_MAX[[v]] | abs(c(diff(x), NA_real_)) > SALTO_MAX[[v]]
+      cambio <- revertir(v, salto) || cambio
+    }
+    pm <- !is.na(V1[, "PM2.5"]) & !is.na(V1[, "PM10"]) & V1[, "PM2.5"] > V1[, "PM10"]  # PM2.5 <= PM10
+    cambio <- revertir("PM2.5", pm) || cambio
+    cambio <- revertir("PM10", pm) || cambio
+    if (!cambio) break
+  }
+  for (v in VARS_IMPUTAR) {
+    col <- if (v %in% c("viento_u", "viento_v")) "f_uv" else v
+    flags1[IMP[, v], col] <- "I"
+    flags1[revertida[, v], col] <- "X"
+  }
+  list(imp = V1, flags = flags1, IMP = IMP, revertida = revertida)
+}
+
+limpiar_hoja <- function(datos_hoja, rangos_op, rangos_fab, red = NULL, solo_fase1 = FALSE) {
+  hoja <- datos_hoja$hoja[1L]
+  g <- malla_hoja(datos_hoja)
+  fecha <- g$fecha; X <- g$X; n <- length(fecha)
+  anio <- as.integer(format(fecha, "%Y"))
+  FL <- matrix(ifelse(is.na(X), "N", "V"), n, ncol(X), dimnames = dimnames(X))
+  invalidar <- function(v, mascara, codigo) {
+    m <- mascara & FL[, v] %in% c("V", "C") & !is.na(X[, v])
+    m[is.na(m)] <- FALSE
+    X[m, v] <<- NA_real_; FL[m, v] <<- codigo
+  }
+  rg <- reglas_hoja(fecha, rangos_op, rangos_fab, red)
+  lim_op <- rg$lim_op; limites <- rg$limites
   # Nota 2020 O3: "omitir maximo de NTE2". Se identifica sobre la serie ORIGINAL, antes de
   # aplicar F; si ese maximo ya cae fuera de rango, F lo elimina y no se toca ningun otro valor.
   i_o3_nota <- NA_integer_
@@ -156,23 +274,14 @@ limpiar_hoja <- function(datos_hoja, rangos_op, rangos_fab, red = NULL, solo_fas
     FL[marca & FL[, v] == "V", v] <- "C"
   }
 
-  # M (D15): SR nocturna. Bloques de 24 h desde 00:00 (la malla empieza a medianoche).
-  hora <- (seq_len(n) - 1L) %% 24L
-  dia_id <- (seq_len(n) - 1L) %/% 24L
-  sr_noche_mala <- function(x) {      # TRUE en todas las horas de los dias que incumplen
-    k <- hora %in% SR_NOCHE_HORAS & !is.na(x)
-    nl <- tabulate(dia_id[k] + 1L, nbins = n %/% 24L)
-    sm <- vapply(split(x[k], factor(dia_id[k], levels = 0:(n %/% 24L - 1L))), sum, numeric(1L))
-    malo <- nl >= SR_NOCHE_MIN_LECTURAS & sm / pmax(nl, 1L) > SR_NOCHE_UMBRAL
-    malo[dia_id + 1L]
-  }
-  invalidar("SR", sr_noche_mala(X[, "SR"]), "M")
+  # M (D15): SR nocturna (regla en reglas_hoja(); bloques de 24 h desde 00:00).
+  invalidar("SR", rg$sr_noche_mala(X[, "SR"]), "M")
 
   # Fin de la fase 1: TOUT, RH y WSR observados (F, P, L, S, R, K y M aplicadas) para la mediana de la red.
   if (solo_fase1) return(list(fecha = fecha, X = X[, c("TOUT", "RH", "WSR")]))
   # E: consistencia espacial sobre datos OBSERVADOS, antes de imputar. `red` lista, por variable,
   # las lecturas a quitar (punto fijo de la red) y la mediana/numero de estaciones final por hora.
-  t_num <- as.numeric(fecha)
+  t_num <- rg$t_num
   if (!is.null(red)) for (v in c("TOUT", "RH")) {
     tq <- red[[v]]$quitar$t[red[[v]]$quitar$hoja == hoja]
     invalidar(v, t_num %in% tq, "E")
@@ -183,22 +292,6 @@ limpiar_hoja <- function(datos_hoja, rangos_op, rangos_fab, red = NULL, solo_fas
     dq <- red$WSR$dias$dia[red$WSR$dias$hoja == hoja]
     mw <- t_num %in% tq | as.character(as.Date(fecha)) %in% dq
     invalidar("WSR", mw, "E"); invalidar("WDR", mw, "E")
-  }
-  viento_viola <- function(u, v) {      # rapidez implicita de u/v imputados contra la red observada
-    if (is.null(red) || is.null(red[["WSR"]])) return(rep(FALSE, n))
-    i <- match(t_num, red$WSR$ref$t)
-    w <- sqrt(u^2 + v^2) * 3.6
-    m <- !is.na(w) & !is.na(i) & red$WSR$ref$n[i] >= MIN_ESTACIONES_E & (w - red$WSR$ref$mediana[i]) > UMBRAL_WSR_RED
-    m[is.na(m)] <- FALSE
-    m
-  }
-  espacial_viola <- function(v, x) {   # para revalidar imputados contra la red observada
-    if (is.null(red)) return(rep(FALSE, n))
-    i <- match(t_num, red[[v]]$ref$t)
-    m <- !is.na(x) & !is.na(i) & red[[v]]$ref$n[i] >= MIN_ESTACIONES_E &
-      abs(x - red[[v]]$ref$mediana[i]) > UMBRAL_E[[v]]
-    m[is.na(m)] <- FALSE
-    m
   }
 
   # Inconsistencia NOX vs NO + NO2 (solo bandera; no invalida). Se calcula sobre lo observado
@@ -228,58 +321,10 @@ limpiar_hoja <- function(datos_hoja, rangos_op, rangos_fab, red = NULL, solo_fas
                valida = !is.na(x), bajo = !is.na(x) & x < l$lo, alto = !is.na(x) & x > l$hi)
   }))
 
-  # I: interpolacion lineal de huecos internos <= 3 h (por estacion y variable)
-  V1 <- V0; flags1 <- flags0
-  IMP <- matrix(FALSE, n, ncol(V0), dimnames = dimnames(V0))
-  for (v in VARS_IMPUTAR) {
-    x <- V0[, v]
-    if (sum(!is.na(x)) < 2L) next
-    r <- rle(is.na(x)); fin <- cumsum(r$lengths); ini <- fin - r$lengths + 1L
-    hueco <- which(r$values & r$lengths <= MAX_HUECO_H & ini > 1L & fin < n)
-    if (!length(hueco)) next
-    y <- imputeTS::na_interpolation(x, option = "linear", maxgap = MAX_HUECO_H)
-    idx <- unlist(mapply(seq, ini[hueco], fin[hueco], SIMPLIFY = FALSE))
-    idx <- idx[!is.na(y[idx])]
-    # Las horas anuladas por consistencia espacial (E) o saturacion (L) NO se imputan nunca: la
-    # validacion espacial de un imputado depende de tener >= 5 estaciones, y E puede dejar menos.
-    if (v %in% c("TOUT", "RH")) idx <- idx[!(flags0[idx, v] %in% c("E", "L"))]
-    if (v == "SR") idx <- idx[flags0[idx, "SR"] != "M"]
-    if (v %in% c("viento_u", "viento_v")) idx <- idx[flags0[idx, "f_uv"] != "E"]
-    V1[idx, v] <- y[idx]; IMP[idx, v] <- TRUE
-  }
-  # Revalidacion: un valor imputado que incumple una regla vuelve a NA (bandera X). Nunca se
-  # modifica un valor original. Se repite hasta que ya no haya reversiones.
-  revertida <- matrix(FALSE, n, ncol(V0), dimnames = dimnames(V0))
-  revertir <- function(v, m) {
-    m <- m & IMP[, v]; m[is.na(m)] <- FALSE
-    if (any(m)) { V1[m, v] <<- NA_real_; IMP[m, v] <<- FALSE; revertida[m, v] <<- TRUE }
-    any(m)
-  }
-  repeat {
-    cambio <- FALSE
-    for (v in setdiff(VARS_IMPUTAR, c("viento_u", "viento_v")))            # rango del anio de cada hora
-      cambio <- revertir(v, incumple_rango(v, V1[, v])) || cambio
-    for (v in c("TOUT", "RH"))                                              # consistencia espacial
-      cambio <- revertir(v, espacial_viola(v, V1[, v])) || cambio
-    cambio <- revertir("SR", sr_noche_mala(V1[, "SR"]) & hora %in% SR_NOCHE_HORAS) || cambio   # D15 SR
-    vv <- viento_viola(V1[, "viento_u"], V1[, "viento_v"])                  # D15 viento
-    cambio <- revertir("viento_u", vv) || cambio
-    cambio <- revertir("viento_v", vv) || cambio
-    for (v in names(SALTO_MAX)) {                                         # salto contra hora vecina
-      x <- V1[, v]
-      salto <- abs(c(NA_real_, diff(x))) > SALTO_MAX[[v]] | abs(c(diff(x), NA_real_)) > SALTO_MAX[[v]]
-      cambio <- revertir(v, salto) || cambio
-    }
-    pm <- !is.na(V1[, "PM2.5"]) & !is.na(V1[, "PM10"]) & V1[, "PM2.5"] > V1[, "PM10"]  # PM2.5 <= PM10
-    cambio <- revertir("PM2.5", pm) || cambio
-    cambio <- revertir("PM10", pm) || cambio
-    if (!cambio) break
-  }
-  for (v in VARS_IMPUTAR) {
-    col <- if (v %in% c("viento_u", "viento_v")) "f_uv" else v
-    flags1[IMP[, v], col] <- "I"
-    flags1[revertida[, v], col] <- "X"
-  }
+  # I y X: interpolacion lineal de huecos internos <= 3 h (por estacion y variable) y revalidacion
+  # de lo imputado (funcion imputar_y_revalidar(), compartida con la base v2 de la etapa 4).
+  ir <- imputar_y_revalidar(V0, flags0, rg, METODOS_V12)
+  V1 <- ir$imp; flags1 <- ir$flags
   # se evalua sobre los valores redondeados a 3 decimales, que son los publicados
   nox_inc <- bandera_nox(round(V1[, "NOX"], 3), round(V1[, "NO"], 3), round(V1[, "NO2"], 3))
   list(fecha = fecha, anio = anio, obs = V0, imp = V1, flags_obs = flags0, flags = flags1,

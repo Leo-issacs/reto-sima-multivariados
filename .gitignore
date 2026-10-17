@@ -35,6 +35,8 @@ output/*
 !output/diagnostico/
 !output/etapa2/
 !output/etapa3/
+!output/etapa4/
+output/etapa4/**/log_*.txt
 _output/
 .quarto/
 _freeze/
