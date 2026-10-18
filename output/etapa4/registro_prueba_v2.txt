@@ -8,3 +8,7 @@ Commit del codigo al correr: 7ac7011d3110b546e2e8f2c96e427f958ed5b233
 Primera (y unica prevista) evaluacion de la prueba con la base v2.
 
 Salidas escritas. Resultados en output/etapa4/RESUMEN.md
+
+## Sensibilidades posteriores (09e)
+Decididas despues de ver el resultado de 09a, con la retroalimentacion de SIMA del 15-oct-2026 y hallazgos
+de las fases B y C (SR >= 0, reubicaciones confirmadas por SIMA, sin NO2). No reemplazan el analisis final.

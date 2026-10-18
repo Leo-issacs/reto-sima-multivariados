@@ -1,6 +1,6 @@
 # Etapa 4 · Resumen de las fases A, B y C
 
-Rama `analisis/etapa4`. Decisiones en `docs/etapa4/decisiones_etapa4.md`, con su registro de cambios. Etiqueta de cierre de decisiones: `etapa4-decisiones-cerradas` (commit `8a56cc4`). Evaluación única de la prueba con la base v2: commit del código `7ac7011`, registrada en `output/etapa4/registro_prueba_v2.txt`. Todas las cifras salen de los CSV de `output/etapa4/`.
+Rama `analisis/etapa4`. Decisiones en `docs/etapa4/decisiones_etapa4.md`, con su registro de cambios. Etiqueta de cierre de decisiones: `etapa4-decisiones-cerradas` (commit `8a56cc4`). Evaluación única de la prueba con la base v2: commit del código `7ac7011`, registrada en `output/etapa4/registro_prueba_v2.txt`. Todas las cifras salen de los CSV de `output/etapa4/`. **Fase D** (errores, supuestos, sensibilidades posteriores, viento, PM2.5/PM10 y NO2): `RESUMEN_FASE_D.md`.
 
 ## 1. Fase A (detalle en `imputacion/RESUMEN_FASE_A.md`)
 

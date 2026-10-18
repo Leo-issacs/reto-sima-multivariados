@@ -62,10 +62,10 @@ El archivo se guarda en `docs/quarto/`. También puede generarse desde el botón
 
 ## Cómo reproducir
 
-**Orden completo:** 02 → 03 → 06 → 07a–c → 08a–d → 09a–c (desde la raíz del proyecto, con `renv::restore()` hecho).
+**Orden completo:** 02 → 03 → 06 → 07a–c → 08a–d → 09a–f (desde la raíz del proyecto, con `renv::restore()` hecho).
 
 - **Necesitan los Excel** (`BD 2020.xlsx` … `BD 2025.xlsx` en `data/raw/` o en la carpeta de `SIMA_DATA_DIR`): 01, 02 y 03, que generan `data/clean/` desde cero. El cuaderno de auditoría también los usa.
-- **Corren solo con `data/clean/`** (lo que está en el repositorio): 04, 05, 06, 06b, 07a–c, 08a–d y 09a–c. 08a usa los Excel solo para una comprobación opcional si `SIMA_DATA_DIR` está definido.
+- **Corren solo con `data/clean/`** (lo que está en el repositorio): 04, 05, 06, 06b, 07a–c, 08a–d y 09a–f. 08a usa los Excel solo para una comprobación opcional si `SIMA_DATA_DIR` está definido.
 - **Evaluaciones únicas de la prueba:** 07b (etapa 3) y 09a (etapa 4) dejan registro (`output/etapa3/registro_prueba.txt`, `output/etapa4/registro_prueba_v2.txt`) y no vuelven a correr sin `MOTIVO_RECORRIDA`. Ambos tienen un modo `ENSAYO=1` que no lee 2024–2025.
 
 **Lenguajes:** R para todo el análisis (limpieza, imputación, modelos, validaciones, figuras y app). Python solo se usó en la prueba de viabilidad del 4 de octubre (`docs/etapa2/prueba_viabilidad_2026-10-04.py`) y en verificaciones cruzadas: ningún resultado del informe depende de Python.
@@ -98,6 +98,9 @@ Etapas 3 y 4 (no necesitan los Excel):
 | 14 | `Rscript scripts/09a_evaluar_prueba_v2.R` | Etapa 4: evaluación única de la prueba con la base v2, tabla puente y sensibilidades | `output/etapa4/` (`RESUMEN.md`, registro) |
 | 15 | `Rscript scripts/09b_validar_lda.R` | Etapa 4 (D21): estabilidad de coeficientes, LDA frente a logística, pliegues, QDA y calibración | `output/etapa4/lda/` |
 | 16 | `Rscript scripts/09c_area_estudio_reubicaciones.R` | Etapa 4 (D22, D23): superación por estación y año, PRS frente a la red en las reubicaciones, mapa con altitud | `output/etapa4/area_estudio/` |
+| 17 | `Rscript scripts/09d_diagnostico_errores_v2.R` | Etapa 4, fase D: errores del modelo congelado, supuestos del LDA, autocorrelación y heterogeneidad de los residuos | `output/etapa4/errores/` |
+| 18 | `Rscript scripts/09e_sensibilidades_posteriores.R` | Etapa 4, fase D: sensibilidades posteriores a la prueba (SR ≥ 0, reubicaciones según SIMA, sin NO2), anotadas en el registro | `output/etapa4/sensibilidades_posteriores/` |
+| 19 | `Rscript scripts/09f_viento_pm_no2.R` | Etapa 4, fase D: viento por estación, cociente PM2.5/PM10, PM2.5 frente a la red (NO2) y boletín estatal | `output/etapa4/descriptivos/` |
 
 Decisiones de la etapa 4: [`docs/etapa4/decisiones_etapa4.md`](docs/etapa4/decisiones_etapa4.md); resumen: [`output/etapa4/RESUMEN_ETAPA4.md`](output/etapa4/RESUMEN_ETAPA4.md).
 
