@@ -1,12 +1,16 @@
 # Base diaria `datos-v2.0` (etapa 4)
 
-**Se reproduce con:** `Rscript scripts/08a_enmascaramiento_horario.R` → `Rscript scripts/08b_construir_base_v2.R` (no necesitan los Excel; 08a los usa solo para una comprobación opcional con `SIMA_DATA_DIR`).
+**Se reproduce con:** `Rscript scripts/08a_enmascaramiento_horario.R` → `08b_construir_base_v2.R` → `08c_enmascaramiento_diario.R` → `08d_imputar_diario.R` (no necesitan los Excel; 08a los usa solo para una comprobación opcional con `SIMA_DATA_DIR`).
 **Decisiones:** D18, D19 y D23 de `docs/etapa4/decisiones_etapa4.md`. Resumen de la fase A: `output/etapa4/imputacion/RESUMEN_FASE_A.md`.
 **No reemplaza** a `datos-v1.2` (`data/clean/*.csv`), que sigue reproduciendo la etapa 3.
 
 ## Archivo
 
 `diario_v2_2021_2025.csv`: una fila por estación-día de las 13 estaciones de la muestra (sin NE3 ni NO3), 2021–2025 (23 738 filas), con o sin datos.
+
+`diario_v2_imputado_2021_2025.csv` (`scripts/08d_imputar_diario.R`): el mismo archivo con la imputación diaria del método principal (D20, registro de cambios): en los días con 1 a 4 meteorológicas faltantes, cada celda faltante = mediana de las otras estaciones ese día + la diferencia media del sitio (estación × `sitio_valido`) respecto de esa mediana en 2021–2023. Columnas extra: `imp_<variable>` (1 = imputada), `n_met_faltantes_tras_imputar` y `met_completa_tras_imputar`. Es la base del análisis final de la etapa 4.
+
+`muestra_v2_mice_m20.csv.gz`: sensibilidad con MICE (pmm, m = 20, modelos ajustados solo con 2021–2023), en formato largo (`.imp` = número de base; estación, fecha y las 8 meteorológicas) para los días con respuesta válida y ≤ 4 faltantes.
 
 ## Qué cambia respecto de `datos-v1.2`
 

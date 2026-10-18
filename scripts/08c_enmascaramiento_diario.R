@@ -73,17 +73,7 @@ print(resumen_mascara)
 # Para cada variable y dia, mediana de las OTRAS estaciones que reportan ese dia. Se excluye la propia
 # estacion: si se incluyera, al ajustar MICE en los dias observados el predictor contendria el valor que
 # se quiere predecir, y en los dias faltantes no; el modelo de imputacion quedaria mal calibrado.
-mediana_red <- function(d, v) {
-  w <- dcast(d[, .(fecha, estacion, x = get(v))], fecha ~ estacion, value.var = "x")
-  est <- setdiff(names(w), "fecha")
-  M <- as.matrix(w[, ..est])
-  L <- vapply(seq_along(est), function(j) apply(M[, -j, drop = FALSE], 1L, function(z) if (all(is.na(z))) NA_real_ else stats::median(z, na.rm = TRUE)),
-              numeric(nrow(M)))
-  colnames(L) <- est
-  out <- melt(data.table(fecha = w$fecha, L), id.vars = "fecha", variable.name = "estacion", value.name = "med")
-  out[, estacion := as.character(estacion)]
-  merge(d[, .(id, fecha, estacion)], out, by = c("fecha", "estacion"), all.x = TRUE)[order(id), med]
-}
+# La funcion mediana_red() esta en R/imputacion.R (la usa tambien 08d).
 for (v in MET_DIARIA) enm[[paste0("red_", v)]] <- mediana_red(enm, v)
 RED <- paste0("red_", MET_DIARIA)
 

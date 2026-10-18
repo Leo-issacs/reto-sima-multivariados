@@ -267,3 +267,12 @@ Reemplaza los pasos 1–3 de «Regla fijada antes de ver resultados». Por varia
 - **Análisis principal:** base imputada con la mediana de la red ajustada, una sola base, bootstrap pareado por bloques de 14 días con 1 000 réplicas, como en `07b`.
 - **Sensibilidad con MICE (m = 20):** 200 réplicas por base, combinadas (4 000). Es una fila más de la tabla de sensibilidades, junto con ≤ 2 faltantes, PM2.5 interpolado ≤ 3 h y casos completos v2.
 - **Tabla puente:** queda igual. El paso 3 es «+ imputación diaria con mediana de la red ajustada (D20)».
+
+### 4. Implementación de la fase B (registrada antes de abrir la prueba con v2)
+
+Se anotó después de la etiqueta, pero **antes** de la evaluación de 2024–2025 (commit del código registrado en `output/etapa4/registro_prueba_v2.txt`). No cambia ninguna decisión; precisa cómo se aplicaron.
+
+- **Diferencia por sitio en la mediana de la red ajustada (`08d_imputar_diario.R`).** La diferencia media de cada estación respecto de la mediana de la red se calcula **por sitio** (estación × `sitio_valido`) con 2021–2023. Si se mezclaran los periodos antes y después de una reubicación, se repetiría el problema que corrige D23; por ejemplo, la PRS de SUR cambia de nivel al reubicarse. Los días de prueba (todos posteriores) usan la diferencia del sitio actual.
+- **Sin recorte de valores imputados.** La imputación diaria no se recorta al rango físico, porque es el método validado en 08c. Quedan 398 valores de SR diaria por debajo de 0 (de −0.13 a −0.001 kW/m²), casi todos en NO2 y NTE. Sus sensores de radiación leen muy bajo (media observada de 0.015 y 0.041 kW/m², contra 0.12–0.18 en las demás estaciones): se reporta como posible falla de sensor para consultar con SIMA. También quedan 3 `horas_lluvia` de −0.004 a −0.002.
+- **Año en MICE con `ignore`.** Las indicadoras de 2024 y 2025 valen 0 en todas las filas de ajuste, así que mice las descarta (1,600 eventos registrados) y esos años se imputan como el año de referencia (2021). Afecta solo a la sensibilidad con MICE. MICE se corrió con 10 iteraciones por cadena.
+- **Modo ensayo.** `09a_evaluar_prueba_v2.R` se probó en modo ensayo (entrena 2021–2022, «prueba» 2023, sin leer 2024–2025; `output/etapa4/ensayo/`). El paso 0 del ensayo reproduce el pliegue 2023 de la validación progresiva de la etapa 3 (AUC M0 0.749, M1 0.829).

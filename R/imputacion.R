@@ -86,5 +86,20 @@ serie_previa_excel <- function(carpeta, hojas_pedidas) {
   }), hojas_pedidas)
 }
 
+# Mediana de la red de cada dia para la variable `v`, SIN la propia estacion: para cada estacion-dia,
+# mediana de las otras estaciones que reportan ese dia (NA si ninguna). `d` necesita id, fecha,
+# estacion y la columna `v`; devuelve un vector en el orden de d$id. La usan 08c y 08d.
+mediana_red <- function(d, v) {
+  w <- dcast(d[, .(fecha, estacion, x = get(v))], fecha ~ estacion, value.var = "x")
+  est <- setdiff(names(w), "fecha")
+  M <- as.matrix(w[, ..est])
+  L <- vapply(seq_along(est), function(j) apply(M[, -j, drop = FALSE], 1L, function(z) if (all(is.na(z))) NA_real_ else stats::median(z, na.rm = TRUE)),
+              numeric(nrow(M)))
+  colnames(L) <- est
+  out <- melt(data.table(fecha = w$fecha, L), id.vars = "fecha", variable.name = "estacion", value.name = "med")
+  out[, estacion := as.character(estacion)]
+  merge(d[, .(id, fecha, estacion)], out, by = c("fecha", "estacion"), all.x = TRUE)[order(id), med]
+}
+
 # Escribe un CSV en UTF-8 sin la columna de nombres de fila y con NA vacio.
 escribir_csv <- function(x, ruta) utils::write.csv(x, ruta, row.names = FALSE, na = "", fileEncoding = "UTF-8")
