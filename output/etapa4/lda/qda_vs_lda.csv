@@ -1,0 +1,6 @@
+modelo,predictores,auc_prueba,gamma,lambda,nota,referencia_python_opus_no_oficial
+"LDA (M1, análisis final)",indicadoras + 8 meteorológicas,0.79152396846765,,,"",0.792
+QDA regularizada (klaR::rda),indicadoras + 8 meteorológicas,0.787546311053973,0.000721625977020002,0.966489228219239,"",0.728–0.742
+LDA,solo 8 meteorológicas,0.717926494181865,,,"",0.718
+QDA (MASS::qda),solo 8 meteorológicas,0.704106283374913,,,"",0.709
+QDA regularizada (klaR::rda),solo 8 meteorológicas,0.711799362819611,0.735196172024899,0.768039292102173,"",0.709

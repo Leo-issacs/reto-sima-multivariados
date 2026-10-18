@@ -62,7 +62,15 @@ El archivo se guarda en `docs/quarto/`. También puede generarse desde el botón
 
 ## Cómo reproducir
 
-Copia los seis Excel (`BD 2020.xlsx` … `BD 2025.xlsx`) a `data/raw/` o define `SIMA_DATA_DIR` con su ruta. Orden de ejecución desde la raíz del proyecto:
+**Orden completo:** 02 → 03 → 06 → 07a–c → 08a–d → 09a–c (desde la raíz del proyecto, con `renv::restore()` hecho).
+
+- **Necesitan los Excel** (`BD 2020.xlsx` … `BD 2025.xlsx` en `data/raw/` o en la carpeta de `SIMA_DATA_DIR`): 01, 02 y 03, que generan `data/clean/` desde cero. El cuaderno de auditoría también los usa.
+- **Corren solo con `data/clean/`** (lo que está en el repositorio): 04, 05, 06, 06b, 07a–c, 08a–d y 09a–c. 08a usa los Excel solo para una comprobación opcional si `SIMA_DATA_DIR` está definido.
+- **Evaluaciones únicas de la prueba:** 07b (etapa 3) y 09a (etapa 4) dejan registro (`output/etapa3/registro_prueba.txt`, `output/etapa4/registro_prueba_v2.txt`) y no vuelven a correr sin `MOTIVO_RECORRIDA`. Ambos tienen un modo `ENSAYO=1` que no lee 2024–2025.
+
+**Lenguajes:** R para todo el análisis (limpieza, imputación, modelos, validaciones, figuras y app). Python solo se usó en la prueba de viabilidad del 4 de octubre (`docs/etapa2/prueba_viabilidad_2026-10-04.py`) y en verificaciones cruzadas: ningún resultado del informe depende de Python.
+
+Pasos de la limpieza y de la etapa 2:
 
 | Paso | Script | Qué hace | Qué genera |
 |---|---|---|---|
@@ -75,6 +83,23 @@ Copia los seis Excel (`BD 2020.xlsx` … `BD 2025.xlsx`) a `data/raw/` o define 
 | — | `quarto render notebooks/01_auditoria_datos_crudos.qmd` | Cuaderno reproducible de auditoría sobre los Excel originales, independiente de los scripts anteriores | `notebooks/01_auditoria_datos_crudos.html` |
 
 El protocolo de la etapa 2 (pregunta, modelos M0/M1, métricas y sensibilidades) está en [`docs/etapa2/protocolo.md`](docs/etapa2/protocolo.md).
+
+Etapas 3 y 4 (no necesitan los Excel):
+
+| Paso | Script | Qué hace | Qué genera |
+|---|---|---|---|
+| 7 | `Rscript scripts/07a_validacion_progresiva.R` | Etapa 3: validación progresiva en 2021–2023 (transformaciones, PRS como anomalía, PCA) | `output/etapa3/validacion/` |
+| 8 | `Rscript scripts/07b_evaluar_prueba.R` | Etapa 3: evaluación única de la prueba 2024–2025 con `datos-v1.2` (ΔAUC = 0.070) | `output/etapa3/` (`RESUMEN.md`, registro) |
+| 9 | `Rscript scripts/07c_diagnostico_errores.R` | Etapa 3: diagnósticos posteriores y modelo final para la app | `output/etapa3/diagnostico/`, `modelo_final.rds` |
+| 10 | `Rscript scripts/08a_enmascaramiento_horario.R` | Etapa 4 (D19): elige el método y el `maxgap` de imputación horaria por enmascaramiento en 2021–2023 (unos 25 min) | `output/etapa4/imputacion/` |
+| 11 | `Rscript scripts/08b_construir_base_v2.R` | Etapa 4 (D18, D19, D23): base diaria `datos-v2.0` (PM2.5 solo observado, meteorología con D19, `sitio_valido`) | `data/clean/v2/diario_v2_2021_2025.csv` |
+| 12 | `Rscript scripts/08c_enmascaramiento_diario.R` | Etapa 4 (D20): compara MICE con la mediana de la red ajustada y la media estación × temporada | `output/etapa4/imputacion/` |
+| 13 | `Rscript scripts/08d_imputar_diario.R` | Etapa 4: imputación diaria (mediana de la red ajustada) y MICE m = 20 como sensibilidad | `data/clean/v2/` |
+| 14 | `Rscript scripts/09a_evaluar_prueba_v2.R` | Etapa 4: evaluación única de la prueba con la base v2, tabla puente y sensibilidades | `output/etapa4/` (`RESUMEN.md`, registro) |
+| 15 | `Rscript scripts/09b_validar_lda.R` | Etapa 4 (D21): estabilidad de coeficientes, LDA frente a logística, pliegues, QDA y calibración | `output/etapa4/lda/` |
+| 16 | `Rscript scripts/09c_area_estudio_reubicaciones.R` | Etapa 4 (D22, D23): superación por estación y año, PRS frente a la red en las reubicaciones, mapa con altitud | `output/etapa4/area_estudio/` |
+
+Decisiones de la etapa 4: [`docs/etapa4/decisiones_etapa4.md`](docs/etapa4/decisiones_etapa4.md); resumen: [`output/etapa4/RESUMEN_ETAPA4.md`](output/etapa4/RESUMEN_ETAPA4.md).
 
 ## Interfaz
 
