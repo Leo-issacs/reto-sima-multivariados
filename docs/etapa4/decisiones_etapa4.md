@@ -1,6 +1,6 @@
 # Etapa 4: decisiones tras la retroalimentación (borrador de Opus, 17 oct 2026)
 
-**Estado:** propuesta. Se vuelve definitiva cuando Claude Code cierre la fase A (validaciones solo con 2021–2023) y la registre en un commit con etiqueta `etapa4-decisiones-cerradas`, **antes** de evaluar la prueba con la base nueva.
+**Estado:** definitiva desde la etiqueta `etapa4-decisiones-cerradas` (cierre de la fase A, validaciones solo con 2021–2023), **antes** de evaluar la prueba con la base nueva. D19, D20 y el plan de la fase B tienen cambios decididos con los resultados de la fase A; están en el «Registro de cambios de la fase A (antes de la etiqueta)», al final.
 
 **Declaración obligatoria.** Todo lo de este documento es **posterior** a la evaluación de la prueba de la etapa 3 (4 de octubre). Lo motivan la retroalimentación de profesores y socio formador (15–16 de octubre). El informe final mostrará siempre el resultado de la etapa 3 (ΔAUC = 0.070) junto al nuevo, con una tabla puente que explique cada cambio.
 
@@ -41,6 +41,8 @@
 
 ### D19. Imputación horaria de la meteorología: elegida por enmascaramiento
 
+> **Regla modificada antes de la etiqueta:** ver el «Registro de cambios de la fase A», punto 1.
+
 - **Datos:** solo 2021–2023 (entrenamiento), en tramos sin faltantes.
 - **Enmascaramiento:** se borran bloques de **1, 2, 3, 6, 12 y 24 h**. Son bloques, no puntos sueltos, para imitar los huecos reales. Se usan 5 semillas.
 - **Variables:** TOUT, RH, SR, PRS, viento_u y viento_v. También PM2.5, solo como diagnóstico: sirve para mostrar si la interpolación suaviza picos, que fue la crítica del curso. Ya no se usa en la respuesta.
@@ -59,6 +61,8 @@
 - **No se imputan** WSR, WDR ni la lluvia. Se imputan u y v; la rapidez sale de ellos o de la media diaria.
 
 ### D20. Imputación diaria multivariada de la meteorología (MICE)
+
+> **Resuelta antes de la etiqueta:** MICE no ganó; el método principal es la mediana de la red ajustada y MICE queda como sensibilidad. Ver el «Registro de cambios de la fase A», puntos 2 y 3.
 
 - **Para qué:** recuperar los estación-días que tienen PM2.5 válido (según D18) pero les falta alguna de las 8 meteorológicas.
 - **Método:** `mice` con predictive mean matching (van Buuren & Groothuis-Oudshoorn, 2011), m = 20 imputaciones.
@@ -174,7 +178,7 @@
 | 0 | Etapa 3 (`datos-v1.2`) | 0.070 [0.047, 0.094] |
 | 1 | + respuesta sin imputar (D18) | … |
 | 2 | + imputación horaria elegida (D19) | … |
-| 3 | + MICE de la meteorología (D20) | … |
+| 3 | + imputación diaria con mediana de la red ajustada (D20; registro de cambios, punto 3) | … |
 | 4 | + entrenamiento sin días previos a la reubicación (D23) = **análisis final** | … |
 
 ---
@@ -213,3 +217,53 @@
 - Rencher, A. C. (1992). Interpretation of canonical discriminant functions, canonical variates, and principal components. *The American Statistician, 46*(3), 217–225. [verificar]
 - Schomaker, M., & Heumann, C. (2018). Bootstrap inference when using multiple imputation. *Statistics in Medicine, 37*(14), 2252–2266. [verificar]
 - van Buuren, S., & Groothuis-Oudshoorn, K. (2011). mice: Multivariate imputation by chained equations in R. *Journal of Statistical Software, 45*(3), 1–67. https://doi.org/10.18637/jss.v045.i03
+
+---
+
+## Registro de cambios de la fase A (antes de la etiqueta)
+
+**17 de octubre de 2026.** Los cambios se decidieron al revisar los resultados de la fase A, que usan **solo 2021–2023**: ninguno usa la prueba (2024–2025). Se registran **antes** de crear la etiqueta `etapa4-decisiones-cerradas`. Resultados y tablas: `output/etapa4/imputacion/RESUMEN_FASE_A.md`.
+
+### 1. D19: nueva regla para elegir el método horario y su `maxgap`
+
+Reemplaza los pasos 1–3 de «Regla fijada antes de ver resultados». Por variable, en este orden:
+
+1. **Descalificación.** Se descalifica todo método cuyas imputaciones revierta la revalidación (bandera X) en más de 5 %. El porcentaje se mide en el mismo enmascaramiento, con las mismas reglas que la base v2 (`revalidar_imputados()` de `R/limpieza.R`), sobre todas las horas borradas de todos los largos. Se reporta el % de reversión de cada método.
+2. **Umbral.** Para cada largo de hueco L: RMSE del promedio diario ≤ 0.10 × la DE diaria de la **anomalía**, es decir, la variable menos la media de su estación en el entrenamiento. Aplica a todas las variables.
+3. **`maxgap` iterativo.**
+   - El `maxgap` inicial es el mayor L en el que el mejor método no descalificado cumple el umbral.
+   - El ganador es el método con menor RMSE diario promedio **solo** en los largos ≤ `maxgap`.
+   - Se recalcula el `maxgap` con ese ganador y se repite hasta que no cambie.
+4. **Simplicidad.** Si la lineal queda a menos de 5 % del ganador en los largos ≤ `maxgap`, se usa la lineal.
+
+**Razones:**
+- La regla original promediaba el error sobre los seis largos, incluidos los que no se imputan. En SR, u y v ganaba `seadec` por los huecos de 6–24 h, aunque su `maxgap` era de 3 h y en 1–3 h tenía más error que la lineal.
+- `seadec` suma un ciclo diario que en la madrugada da SR negativos: la revalidación revertía el 32 % de sus imputaciones de SR, y el enmascaramiento medía valores que después se descartan.
+- La DE diaria cruda incluye las diferencias entre estaciones (en la presión, sobre todo la altitud: medias de 701 a 731 mm Hg), que M1 no usa: la PRS entra como anomalía (D17) y la estación como indicadora. La DE de la anomalía es la escala de lo que el modelo distingue.
+
+**Detalles de implementación:**
+- «Cumple hasta L» exige que se cumpla en L y en todos los largos menores. Como el RMSE crece con el largo, da lo mismo que tomar el mayor L que cumple; el script lo comprueba.
+- El error se mide sobre los valores imputados antes de revalidar; la reversión solo descalifica.
+
+### 2. D20: lectura de «si MICE no gana»
+
+**«Gana» se mide con el error de cada base imputada:** RMSE relativo (RMSE / DE de la variable) promediado en las 8 variables, y para MICE el promedio del RMSE de sus m bases.
+
+**Razones:**
+- Es el error de los valores con que se ajusta cada modelo.
+- El promedio de las m imputaciones no es una base que se use.
+- Con la otra lectura, la ventaja de MICE venía solo de `horas_lluvia`, con 75 celdas borradas.
+
+**Resultado:** gana la **mediana de la red ajustada**. Es el método principal de imputación diaria, con una sola imputación. Se comprobó que también gana o empata en TOUT y RH, las variables que más faltan en 2024–2025.
+
+**MICE pasa a sensibilidad de la fase B:**
+- pmm, m = 20, `ignore` para 2024–2025, sin PM2.5 ni `supera_25`;
+- ΔAUC promedio de las 20 bases e IC con las réplicas combinadas.
+
+**Ajuste técnico:** mice se corre con `maxcor = 0.9999`. Con el valor por defecto (0.99) descarta la mediana de la red de TOUT como predictor de TOUT (correlación 0.994), que es justo el predictor que pide D20.
+
+### 3. Fase B: análisis principal con la mediana de la red ajustada
+
+- **Análisis principal:** base imputada con la mediana de la red ajustada, una sola base, bootstrap pareado por bloques de 14 días con 1 000 réplicas, como en `07b`.
+- **Sensibilidad con MICE (m = 20):** 200 réplicas por base, combinadas (4 000). Es una fila más de la tabla de sensibilidades, junto con ≤ 2 faltantes, PM2.5 interpolado ≤ 3 h y casos completos v2.
+- **Tabla puente:** queda igual. El paso 3 es «+ imputación diaria con mediana de la red ajustada (D20)».

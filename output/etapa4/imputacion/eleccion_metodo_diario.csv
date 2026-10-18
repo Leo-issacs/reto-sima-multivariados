@@ -1,3 +1,2 @@
-"lectura","ganador_global","rmse_rel_medio_mice","rmse_rel_medio_red_ajustada","rmse_rel_medio_media_est_temp","variables_donde_gana_mice","metodo_elegido"
-"MICE por imputacion","red_ajustada",0.702116416988669,0.612287581261688,0.914034579906,1,"pendiente: las dos lecturas no coinciden"
-"MICE promedio de las m","mice",0.577624870483104,0.612287581261688,0.914034579906,2,"pendiente: las dos lecturas no coinciden"
+"regla","metodo_elegido","rmse_rel_medio_mice","rmse_rel_medio_red_ajustada","rmse_rel_medio_media_est_temp","variables_donde_gana_mice","referencia_ganador_con_promedio_de_las_m","referencia_rmse_rel_medio_mice_promedio_m"
+"error de cada base imputada (MICE por imputacion)","red_ajustada",0.593214135781842,0.450020087415565,0.73575634325026,0,"mice",0.43587677148938

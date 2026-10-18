@@ -161,7 +161,7 @@ METODOS_V12 <- setNames(rep(list(list(metodo = "linear", maxgap = MAX_HUECO_H)),
 # con `metodo` y `maxgap`. Las horas E, L y M nunca se imputan. Un imputado que incumple una regla
 # vuelve a NA (bandera X); nunca se modifica un valor original.
 imputar_y_revalidar <- function(V0, flags0, rg, metodos = METODOS_V12) {
-  n <- rg$n; hora <- rg$hora
+  n <- rg$n
   V1 <- V0; flags1 <- flags0
   IMP <- matrix(FALSE, n, ncol(V0), dimnames = dimnames(V0))
   for (v in names(metodos)) {
@@ -180,9 +180,22 @@ imputar_y_revalidar <- function(V0, flags0, rg, metodos = METODOS_V12) {
     if (v %in% c("viento_u", "viento_v")) idx <- idx[flags0[idx, "f_uv"] != "E"]
     V1[idx, v] <- y[idx]; IMP[idx, v] <- TRUE
   }
-  # Revalidacion: un valor imputado que incumple una regla vuelve a NA (bandera X). Nunca se
-  # modifica un valor original. Se repite hasta que ya no haya reversiones.
-  revertida <- matrix(FALSE, n, ncol(V0), dimnames = dimnames(V0))
+  rv <- revalidar_imputados(V1, IMP, rg)
+  V1 <- rv$imp; IMP <- rv$IMP; revertida <- rv$revertida
+  for (v in VARS_IMPUTAR) {
+    col <- if (v %in% c("viento_u", "viento_v")) "f_uv" else v
+    flags1[IMP[, v], col] <- "I"
+    flags1[revertida[, v], col] <- "X"
+  }
+  list(imp = V1, flags = flags1, IMP = IMP, revertida = revertida)
+}
+
+# Revalidacion: un valor imputado (IMP = TRUE) que incumple una regla vuelve a NA (bandera X). Nunca
+# se modifica un valor original. Se repite hasta que ya no haya reversiones. La usan
+# imputar_y_revalidar() y el enmascaramiento de 08a (para medir cuanto revierte cada metodo).
+revalidar_imputados <- function(V1, IMP, rg) {
+  n <- rg$n; hora <- rg$hora
+  revertida <- matrix(FALSE, n, ncol(V1), dimnames = dimnames(V1))
   revertir <- function(v, m) {
     m <- m & IMP[, v]; m[is.na(m)] <- FALSE
     if (any(m)) { V1[m, v] <<- NA_real_; IMP[m, v] <<- FALSE; revertida[m, v] <<- TRUE }
@@ -208,12 +221,7 @@ imputar_y_revalidar <- function(V0, flags0, rg, metodos = METODOS_V12) {
     cambio <- revertir("PM10", pm) || cambio
     if (!cambio) break
   }
-  for (v in VARS_IMPUTAR) {
-    col <- if (v %in% c("viento_u", "viento_v")) "f_uv" else v
-    flags1[IMP[, v], col] <- "I"
-    flags1[revertida[, v], col] <- "X"
-  }
-  list(imp = V1, flags = flags1, IMP = IMP, revertida = revertida)
+  list(imp = V1, IMP = IMP, revertida = revertida)
 }
 
 limpiar_hoja <- function(datos_hoja, rangos_op, rangos_fab, red = NULL, solo_fase1 = FALSE) {

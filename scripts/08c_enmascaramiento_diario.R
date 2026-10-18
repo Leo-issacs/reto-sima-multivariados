@@ -9,13 +9,15 @@
 #      estacion, estacion, temporada y anio. SIN PM2.5 ni supera_25.
 #   2. La mediana de la red ajustada por la diferencia media de la estacion.
 #   3. La media de estacion x temporada.
-# Regla de D20: si MICE no gana, se usa el metodo que gane, con una sola imputacion.
+# Regla de D20: si MICE no gana, se usa el metodo que gane, con una sola imputacion. Lectura de "gana":
+# error de cada base imputada (registro de cambios de la fase A en decisiones_etapa4.md).
 #
 # Este script NO usa 2024-2025: si encuentra esos anios, se detiene. No ajusta LDA ni calcula AUC.
 #
 # Ejecutar desde la raiz:  Rscript scripts/08c_enmascaramiento_diario.R   (no necesita los Excel)
 # Lee:     data/clean/v2/diario_v2_2021_2025.csv, output/etapa4/imputacion/patrones_faltantes_2021_2023.csv
-# Escribe: output/etapa4/imputacion/enmascaramiento_diario.csv (+ _por_imputacion.csv)
+# Escribe: output/etapa4/imputacion/enmascaramiento_diario.csv (+ _por_imputacion.csv, _rmse_relativo.csv),
+#          eleccion_metodo_diario.csv
 # =============================================================================================
 
 
@@ -167,29 +169,39 @@ por_imputacion <- rbindlist(lapply(partes, `[[`, "por_imp"))
 print(dcast(metricas, variable ~ metodo, value.var = "rmse"))
 
 
-# ---- Bloque 7. Regla de D20 --------------------------------------------------------------------------
-# "Gana" el metodo con menor RMSE relativo promedio en las 8 variables (cada variable pesa igual), y se
-# reporta tambien el ganador por variable. D20 no dice cual de las dos lecturas de MICE usar, y pueden
-# dar resultados distintos (el RMSE castiga el ruido que pmm agrega a proposito; ver van Buuren, 2018,
-# "Imputation is not prediction" [verificar cita]). Por eso se calcula el ganador con cada lectura: si coinciden, esa es la decision; si no,
-# el script no elige y lo marca como pendiente para que el equipo lo decida.
-ganador <- function(lectura) {
-  t <- metricas[metodo %in% c(lectura, "red_ajustada", "media_estacion_temporada")]
-  global <- t[, .(rmse_rel_medio = mean(rmse_rel)), by = metodo][order(rmse_rel_medio)]
-  por_var <- t[, .SD[which.min(rmse)], by = variable][, .(variable, ganador = metodo)]
-  list(global = global, por_var = por_var)
-}
-gA <- ganador("mice_por_imputacion"); gB <- ganador("mice_promedio_m")
+# ---- Bloque 7. Regla de D20 (lectura fijada en el registro de cambios de la fase A) ---------------
+# "Gana" el metodo con menor RMSE relativo promedio en las 8 variables (cada variable pesa igual), y para
+# MICE cuenta el error de CADA base imputada (lo que ve cada modelo que se ajusta con ella), no el del
+# promedio de las m imputaciones: el promedio no es una base que se use. Asi lo decidio el equipo antes
+# de la etiqueta (decisiones_etapa4.md). El error del promedio de las m se sigue reportando, solo como
+# referencia. Si MICE no gana, el metodo ganador se usa con una sola imputacion y MICE queda como
+# sensibilidad de la fase B.
+REGLA <- "mice_por_imputacion"
+t7 <- metricas[metodo %in% c(REGLA, "red_ajustada", "media_estacion_temporada")]
+global <- t7[, .(rmse_rel_medio = mean(rmse_rel)), by = metodo][order(rmse_rel_medio)]
+por_var <- t7[, .SD[which.min(rmse)], by = variable][, .(variable, ganador = metodo)]
+ref_B <- metricas[metodo %in% c("mice_promedio_m", "red_ajustada", "media_estacion_temporada"),
+                  .(rmse_rel_medio = mean(rmse_rel)), by = metodo][order(rmse_rel_medio)]
 norm <- function(x) sub("^mice_.*", "mice", x)
 decision <- data.table(
-  lectura = c("MICE por imputacion", "MICE promedio de las m"),
-  ganador_global = c(norm(gA$global$metodo[1]), norm(gB$global$metodo[1])),
-  rmse_rel_medio_mice = c(gA$global[metodo == "mice_por_imputacion", rmse_rel_medio], gB$global[metodo == "mice_promedio_m", rmse_rel_medio]),
-  rmse_rel_medio_red_ajustada = gA$global[metodo == "red_ajustada", rmse_rel_medio],
-  rmse_rel_medio_media_est_temp = gA$global[metodo == "media_estacion_temporada", rmse_rel_medio],
-  variables_donde_gana_mice = c(sum(grepl("^mice", gA$por_var$ganador)), sum(grepl("^mice", gB$por_var$ganador))))
-decision[, metodo_elegido := if (length(unique(ganador_global)) == 1L) ganador_global[1] else "pendiente: las dos lecturas no coinciden"]
+  regla = "error de cada base imputada (MICE por imputacion)",
+  metodo_elegido = norm(global$metodo[1]),
+  rmse_rel_medio_mice = global[metodo == REGLA, rmse_rel_medio],
+  rmse_rel_medio_red_ajustada = global[metodo == "red_ajustada", rmse_rel_medio],
+  rmse_rel_medio_media_est_temp = global[metodo == "media_estacion_temporada", rmse_rel_medio],
+  variables_donde_gana_mice = sum(grepl("^mice", por_var$ganador)),
+  referencia_ganador_con_promedio_de_las_m = norm(ref_B$metodo[1]),
+  referencia_rmse_rel_medio_mice_promedio_m = ref_B[metodo == "mice_promedio_m", rmse_rel_medio])
 print(decision)
+# RMSE relativo por variable de los tres metodos (y MICE promediado, como referencia). TOUT y RH son las
+# variables que mas faltan en 2024-2025: se marca si la mediana ajustada gana o empata (diferencia
+# relativa con el mejor de los otros dos < 5 %) en cada una.
+rel_var <- dcast(metricas, variable ~ metodo, value.var = "rmse_rel")
+rel_var[, mejor_otro := pmin(mice_por_imputacion, media_estacion_temporada)]
+rel_var[, red_ajustada_vs_mejor_otro_pct := 100 * (red_ajustada - mejor_otro) / mejor_otro]
+rel_var[, red_ajustada_gana_o_empata := red_ajustada_vs_mejor_otro_pct < 5]
+rel_var[, mejor_otro := NULL]
+print(rel_var[variable %in% c("TOUT", "RH")])
 
 
 # ---- Bloque 8. Salidas -------------------------------------------------------------------------------
@@ -197,7 +209,7 @@ escribir_csv(metricas, file.path(SALIDA, "enmascaramiento_diario.csv"))
 escribir_csv(por_imputacion, file.path(SALIDA, "enmascaramiento_diario_por_imputacion.csv"))
 escribir_csv(merge(resumen_mascara, cor_red, by = "variable", sort = FALSE), file.path(SALIDA, "enmascaramiento_diario_mascara.csv"))
 escribir_csv(decision, file.path(SALIDA, "eleccion_metodo_diario.csv"))
-escribir_csv(merge(gA$por_var, gB$por_var, by = "variable", suffixes = c("_lectura_por_imputacion", "_lectura_promedio_m")),
-             file.path(SALIDA, "enmascaramiento_diario_ganador_por_variable.csv"))
+escribir_csv(por_var, file.path(SALIDA, "enmascaramiento_diario_ganador_por_variable.csv"))
+escribir_csv(rel_var, file.path(SALIDA, "enmascaramiento_diario_rmse_relativo.csv"))
 if (!is.null(imp$loggedEvents)) escribir_csv(imp$loggedEvents, file.path(SALIDA, "enmascaramiento_diario_mice_eventos.csv"))
 message(sprintf("Listo: %s (MICE tardo %.1f min)", SALIDA, minutos_mice))
