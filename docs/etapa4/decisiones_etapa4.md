@@ -138,8 +138,8 @@
   - **Juárez (SE2):** crecimiento urbano acelerado, con nuevas viviendas, maquiladoras y vialidades.
   - **Santa Catarina (SO):** zona industrial histórica que, por su posición geográfica, recibiría una parte de la contaminación del resto del área metropolitana. El socio lo consideró probable, pero no lo pudo confirmar.
 - **Lo que muestran nuestros datos** (para no exagerar):
-  - **SE2** está alta todo el periodo (% de días con superación: 49.8, 53.3, 48.2, 49.9 y 36.6 en 2021–2025). **No hay una tendencia creciente dentro de 2021–2025**, y la caída de 2025 coincide con su equipo nuevo de PM2.5. El crecimiento urbano puede explicar el nivel alto, pero no lo podemos atribuir con este diseño.
-  - **SO** es alta y variable (56.4, 40.4, 42.8, 46.4, 54.3), coherente con una fuente persistente.
+  - **SE2** está alta todo el periodo (% de días con superación: 49.8, 53.3, 48.2, 49.9 y 36.6 en 2021–2025). *[Corregido en la fase D: con todos los días con respuesta válida de la base v2 son 46.1, 53.6, 46.3, 50.4 y 35.6; las cifras anteriores salían de la muestra de casos completos de la etapa 3.]* **No hay una tendencia creciente dentro de 2021–2025**, y la caída de 2025 coincide con su equipo nuevo de PM2.5. El crecimiento urbano puede explicar el nivel alto, pero no lo podemos atribuir con este diseño.
+  - **SO** es alta y variable (56.4, 40.4, 42.8, 46.4, 54.3), coherente con una fuente persistente. *[Corregido en la fase D: con la base v2 completa son 55.2, 40.2, 45.0, 47.8 y 25.2. El 54.3 % de 2025 salía de solo 70 días de casos completos; con los 266 días válidos es 25.2 %. «Alta y variable» vale para 2021–2024.]*
 - **Frase guía para el informe:** «Son explicaciones de contexto, consistentes con nuestros datos, que no se pueden atribuir sin inventarios de emisiones ni datos de transporte».
 
 ---
@@ -276,3 +276,32 @@ Se anotó después de la etiqueta, pero **antes** de la evaluación de 2024–20
 - **Sin recorte de valores imputados.** La imputación diaria no se recorta al rango físico, porque es el método validado en 08c. Quedan 398 valores de SR diaria por debajo de 0 (de −0.13 a −0.001 kW/m²), casi todos en NO2 y NTE. Sus sensores de radiación leen muy bajo (media observada de 0.015 y 0.041 kW/m², contra 0.12–0.18 en las demás estaciones): se reporta como posible falla de sensor para consultar con SIMA. También quedan 3 `horas_lluvia` de −0.004 a −0.002.
 - **Año en MICE con `ignore`.** Las indicadoras de 2024 y 2025 valen 0 en todas las filas de ajuste, así que mice las descarta (1,600 eventos registrados) y esos años se imputan como el año de referencia (2021). Afecta solo a la sensibilidad con MICE. MICE se corrió con 10 iteraciones por cadena.
 - **Modo ensayo.** `09a_evaluar_prueba_v2.R` se probó en modo ensayo (entrena 2021–2022, «prueba» 2023, sin leer 2024–2025; `output/etapa4/ensayo/`). El paso 0 del ensayo reproduce el pliegue 2023 de la validación progresiva de la etapa 3 (AUC M0 0.749, M1 0.829).
+
+---
+
+## Fase D: diagnósticos posteriores a la retroalimentación
+
+**18 de octubre de 2026.** Todo es **posterior** a la evaluación única de la prueba con v2 (09a) y responde a la retroalimentación del 15 de octubre (profesora y SIMA). **No cambia el análisis principal** (ΔAUC = 0.079 [0.054, 0.104]). Resumen: `output/etapa4/RESUMEN_FASE_D.md`.
+
+- **Errores y supuestos v2 (`09d_diagnostico_errores_v2.R`, `09g_pca_y_residuos_v2.R`).**
+  - Matrices de confusión; errores por temporada, estación, año y magnitud del PM2.5.
+  - Supuestos del LDA en el entrenamiento v2: Mardia, M de Box, razón de DE, VIF y número de condición.
+  - ACF de la respuesta y de los residuos de M0 y M1; correlación entre estaciones el mismo día.
+  - Heterogeneidad de los errores: Brier observado frente al esperado, varianza de residuos con Brown-Forsythe y calibración por temporada.
+  - PCA recalculado con el entrenamiento v2.
+- **Sensibilidades posteriores (`09e_sensibilidades_posteriores.R`, anotadas en el registro de la prueba).**
+  - SR imputada truncada en 0: 0.079 [0.054, 0.105].
+  - D23 solo con las reubicaciones que confirmó SIMA (SUR, SE, NE y NO): 0.081 [0.054, 0.107].
+  - Sin NO2: 0.082 [0.056, 0.108].
+  - No reemplazan el análisis final.
+- **Descriptivos (`09f_viento_pm_no2.R`).**
+  - Viento por estación.
+  - Cociente PM2.5/PM10.
+  - PM2.5 y PM10 frente a la red, mes por mes. NO2 tiene PM2.5 a la mitad de la red con PM10 normal en enero–mayo de 2021 y julio de 2023–enero de 2025: problema probable del equipo, pendiente de confirmar con SIMA.
+  - Comparación con el boletín estatal de enero de 2023 y 2024.
+- **Corrección de D22:** los % de superación por año de SE2 y SO, con la base v2 completa (ver D22).
+- **Cifras y figuras para el informe final (`09g_pca_y_residuos_v2.R`, 21 de octubre).** Solo descriptivos y figuras con las salidas congeladas de 09a y 09b; no ajusta modelos de clasificación. Largo de los huecos horarios antes de imputar, radiación media por estación (`output/etapa4/descriptivos/sr_media_por_estacion.csv`, fuente de las medias de NO2 y NTE citadas arriba) y figuras compactas (coeficientes de la meteorología; ROC y ΔAUC por temporada y año).
+
+## Fase E: comparación con la imputación MIMA-v1
+
+**No realizada:** se solicitó acceso al dataset imputado de MIMA-v1 (enlace del anexo de Gómez et al., 2025) y no se obtuvo antes de la entrega. El informe final explica por qué no se usó y lo deja como pregunta nueva.

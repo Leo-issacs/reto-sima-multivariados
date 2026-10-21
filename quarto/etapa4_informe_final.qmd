@@ -1,0 +1,626 @@
+---
+title: "¿Cuánto mejora la meteorología del día la identificación de días con PM2.5 > 25&nbsp;µg/m³?"
+subtitle: "Análisis discriminante con validación temporal en 13 estaciones del SIMA, 2021–2025"
+lang: es
+format:
+  docx:
+    reference-doc: plantillas/referencia_informe_final.docx
+    toc: false
+    number-sections: false
+    fig-dpi: 200
+crossref:
+  fig-title: Figura
+  tbl-title: Tabla
+  fig-prefix: Figura
+  tbl-prefix: Tabla
+  title-delim: "."
+execute:
+  echo: false
+  warning: false
+  message: false
+---
+
+```{r}
+#| label: setup
+suppressPackageStartupMessages({
+  library(data.table)
+  library(knitr)
+})
+E4 <- "output/etapa4/"
+miles <- function(x) formatC(x, format = "d", big.mark = " ")
+f3 <- function(x) ifelse(is.na(x), "—", sprintf("%.3f", x))
+f2 <- function(x) ifelse(is.na(x), "—", sprintf("%.2f", x))
+f1 <- function(x) ifelse(is.na(x), "—", sprintf("%.1f", x))
+ic <- function(a, b) sprintf("[%.3f, %.3f]", a, b)
+# Tabla pipe con anchos relativos de columna: pandoc reparte el ancho de la pagina segun el numero
+# de guiones de la linea separadora (si suman mas que --columns, que vale 72).
+tabla <- function(df, anchos, align = rep("l", ncol(df))) {
+  k <- kable(df, format = "pipe", align = align)
+  n <- pmax(3, round(100 * anchos / sum(anchos)))
+  sep <- vapply(seq_along(n), function(i) switch(align[i],
+    l = paste0(":", strrep("-", n[i] - 1)), r = paste0(strrep("-", n[i] - 1), ":"),
+    c = paste0(":", strrep("-", n[i] - 2), ":")), "")
+  k[2] <- paste0("|", paste(sep, collapse = "|"), "|")
+  k
+}
+```
+
+::: {custom-style="Subtitle"}
+Equipo 1 · Grupo 201 · Análisis multivariado (MA2003B) · Tecnológico de Monterrey
+
+Socio formador: Sistema Integral de Monitoreo Ambiental (SIMA) y Agencia de Calidad del Aire de Nuevo León
+
+Leonardo Orozco · Matrícula: ________
+
+Pablo Alonso Robles Nava · Matrícula: ________
+
+Daniel Ayala · Matrícula: ________
+
+Ignacio Kume · Matrícula: ________
+
+Profesores: [COMPLETAR]
+
+Octubre de 2026
+:::
+
+{{< pagebreak >}}
+
+# Resumen
+
+**Problema y objetivo.** El Sistema Integral de Monitoreo Ambiental (SIMA) de Nuevo León registra con frecuencia días con PM2.5 elevado en la Zona Metropolitana de Monterrey (ZMM). Nos preguntamos cuánto mejora la meteorología observada del mismo día la identificación de los estación-días con PM2.5 promedio de 24 h mayor de 25 µg/m³ (límite de la NOM-025-SSA1-2021, usado como referencia fija), frente a un modelo que solo conoce la estación y la temporada.
+
+**Datos y preparación.** Usamos los datos horarios de 13 estaciones entre 2021 y 2025. La limpieza por reglas físicas y de consistencia con la red invalidó el 0.7 % de los valores. **La variable respuesta no se imputa:** el PM2.5 diario se calcula solo con al menos 18 horas observadas. La meteorología horaria se imputó con métodos de imputeTS elegidos por enmascaramiento en 2021–2023; los días con hasta cuatro variables faltantes se completaron con la mediana de la red ajustada por estación, que superó a MICE en la validación. La base final tiene 17 828 estación-días.
+
+**Técnicas.** Componentes principales (técnica de interdependencia) para describir la estructura de la meteorología; análisis discriminante lineal (técnica de dependencia) para comparar M0 (estación y temporada) con M1 (M0 más ocho variables meteorológicas); y regresión logística como robustez. Entrenamos con 2021–2023 y evaluamos 2024–2025 una sola vez con la base final. La incertidumbre se estimó con bootstrap pareado por bloques de 14 días.
+
+**Resultados.** El AUC sube de 0.713 (M0) a 0.792 (M1): ΔAUC = 0.079, IC 95 % [0.054, 0.104]. M1 detecta el 74 % de los días con superación (M0: 56 %) y el 90 % de los días con más de 40 µg/m³, con una especificidad algo menor (0.68 frente a 0.70). La mejora es mayor de marzo a mayo (0.151) y no se distingue de cero en la temporada de lluvias. Se mantiene entre 0.071 y 0.082 en todas las variantes: logística, MICE, bloques de 7 y 28 días y otras definiciones de la respuesta y de las reubicaciones. Con signo estable, la superación se asocia con viento débil, presión más baja de lo normal para el sitio y, dentro de cada temporada, mayor temperatura.
+
+**Qué sí y qué no se puede concluir.** Es una clasificación retrospectiva con meteorología observada: no es un pronóstico, no identifica causas y sus probabilidades no están calibradas. El LDA no cumple normalidad ni igualdad de covarianzas, y sus errores siguen autocorrelacionados; por eso la evidencia es empírica (validación temporal, comparación con la logística y estabilidad de los coeficientes) y solo se interpretan los signos estables.
+
+**Recomendaciones para SIMA.** Evaluar el modelo con meteorología pronosticada junto con su área de pronósticos; incorporar dos reglas de control de calidad (radiación de madrugada y viento contra la red); revisar el PM2.5 de García (NO2) entre 2023 y 2025 y la radiación de NO2 y NTE; y definir cortes por estación con probabilidades recalibradas.
+
+{{< pagebreak >}}
+
+# 1. Introducción y justificación
+
+El SIMA es la red de monitoreo de la calidad del aire del Gobierno de Nuevo León. Opera desde 1992 y sus 15 estaciones automáticas en la ZMM miden cada hora contaminantes criterio y variables meteorológicas. Con esos datos calcula el Índice Aire y Salud, elabora pronósticos y activa el programa de respuesta a contingencias (SIMA, 2026). El Plan Integral de Gestión Estratégica de la Calidad del Aire 2023–2033 (PIGECA) le asigna generar información confiable para evaluar la calidad del aire y sus impactos, y contempla medidas de fortalecimiento de la red y de pronóstico (Secretaría de Medio Ambiente del Estado de Nuevo León [SMA] y Clean Air Institute [CAI], 2024).
+
+El PM2.5 es el contaminante en el que nos enfocamos. Un metaanálisis de 196 artículos asoció la exposición de corto plazo a partículas con mayor mortalidad total, cardiovascular y respiratoria (Orellano et al., 2020), y la Organización Mundial de la Salud fijó en 2021 una guía de 15 µg/m³ para el promedio de 24 h (World Health Organization [WHO], 2021). Usamos como umbral 25 µg/m³, el límite de 24 h de la NOM-025-SSA1-2021 en su quinto año de aplicación (Secretaría de Salud, 2021). Es una **referencia fija para comparar todo el periodo, no una evaluación del cumplimiento normativo**, porque los límites aplicables cambiaron entre 2021 y 2025. El resultado describe concentraciones, no riesgo individual: por debajo de 25 µg/m³ el riesgo no es nulo.
+
+**Antecedentes en la ZMM.** Aguirre-López et al. (2022) describieron en siete estaciones una tendencia decreciente del PM10 con ciclo anual (2010–2018) y propusieron incorporar la meteorología. Hernández-Romero et al. (2026) documentaron la persistencia de excedencias de PM10, PM2.5 y O3, con máximos de partículas en la temporada seca-fría. Martínez-Cinco et al. (2016) atribuyeron el PM2.5 otoñal sobre todo a emisiones vehiculares que se acumulan con viento débil. Ramírez-Velarde et al. (2024) combinaron componentes principales y clasificadores con meteorología del SIMA para anticipar contingencias. Fuera de México, Vélez-Pereira et al. (2025) clasificaron con regresión logística las superaciones diarias de PM2.5 y PM10 en varias ciudades de Chile, como base simple para alertas tempranas.
+
+**Justificación para SIMA.** Saber en qué temporadas y con qué condiciones la meteorología del día añade información sobre los días de PM2.5 alto es un paso previo a una alerta con pronóstico, que el área de pronósticos de SIMA dijo que le interesa (SIMA, comunicación personal, 15 de octubre de 2026). Primero hay que medir cuánto ayuda la meteorología observada; si no ayuda con datos medidos, tampoco ayudará con datos pronosticados.
+
+**Alcance dentro del reto.** El proyecto cubre cuatro de los puntos del reto: la clasificación de días dentro y fuera de la norma, los factores meteorológicos asociados, la distribución por estación y el contexto de fuentes de las estaciones más afectadas. No aborda el efecto de la política ambiental antes y después de 2022 ni el de la pandemia (Schiavo et al., 2023); ambos quedan como preguntas nuevas (Sección 7).
+
+# 2. Problemática y objetivo
+
+**Pregunta.** ¿En qué medida la meteorología del día mejora la clasificación retrospectiva de los estación-días con PM2.5 promedio de 24 h superior a 25 µg/m³, respecto de un modelo que solo considera la estación de monitoreo y la temporada, en 13 estaciones de la ZMM durante 2021–2025?
+
+**Objetivo general.** Cuantificar, con validación temporal, la mejora en el área bajo la curva ROC (ΔAUC) que aporta la meteorología del día (M1) sobre un modelo con estación y temporada (M0), ambos con análisis discriminante lineal (LDA).
+
+**Objetivos específicos.** (1) Construir una base estación-día con limpieza documentada e imputación validada, sin imputar la respuesta. (2) Describir la estructura de correlación de la meteorología con componentes principales (PCA). (3) Estimar M0 y M1 y su diferencia, con intervalos que respeten la dependencia temporal y espacial. (4) Identificar en qué temporadas y con qué variables se concentra la mejora, y qué permite concluir el LDA. (5) Traducir los resultados en recomendaciones para SIMA.
+
+**Evolución del alcance.** En la etapa 1 propusimos identificar regímenes multicontaminante con conglomerados. La retroalimentación pidió acotar el problema y lo reenfocamos en el PM2.5 y en la comparación M0–M1 (etapa 2). En la etapa 4 atendimos la retroalimentación sobre la imputación y sobre el uso del LDA. **Alcance:** clasificación retrospectiva con meteorología observada del mismo día, no pronóstico.
+
+# 3. Área de estudio: estaciones y factores geográficos
+
+La ZMM ocupa un valle rodeado por la Sierra Madre Oriental al sur y al oeste y por sierras como el Cerro de la Silla. Las 13 estaciones de la muestra van de 334 m (SE3, Cadereyta) a 702 m de altitud (NO2, García); el oeste (Santa Catarina, San Pedro y García) es más alto y encajonado (@fig-mapa, @tbl-estaciones). En nuestros datos domina el flujo del este: la componente zonal del viento es negativa (*u* < 0) en el 80 % a 98 % de los días en 11 de las 13 estaciones, con dirección resultante entre 68° y 140° (del este al sureste). Las excepciones son NE2 (62 %) y SO2 (68 %). Según SIMA, el viento predominante sale del área metropolitana por Santa Catarina y García (comunicación personal, 15 de octubre de 2026).
+
+![Estaciones de la muestra, con su altitud (m s. n. m.) y el porcentaje de estación-días con PM2.5 > 25 µg/m³ en el análisis final (base v2, 2021–2025, n = 17 828). Solo coordenadas, sin mapa base. Elaboración propia con datos de SIMA.](../output/etapa4/area_estudio/mapa_estaciones_altitud.png){#fig-mapa width="4.0in"}
+
+La @fig-mapa muestra que la superación no sigue la altitud: SO (674 m) y SE2 (387 m) tienen los porcentajes más altos y están en extremos opuestos del valle, mientras que SE3 (334 m) y NO2 (702 m) están entre las más bajas.
+
+```{r}
+#| label: tbl-estaciones
+#| tbl-cap: "Estaciones de la muestra: altitud, estación-días en el análisis final y porcentaje con PM2.5 > 25 µg/m³ (base v2, 2021–2025). Municipio según los metadatos de SIMA; el de NTE2, SE3 y SUR (marcado con *), que no viene en ellos, se completó por la ubicación de la estación."
+m <- fread(paste0(E4, "area_estudio/mapa_estaciones_altitud.csv"))
+m <- m[order(-pct_superacion_v2)]
+completar <- c(NTE2 = "San Nicolás de los Garza*", SE3 = "Cadereyta Jiménez*", SUR = "Monterrey*")
+m[municipio == "" | is.na(municipio), municipio := completar[estacion]]
+tabla(m[, .(Código = estacion, Nombre = nombre, Municipio = municipio, `Altitud (m)` = altitud_msnm,
+            `Estación-días` = miles(dias_v2), `% superación` = f1(pct_superacion_v2))], c(9, 18, 28, 13, 15, 15), c("l", "l", "l", "r", "r", "r"))
+```
+
+**Contexto por estación.** SIMA describió las fuentes de las dos estaciones con más superaciones (comunicación personal, 15 de octubre de 2026), y las contrastamos con nuestros datos:
+
+- **SE2 (Juárez).** Es el primer receptor de la pluma de la refinería: por la altura de los quemadores, la dispersión pasa por encima de Cadereyta (SE3) y llega a Juárez. Además, hay crecimiento urbano, vialidades sucias con resuspensión, quemas nocturnas, transporte pesado y obras viales. En nuestros datos, SE2 tiene el viento más débil de la red (1.55 m/s de media) y el PM2.5 más ligado al PM10 (Spearman 0.82). Sin embargo, su cociente PM2.5/PM10 (0.40) está entre los más altos, más compatible con partículas finas de combustión que con polvo grueso. En enero el PM2.5 medio de SE2 subió de 33.1 a 43.1 µg/m³ entre 2023 y 2024, mientras que en SE3 no cambió (22.4 µg/m³). Coincide con lo que el gobierno estatal relacionó con la refinería (Gobierno del Estado de Nuevo León, 2024).
+- **SO (Santa Catarina).** Es una zona industrial de entrada, con suelo semidesértico, carga vehicular y receptora de la salida del viento. En nuestros datos los días con superación tienen viento más débil (diferencia de medias estandarizada de la rapidez −0.76, la mayor de la red) y un flujo del este menos intenso (*u* de −1.16 frente a −2.01 m/s). Con promedios diarios no se puede separar la acumulación local del transporte desde la ciudad.
+- **SUR (Pueblo Serena).** Su reubicación se ve en los datos: pasó de 3.0 % de días con superación en 2021 a 10–12 % desde 2022, y su presión frente a la red cambió +5.7 mm Hg en la fecha de reubicación.
+
+Son explicaciones de contexto, consistentes con los datos, que no se pueden atribuir sin inventarios de emisiones ni análisis horario de transporte. La @tbl-cambios resume los cambios en la red que afectan al análisis.
+
+```{r}
+#| label: tbl-cambios
+#| tbl-cap: "Cambios en la red y anomalías detectadas, y cómo se tomaron en cuenta. Fuentes: PIGECA (SMA y CAI, 2024, p. 91), SIMA (comunicación personal, 9 y 15 de octubre de 2026) y diagnósticos propios."
+cambios <- data.table(
+  Cambio = c("Reubicaciones según el PIGECA", "Reubicaciones confirmadas por SIMA", "Sensores de viento nuevos", "Equipos de PM2.5 nuevos",
+             "PM2.5 de NO2 (García) bajo frente a la red", "Radiación solar muy baja"),
+  Detalle = c("NO (junio de 2021); SE, SO, NTE y SUR (septiembre de 2021); NE (febrero de 2022)",
+              "NO, SE, SUR, NE y NO3 (sin fechas); no mencionaron SO ni NTE",
+              "Todas las estaciones, 2021; el nivel del viento cambia entre marzo y abril de 2021",
+              "SE2, NTE2, SUR, SO2 y NO, 2025 (Thermo 5014i)",
+              "Mitad de la red con PM10 normal en enero–mayo de 2021 y julio de 2023–enero de 2025",
+              "NO2 y NTE: media de SR de 0.015 y 0.041 kW/m², frente a 0.12–0.18 en las demás"),
+  `Cómo se tomó en cuenta` = c("Entrenamiento sin los días previos (D23); en la presión solo se ve el cambio de SUR (+5.7 mm Hg) y algo el de NTE (+1.6)",
+                               "Sensibilidad con esta lista: ΔAUC 0.081", "Se excluye 2020 del modelado",
+                               "Mejora por año: 0.069 (2024) y 0.088 (2025)", "Sensibilidad sin NO2: ΔAUC 0.082; pregunta para SIMA",
+                               "Sensibilidad con SR imputada ≥ 0: ΔAUC 0.079; pregunta para SIMA"))
+tabla(cambios, c(22, 38, 40))
+```
+
+# 4. Preparación de la base de datos
+
+## 4.1 Datos y diagnóstico
+
+SIMA entregó seis libros de Excel (2020–2025) con 87 hojas estación-año y datos horarios de 15 estaciones y 15 variables. Sobre los valores horarios esperados faltaba el 12.3 %, y en PM2.5 el 26.0 %. Los faltantes son sobre todo apagones largos: en las seis variables que se imputan o se modelan, entre el 51 % y el 82 % de las horas faltantes están en huecos de más de un día (@tbl-huecos). Esto descarta reconstruir esos huecos con métodos locales y motiva imputar a nivel diario con información de la red (Sección 4.3).
+
+```{r}
+#| label: tbl-huecos
+#| tbl-cap: "Largo de los huecos horarios antes de imputar (13 estaciones, 2021–2025): porcentaje de horas faltantes y reparto de esas horas según el largo del hueco al que pertenecen."
+h <- fread(paste0(E4, "errores/largo_huecos_horarios.csv"))
+w <- dcast(h, variable + pct_horas_faltantes ~ clase, value.var = "pct_de_las_faltantes")
+nom <- c(`PM2.5` = "PM2.5", TOUT = "Temperatura", RH = "Humedad relativa", SR = "Radiación solar", PRS = "Presión", viento_u = "Viento (u, v)")
+w <- w[match(names(nom), variable)]
+tabla(w[, .(Variable = nom[variable], `% faltante` = f1(pct_horas_faltantes), `1–3 h` = f1(`1-3 h`), `4–6 h` = f1(`4-6 h`),
+            `7–24 h` = f1(`7-24 h`), `1–7 días` = f1(`1-7 días`), `> 7 días` = f1(`> 7 días`))], c(25, 15, 12, 12, 12, 12, 12), c("l", rep("r", 6)))
+```
+
+## 4.2 Limpieza por reglas
+
+Cada hora de cada variable conserva una bandera que indica si es válida o por qué se anuló; no se elimina ninguna fila (@tbl-limpieza). Las reglas de consistencia espacial (D14) comparan cada lectura con la mediana de la red a la misma hora (Fiebrich et al., 2010). La regla D15 anula la radiación de todo un día si su media de madrugada supera 0.02 kW/m², y el viento que excede por mucho al de la red (Estévez et al., 2011); se agregó porque la exploración encontró radiación nocturna en NO2, SE3 y CE y vientos imposibles en SO2 y NE2. En total se invalidó el 0.7 % de los valores. Los extremos que pasan todas las reglas se conservan, porque pueden ser episodios reales. Excluimos 2020 del modelado, porque el viento cambió de nivel con la renovación de sensores de 2021 y por el confinamiento, y las estaciones NE3 y NO3, que casi no miden PM2.5. El detalle de cada regla está en el Anexo B.
+
+```{r}
+#| label: tbl-limpieza
+#| tbl-cap: "Reglas de limpieza horaria, en el orden en que se aplican, y horas anuladas en las 15 variables (2020–2025). Fuente: data/clean/README.md y tabla_informe_limpieza.csv."
+t <- fread("data/clean/tabla_informe_limpieza.csv")[variable != "viento_uv"]
+s <- function(col) miles(sum(t[[col]]))
+reglas <- data.table(
+  `Regla (bandera)` = c("Rango duro (F)", "Notas del PDF de SIMA (P)", "Saturación del sensor (L)", "Salto horario (S)", "PM2.5 > PM10 (R)",
+            "Racha de valores idénticos (K)", "Consistencia espacial, D14 (E)", "Radiación de madrugada, D15 (M)", "Viento contra la red, D15 (E)"),
+  Criterio = c("Fuera del rango de operación (contaminantes) o del fabricante (meteorología)", "Límites anuales que indica SIMA",
+               "|TOUT| ≥ 49.9 °C", "|ΔTOUT| > 10 °C o |ΔPRS| > 10 mm Hg en una hora", "Se anulan las dos",
+               "≥ 24 h iguales en contaminantes, TOUT, PRS y RH", "TOUT a > 10 °C o RH a > 40 pp de la mediana de la red (≥ 5 estaciones)",
+               "Media de SR entre 00 y 04 h > 0.02 kW/m²: se anula todo el día", "WSR > mediana de la red + 30 km/h; ≥ 3 horas anulan el día"),
+  `Horas anuladas` = c(s("invalidada_F_rango_n"), s("invalidada_P_nota_pdf_n"), s("invalidada_L_saturacion_n"), s("invalidada_S_salto_n"),
+                       s("invalidada_R_pm25_gt_pm10_n"), s("invalidada_K_racha24_n"), "450 TOUT y 4 120 RH", s("invalidada_M_sr_nocturna_n"), "4 426 horas de WSR"))
+tabla(reglas, c(30, 52, 18), c("l", "l", "r"))
+```
+
+## 4.3 Imputación
+
+**Principio: la respuesta no se imputa (D18).** El PM2.5 diario se calcula solo con al menos 18 horas observadas, el criterio de suficiencia de la NOM-025-SSA1-2021. Imputar el PM2.5 crearía etiquetas de superación que nadie midió, y atiende la advertencia de SIMA sobre los huecos largos en Juárez y Santa Catarina. El costo es perder 526 estación-días con respuesta válida frente a la etapa 3.
+
+**Imputación horaria de la meteorología (D19).** Usamos los métodos de la fuente principal del curso, el paquete imputeTS (Moritz & Bartz-Beielstein, 2017): interpolación lineal, spline y de Stineman, media móvil exponencial, filtro de Kalman, descomposición estacional y LOCF como piso. Los elegimos por enmascaramiento solo en 2021–2023: en tramos completos borramos bloques de 1 a 24 h que sí conocemos, los imputamos con cada método y medimos el error del **promedio diario**, que es lo que entra al modelo (@fig-imputacion). La regla, fijada antes de ver los resultados y corregida antes de cerrar las decisiones (registro de cambios de la fase A), descalifica los métodos cuyas imputaciones revierte la revalidación en más de 5 %. Exige además un error diario de a lo más el 10 % de la desviación de la anomalía de cada variable. La @tbl-imputacion resume el resultado. No usamos imputación por vecinos cercanos (KNN).
+
+![Error (RMSE) del promedio diario según el método de imputación y el largo del hueco borrado, en tramos completos de 2021–2023 (13 estaciones, 5 repeticiones, 2 730 series por método). Escalas logarítmicas; la línea punteada es el umbral de error tolerado. PM2.5 solo como diagnóstico.](../output/etapa4/imputacion/rmse_por_metodo_y_hueco.png){#fig-imputacion width="5.2in"}
+
+La @fig-imputacion muestra que en huecos de 1 a 3 h la interpolación lineal, Stineman y Kalman casi empatan, mientras que en huecos de 6 a 24 h la descomposición estacional comete la mitad del error. En PM2.5, la interpolación aplana los picos: en huecos de 2 a 3 h subestima el máximo del hueco en 0.9 a 1.6 µg/m³, aunque el promedio diario casi no se mueve. Es otra razón para no imputar la respuesta.
+
+```{r}
+#| label: tbl-imputacion
+#| tbl-cap: "Imputación horaria de la meteorología elegida por enmascaramiento (2021–2023): método, hueco máximo imputado (maxgap), error medio de la interpolación lineal frente al ganador, porcentaje de imputaciones revertidas por la revalidación y horas imputadas en 2021–2025 (13 estaciones) frente a la etapa 3."
+e <- fread(paste0(E4, "imputacion/eleccion_metodo_horario.csv"))
+hi <- fread(paste0(E4, "imputacion/imputacion_horaria_v12_v2.csv"))
+nm <- c(linear = "Interpolación lineal", stine = "Interpolación de Stineman", kalman = "Kalman (StructTS)", seadec = "Descomposición estacional")
+var <- c(TOUT = "Temperatura", RH = "Humedad relativa", SR = "Radiación solar", PRS = "Presión", viento_u = "Viento u", viento_v = "Viento v")
+x <- merge(e, hi[, .(variable, imputadas_v12, imputadas_v2)], by = "variable")[match(names(var), variable)]
+tabla(x[, .(Variable = var[variable], Método = nm[metodo_elegido], `maxgap (h)` = maxgap_h,
+            `Error de la lineal frente al ganador` = paste0("+", f1(lineal_sobre_ganador_pct), " %"),
+            `% revertido` = f2(pct_reversion_elegido), `Horas imputadas (etapa 3 → etapa 4)` = paste(miles(imputadas_v12), "→", miles(imputadas_v2)))],
+      c(18, 24, 11, 16, 12, 19), c("l", "l", "r", "r", "r", "r"))
+```
+
+**Imputación diaria de la meteorología (D20).** Con la imputación horaria quedan días con una a cuatro de las ocho variables faltantes, sobre todo radiación y humedad. Para recuperarlos comparamos tres métodos en una validación por enmascaramiento con el patrón real de faltantes de 2021–2023. El primero es la mediana de las otras estaciones ese día, ajustada por la diferencia media de la estación, un método de efecto por sitio en la línea de Plaia y Bondì (2006). Los otros dos son MICE con *predictive mean matching* (van Buuren & Groothuis-Oudshoorn, 2011) y la media de estación × temporada. Ganó la mediana ajustada: RMSE relativo medio de 0.450, frente a 0.593 de MICE y 0.736 de la media; también ganó en temperatura y humedad, las que más faltan en 2024–2025. Se usa con una sola imputación, y MICE (m = 20) queda como sensibilidad. Ninguna imputación usa el PM2.5 ni la superación como predictor: usar la respuesta mejora el ajuste (Moons et al., 2006), pero en la prueba la introduciría en los predictores. La idea de aprovechar la red coincide con antecedentes que encontraron mejores imputaciones con información de estaciones vecinas (Quinteros et al., 2019; Belachsen & Broday, 2022) y suficiencia de métodos simples para promedios diarios (Hadeed et al., 2020).
+
+**Imputación de referencia del curso.** El curso recomienda como referencia de imputación con datos del SIMA el trabajo MIMA-v1 (Gómez et al., 2025; Gómez Santos et al., 2026), un modelo generativo (SAITS + CSDI) que reconstruye series horarias completas, incluidos los huecos largos. No se usó en el análisis por cuatro razones: (a) solicitamos acceso a su dataset imputado y no lo obtuvimos a tiempo; (b) su cobertura es de 9 estaciones hasta junio de 2025, sin Juárez (SE2), Cadereyta (SE3), SUR ni NE2; (c) imputa también el PM2.5, lo que crearía etiquetas de superación sin medición, y nuestro diseño no imputa la respuesta (D18); y (d) entrenarlo nosotros requiere su base limpia, con acceso autorizado, y su código no admite modificaciones sin autorización. Hay coincidencias con su trabajo: en su comparación de métodos clásicos, la interpolación lineal tuvo el menor error (MAE de 4.01) y la descartaron porque suaviza los picos. Nuestro enmascaramiento confirma ese suavizado en el PM2.5; por eso no imputamos la respuesta y elegimos el método horario de la meteorología con validación. De las fuentes del curso tomamos los métodos de imputeTS (Moritz & Bartz-Beielstein, 2017) y la validación por enmascaramiento.
+
+## 4.4 Transformaciones
+
+- **Agregado diario:** un valor diario existe con al menos 18 horas válidas de esa variable.
+- **Viento:** componentes *u* (este-oeste) y *v* (norte-sur) y rapidez, porque la dirección es circular.
+- **Lluvia:** horas con lluvia en el día, porque la unidad de la cantidad no está confirmada.
+- **Presión:** anomalía respecto de la media de su sitio en el entrenamiento (D17); separa la altitud (medias de 701 a 731 mm Hg) del efecto meteorológico.
+- **Escalado:** todas las variables se estandarizan con medias y desviaciones del entrenamiento.
+- **Sin logaritmos (D16):** en la validación progresiva, transformar la lluvia y el viento solo subió el AUC 0.003 y 0.007, y el logaritmo sobrecorregía la asimetría del viento (de +0.37 a −0.98).
+
+## 4.5 Muestra final
+
+De 23 738 estación-días posibles (13 estaciones × 1 826 días), 19 392 tienen respuesta válida y 15 011 tienen las ocho variables meteorológicas completas. La imputación diaria recupera 4 192 días con una a cuatro faltantes; no se imputan los 189 con cinco o más. Se excluyen del entrenamiento los 1 375 días previos a cada reubicación (D23), porque corresponden a otro sitio. El análisis final queda con **17 828 estación-días**: 10 965 de entrenamiento (2021–2023; 25.9 % de superación) y 6 863 de prueba (2024–2025; 26.2 %). Frente a la etapa 3 hay 2 438 días más, sobre todo en García (NO2: de 511 a 1 532), donde faltaba la radiación, y en Escobedo (NTE: de 597 a 1 373), donde faltaba la humedad (Anexo C).
+
+# 5. Modelación y validación
+
+## 5.1 Ruta de análisis
+
+La @tbl-ruta vincula cada técnica con la pregunta que responde, las variables que usa y su respaldo bibliográfico.
+
+```{r}
+#| label: tbl-ruta
+#| tbl-cap: "Ruta de análisis: técnica, tipo, pregunta que responde, variables y justificación."
+ruta <- data.table(
+  Técnica = c("Componentes principales (PCA)", "Análisis discriminante lineal (LDA)", "Regresión logística",
+              "Bootstrap pareado por bloques", "Validación temporal progresiva"),
+  Tipo = c("Interdependencia", "Dependencia (principal)", "Dependencia (robustez)", "Inferencia del desempeño", "Validación"),
+  Pregunta = c("¿Cómo se estructura la correlación de la meteorología?", "¿Cuánto mejora M1 a M0 en la clasificación?",
+               "¿La conclusión depende de los supuestos del LDA?", "¿Qué tan incierta es la ΔAUC?", "¿La mejora se sostiene en años posteriores?"),
+  Variables = c("8 meteorológicas, como anomalías de su estación", "Indicadoras de estación y temporada; en M1, + 8 meteorológicas",
+                "Las mismas que el LDA", "Predicciones de la prueba, en bloques de 14 días con todas las estaciones", "Entrenar en años anteriores y evaluar en el siguiente"),
+  `Por qué es adecuada` = c("Resume variables correlacionadas en pocos ejes interpretables; describe, no predice",
+                            "Da una función lineal interpretable; con el mismo método y la misma partición, la diferencia M1 − M0 se atribuye a la meteorología",
+                            "Su logit es lineal como el del LDA, pero no supone normalidad ni covarianzas iguales",
+                            "Los episodios duran días y afectan a varias estaciones; remuestrear días sueltos subestimaría la incertidumbre",
+                            "Con datos ordenados en el tiempo, la validación aleatoria sobreestima el desempeño"),
+  Respaldo = c("Jolliffe y Cadima (2016); Wilks (2019)", "Johnson y Wichern (2007); James et al. (2021); Krzanowski (1975)",
+               "Efron (1975); James et al. (2021); Vélez-Pereira et al. (2025)", "Carlstein (1986); Künsch (1989); Wilks (2019)", "Roberts et al. (2017)"))
+tabla(ruta, c(15, 14, 16, 17, 22, 16))
+```
+
+## 5.2 Componentes principales
+
+El PCA se ajustó solo con el entrenamiento, sobre las anomalías de cada variable respecto de la media de su estación, para que los ejes describan la variación meteorológica y no las diferencias entre sitios. La adecuación es modesta pero suficiente para un uso exploratorio: KMO = 0.64, en el rango que Kaiser (1974) llama mediocre, y la prueba de Bartlett (1950) rechaza la esfericidad (χ² = 26 503, gl = 28, p < 0.001). Tres valores propios superan 1 (criterio de Kaiser, 1960) y explican el 66.5 % de la varianza. El PCA es exploratorio y no predictor: maximizar la varianza no maximiza la separación entre clases, y su primer eje mezcla variables que se asocian con la superación en sentidos contrarios (Sección 6.3). En la etapa 3, usar los tres componentes en lugar de las ocho variables dio una mejora menor (Anexo A). **El PCA resume la correlación entre variables, pero no elimina la autocorrelación temporal de los días.**
+
+## 5.3 LDA y el tratamiento de estación y temporada
+
+**Codificación.** Estación (13 niveles) y temporada (3) entran como variables indicadoras, k − 1 por factor, con categoría de referencia CE (Obispado) y temporada cálida-húmeda: 12 indicadoras de estación y 2 de temporada, estandarizadas con el entrenamiento como el resto de los predictores. **M0** usa solo esas 14 indicadoras. Su función discriminante asigna a cada día un puntaje que es la suma de un efecto de estación y uno de temporada, así que M0 da una misma probabilidad a todos los días de cada una de las 39 combinaciones estación × temporada: es la referencia de lo que ya se sabe sin el clima. **M1** agrega a las mismas indicadoras las ocho variables meteorológicas continuas (22 predictores).
+
+**Por qué es apropiado para los dos modelos.**
+
+1. Mismo método y misma partición: la diferencia M1 − M0 se atribuye a la meteorología y no al clasificador.
+2. El criterio de Fisher, que busca la combinación lineal que separa las medias de las clases en relación con la dispersión dentro de ellas, no requiere normalidad. La normalidad se necesita para que la regla y sus probabilidades sean óptimas (Johnson & Wichern, 2007).
+3. Con indicadoras, la normalidad multivariada no se cumple literalmente. Por eso el LDA se usa como clasificador lineal y no como modelo generativo bien especificado. Para predictores mixtos existe el modelo de localización (Krzanowski, 1975), que muestra que la función lineal suele funcionar bien salvo cuando hay interacción entre las variables discretas y las continuas.
+4. El logit de la probabilidad posterior del LDA es lineal en los predictores, igual que en la regresión logística, que no hace supuestos sobre su distribución. Bajo normalidad el LDA es más eficiente; fuera de ella, la logística es más robusta (Efron, 1975; James et al., 2021). Compararlos es una verificación empírica directa.
+
+**Prior y corte.** La probabilidad previa es la prevalencia del entrenamiento (0.259), y un día se clasifica como superación si su probabilidad posterior es al menos esa prevalencia. El corte se fijó antes de ver la prueba.
+
+## 5.4 Supuestos: qué se revisó, qué implica y qué no se puede concluir
+
+```{r}
+#| label: tbl-supuestos
+#| tbl-cap: "Supuestos del LDA revisados en el entrenamiento (n = 10 965) y en los errores de la prueba (n = 6 863), con su implicación y su tratamiento (base v2)."
+sup <- data.table(
+  Supuesto = c("Normalidad multivariada por clase", "Igualdad de covarianzas", "Independencia", "Multicolinealidad", "Homogeneidad de los errores"),
+  Diagnóstico = c("Mardia (1970), 8 meteorológicas; las indicadoras son discretas", "M de Box (1949) y razón de desviaciones por clase",
+                  "ACF del residuo dentro de cada estación; correlación entre estaciones el mismo día", "VIF y número de condición",
+                  "Varianza del residuo por temporada y estación (Brown-Forsythe); error observado frente al esperado"),
+  Resultado = c("No se cumple: asimetría χ² = 99 015 y 198 072 (gl = 120, p < 0.001); lluvia con asimetría de 7.6 y 19.9",
+                "No se cumple: χ² = 3 213 (gl = 36, p < 0.001); diferencia sobre todo en la lluvia (razón 0.40) y en v (0.78); en las demás, 0.85–1.05",
+                "No se cumple: ACF a 1 día de 0.42 en el residuo de M1 (0.50 en la respuesta); 0.36 entre estaciones",
+                "Baja: VIF máximo 2.28 (temperatura); número de condición 2.97",
+                "No se cumple: varianza de 0.086 (lluvias) a 0.205 (seca-cálida); F = 503; en el decil más alto el error es 1.34 veces el esperado"),
+  Implicación = c("La regla y las probabilidades no son óptimas", "La frontera óptima no sería lineal", "Los errores estándar usuales no valen",
+                  "Los coeficientes se pueden leer en conjunto", "Las probabilidades altas son demasiado confiadas"),
+  `Cómo se tomó en cuenta` = c("LDA como clasificador; logística como contraste (0.071)", "QDA como alternativa: no mejora (0.788 frente a 0.792)",
+                               "Bootstrap por bloques; estabilidad por bootstrap; sin valores p", "Presión como anomalía; interpretación conjunta",
+                               "Probabilidades como puntajes; recalibración y cortes por estación como recomendación"))
+tabla(sup, c(16, 20, 26, 17, 21))
+```
+
+La @tbl-supuestos muestra que el LDA no cumple sus supuestos distribucionales, y conviene precisar qué hace cada herramienta. El bootstrap por bloques estima la incertidumbre del **desempeño** respetando grupos de fechas, pero no vuelve independientes los datos con los que se ajusta el LDA: por eso no reportamos valores p de los coeficientes. El PCA controla la correlación entre variables, no la autocorrelación. La validación temporal mide cómo clasifica el modelo en años posteriores, aunque 2024–2025 ya se habían usado en una prueba de viabilidad preliminar (4 de octubre), en la evaluación de la etapa 3 y en la de la etapa 4. Las decisiones de cada etapa se cerraron sin verlos, y la mejora coincide con la de la validación progresiva dentro del entrenamiento (Sección 5.6), pero esa prueba ya no es completamente nueva y lo declaramos. Por todo esto, la evidencia que presentamos es empírica: validación temporal, comparación con la logística y estabilidad de los coeficientes. No interpretamos la función discriminante como un modelo generativo.
+
+## 5.5 Análisis de los errores
+
+Con las predicciones de la prueba calculamos el residuo de cada día (superación observada menos probabilidad) y su autocorrelación dentro de cada estación (@fig-acf).
+
+![Autocorrelación promedio entre estaciones de la respuesta y de los residuos de M0 y M1, a rezagos de 1 a 14 días, dentro de cada estación (prueba 2024–2025, n = 6 863).](../output/etapa4/errores/acf_respuesta_y_residuos.png){#fig-acf width="3.9in"}
+
+La @fig-acf muestra que agregar la meteorología reduce poco la dependencia. La autocorrelación a un día baja de 0.50 en la respuesta a 0.44 con M0 y a 0.42 con M1, y la correlación entre estaciones el mismo día baja de 0.48 a 0.36. **El modelo no absorbe toda la dependencia**, y esa es la razón del bootstrap por bloques y del límite a la interpretación. La varianza de los errores también difiere entre temporadas y estaciones, y la calibración es imperfecta: la pendiente de la recalibración es 0.82, cuando el ideal es 1, y en todas las temporadas queda entre 0.69 y 0.76 (Anexo C). Las probabilidades deben leerse como puntajes.
+
+## 5.6 Validación
+
+La métrica principal es el AUC en la prueba: la probabilidad de que un día con superación reciba un puntaje mayor que uno sin superación. No es un porcentaje de aciertos (Fawcett, 2006). La complementan la exactitud balanceada, la sensibilidad, la especificidad, el puntaje de Brier (Brier, 1950) y la calibración. El intervalo de ΔAUC sale de un bootstrap pareado por bloques de 14 días consecutivos con todas las estaciones (1 000 réplicas; Carlstein, 1986; Künsch, 1989). Un episodio de partículas afecta a varias estaciones y dura varios días, así que remuestrear días sueltos subestimaría la incertidumbre; a 14 días de rezago la autocorrelación del residuo de M1 ya baja a 0.12 (@fig-acf), y se reportan bloques de 7 y 28 días como sensibilidad. En la validación progresiva con la base final, la mejora fue de 0.074 al validar 2022 y de 0.083 al validar 2023, del mismo orden que en la prueba. La @tbl-puente explica cómo pasamos de la etapa 3 a la etapa 4: cada paso cambia una sola cosa.
+
+```{r}
+#| label: tbl-puente
+#| tbl-cap: "Tabla puente de la etapa 3 (datos-v1.2) al análisis final de la etapa 4 (base v2): tamaño de entrenamiento y de prueba, porcentaje de superación en la prueba, AUC de M0 y M1 y ΔAUC con IC 95 % (bootstrap por bloques de 14 días, 1 000 réplicas)."
+p <- fread(paste0(E4, "tabla_puente.csv"))
+p[, cambio := c("Etapa 3 (datos-v1.2)", "+ respuesta solo con horas observadas (D18)", "+ imputación horaria de la meteorología (D19)",
+                "+ imputación diaria con la mediana de la red ajustada (D20)", "+ entrenamiento sin días previos a la reubicación (D23) = análisis final")]
+tabla(p[, .(Paso = paso, Cambio = cambio, `n entrenamiento / prueba` = paste(miles(n_entrena), "/", miles(n_prueba)),
+            `% superación` = f1(pct_superacion_prueba), `AUC M0` = f3(auc_M0), `AUC M1` = f3(auc_M1), `ΔAUC [IC 95 %]` = paste(f3(d_auc), ic(d_auc_li, d_auc_ls)))],
+      c(6, 31, 17, 11, 8, 8, 19), c("c", "l", "r", "r", "r", "r", "r"))
+```
+
+El paso 0 reproduce exactamente la etapa 3. No imputar la respuesta y cambiar la imputación horaria casi no mueve la mejora (0.074); recuperar días con la imputación diaria la sube a 0.081, porque M0 clasifica peor en la muestra ampliada, y quitar los días previos a las reubicaciones la deja en 0.079.
+
+## 5.7 Técnicas no exitosas o no adoptadas
+
+El Anexo A resume, con su resultado, las técnicas probadas o consideradas que no se adoptaron: conglomerados (etapa 1), componentes principales como predictores (ΔAUC 0.064), interacción estación × temporada (0.056), logaritmos, QDA (AUC 0.788 frente a 0.792), MICE (sensibilidad, 0.078), MIMA-v1 y vecinos cercanos. Ninguna cambió la conclusión.
+
+# 6. Resultados
+
+## 6.1 Desempeño de M0 y M1
+
+```{r}
+#| label: tbl-metricas
+#| tbl-cap: "Desempeño en la prueba 2024–2025 (análisis final, n = 6 863; 26.2 % de superación; corte 0.259). IC 95 % por bootstrap pareado por bloques de 14 días."
+mt <- fread(paste0(E4, "prueba_v2_metricas_m0_m1.csv")); sn <- fread(paste0(E4, "prueba_v2_sensibilidades.csv"))[1]
+cols <- c("auc", "exactitud_balanceada", "sensibilidad", "especificidad", "brier")
+v0 <- unlist(mt[modelo == "M0", ..cols]); v1 <- unlist(mt[modelo == "M1", ..cols])
+tabla(data.table(Métrica = c("AUC", "Exactitud balanceada", "Sensibilidad", "Especificidad", "Puntaje de Brier"),
+                 `M0 (estación + temporada)` = f3(v0), `M1 (+ meteorología)` = f3(v1), `M1 − M0` = f3(v1 - v0),
+                 `IC 95 % de la diferencia` = c(ic(sn$d_auc_li, sn$d_auc_ls), ic(sn$d_eb_li, sn$d_eb_ls), "—", "—", "—")), c(26, 20, 18, 14, 22), c("l", "r", "r", "r", "r"))
+```
+
+Saber qué estación y qué temporada son ya separa buena parte de los días con superación (AUC 0.713). La meteorología del día añade una mejora clara: el AUC sube a 0.792 y el intervalo de ΔAUC no incluye el cero (@tbl-metricas). En la práctica, M1 detecta el 74 % de los días con superación, contra el 56 % de M0, a cambio de una pequeña pérdida de especificidad (de 0.70 a 0.68); el Brier también baja. La curva ROC de M1 queda por encima de la de M0 en casi todo el rango (@fig-roc, panel a).
+
+![(a) Curvas ROC de M0 y M1 y (b) ΔAUC en total, por temporada y por año, con IC 95 % por bootstrap pareado por bloques de 14 días (prueba 2024–2025, análisis final, n = 6 863).](../output/etapa4/figuras/roc_y_dauc_informe.png){#fig-roc width="6.3in"}
+
+**Por temporada (@fig-roc, panel b).** La mejora es mayor en seca-cálida, de marzo a mayo (ΔAUC 0.151 [0.102, 0.193]), cuando el riesgo varía más de un día a otro y la temporada por sí sola dice poco. En seca-fría es de 0.069 [0.037, 0.100]. En la temporada de lluvias (0.039 [−0.018, 0.104]) no se distingue de cero: las superaciones son raras (9.7 %) y las variables disponibles no las distinguen. El orden entre temporadas es descriptivo. **Por año**, la mejora es de 0.069 [0.032, 0.106] en 2024 y de 0.088 [0.061, 0.124] en 2025, el año de los equipos nuevos de PM2.5.
+
+**Según la magnitud del PM2.5 (@fig-magnitud).** M1 marca como superación el 90 % de los días con más de 40 µg/m³ (M0: 81 %) y el 21 % de los días limpios, con menos de 15 µg/m³ (M0: 27 %). Mejora en los dos extremos; los errores se concentran cerca de 25 µg/m³, donde unos pocos µg/m³ cambian la clase.
+
+![Porcentaje de estación-días clasificados como superación según el PM2.5 observado, para M0 y M1 (prueba 2024–2025, n = 6 863). Por debajo de 25 µg/m³ son falsas alarmas y por encima, detecciones.](../output/etapa4/errores/errores_magnitud_pm25.png){#fig-magnitud width="4.0in"}
+
+## 6.2 Estructura de la meteorología (PCA)
+
+La @fig-pca muestra las cargas de los tres componentes. El primero (36 %) es un **día cálido, soleado y ventilado**, con temperatura, radiación y rapidez del viento positivas, y presión y *u* negativas (más flujo del este). El segundo (17 %) es un **día húmedo y lluvioso**, con humedad, lluvia y *v* positivas y *u* negativa. El tercero (13 %) es un **día de presión baja y poco viento**.
+
+![Cargas de los tres primeros componentes principales (anomalías por estación; entrenamiento 2021–2023 del análisis final, n = 10 965). Entre paréntesis, el porcentaje de varianza explicada.](../output/etapa4/pca/pca_v2_cargas.png){#fig-pca width="3.2in"}
+
+## 6.3 Coeficientes del LDA
+
+Solo interpretamos los coeficientes cuyo signo se mantiene en al menos el 95 % de 1 000 réplicas del bootstrap por bloques en el entrenamiento (@fig-coef; Rencher, 1992). Con signo estable, y condicional a las demás variables, la superación se asocia con **menor rapidez del viento** (−0.50 [−0.63, −0.35]), **presión más baja de lo normal para el sitio** (−0.46 [−0.57, −0.30]) y **mayor temperatura** (0.44 [0.16, 0.70]), y en menor medida con menos radiación y menos horas de lluvia. La temperatura tiene una correlación de estructura casi nula (−0.07): por sí sola no separa las clases, porque los días fríos son los de la temporada con más superaciones, pero dentro de cada temporada los días más cálidos tienen más. Por eso el primer componente, que junta temperatura y viento, mezcla efectos opuestos. Las ocho variables meteorológicas tienen el mismo signo en el LDA y en la logística, y las cinco de signo estable lo conservan en los pliegues que validan 2022 y 2023. **No interpretamos la humedad ni las componentes *u* y *v*,** cuyo signo no es estable, ni ordenamos las variables por el tamaño de su coeficiente.
+
+![Coeficientes estandarizados de M1 e IC 95 % por bootstrap por bloques de 14 días en el entrenamiento (1 000 réplicas, n = 10 965). En color, los de signo estable. Las indicadoras de estación están en el Anexo C.](../output/etapa4/lda/coeficientes_ic_meteorologia.png){#fig-coef width="5.0in"}
+
+## 6.4 Robustez y sensibilidades
+
+```{r}
+#| label: tbl-robustez
+#| tbl-cap: "ΔAUC (M1 − M0) en la prueba 2024–2025 según el análisis, con IC 95 % por bootstrap por bloques de 14 días salvo que se indique. Las tres últimas filas son sensibilidades posteriores a la evaluación."
+s <- fread(paste0(E4, "prueba_v2_sensibilidades.csv")); sp <- fread(paste0(E4, "sensibilidades_posteriores/sensibilidades_posteriores.csv"))[-1]
+nom_s <- c("Análisis final (LDA)", "Regresión logística", "Bloques de 7 días", "Bloques de 28 días", "MICE (m = 20; 4 000 réplicas)",
+           "Imputación diaria solo con ≤ 2 faltantes", "Respuesta con PM2.5 interpolado ≤ 3 h", "Sin imputación diaria (casos completos)")
+s[, analisis := nom_s]
+sp[, analisis := c("Radiación imputada truncada en 0", "Reubicaciones según SIMA", "Sin la estación NO2")]
+r <- rbind(s, sp, fill = TRUE)
+r[is.na(n_entrena), n_entrena := s$n_entrena[1]]
+tabla(r[, .(Análisis = analisis, `n entrenamiento` = miles(n_entrena), `n prueba` = miles(n), `AUC M0` = f3(auc_M0), `AUC M1` = f3(auc_M1),
+            `ΔAUC [IC 95 %]` = paste(f3(d_auc), ic(d_auc_li, d_auc_ls)))], c(36, 13, 11, 9, 9, 22), c("l", "r", "r", "r", "r", "r"))
+```
+
+La mejora se mantiene entre 0.071 y 0.082 en todas las variantes, y ningún intervalo incluye el cero (@tbl-robustez). La logística da una mejora algo menor (0.071) con la misma conclusión. MICE da prácticamente lo mismo que la mediana ajustada, de modo que el resultado no depende del método de imputación diaria. Las tres sensibilidades posteriores responden a la retroalimentación de SIMA: radiación no negativa, la lista de reubicaciones de SIMA y quitar la estación con el PM2.5 anómalo. No se pudo agregar la comparación con la imputación MIMA-v1 (Sección 4.3).
+
+# 7. Discusión y conclusiones
+
+**Hallazgos.** La meteorología observada del día añade información a la clasificación de los días con PM2.5 mayor de 25 µg/m³, sobre lo que ya se sabe por la estación y la temporada: el AUC pasa de 0.71 a 0.79 y la detección de superaciones de 56 % a 74 %. La mejora se concentra de marzo a mayo, M1 detecta más superaciones en todos los niveles de PM2.5 y la mejora es estable en dos años de prueba, en la validación progresiva y en todas las variantes analizadas. Las superaciones se asocian con viento débil, presión más baja de lo normal y, dentro de cada temporada, mayor temperatura. Es coherente con la acumulación de partículas con poca ventilación documentada en la ZMM (Martínez-Cinco et al., 2016) y con la persistencia de los episodios en la temporada seca (Hernández-Romero et al., 2026). La combinación de presión baja y temperatura alta sugiere situaciones previas al paso de frentes, una hipótesis por verificar con datos sinópticos. Como en Vélez-Pereira et al. (2025), un clasificador lineal simple separa buena parte de los días con material particulado alto.
+
+```{r}
+#| label: tbl-concluir
+#| tbl-cap: "Qué permite concluir el LDA de este estudio y qué no."
+tabla(data.table(
+  `Sí se puede concluir` = c("Que una combinación lineal de estación, temporada y meteorología separa los días con y sin superación fuera de muestra (AUC 0.792 en 2024–2025)",
+                             "Cuánto añade la meteorología sobre estación y temporada: ΔAUC 0.079 [0.054, 0.104], con la misma partición y las mismas observaciones",
+                             "La dirección de la asociación condicional de las cinco variables de signo estable: viento, presión, temperatura, radiación y lluvia",
+                             "Que la mejora es mayor de marzo a mayo y no se distingue de cero en lluvias (descriptivo)"),
+  `No se puede concluir` = c("Causas: es un estudio observacional y el modelo encuentra asociaciones",
+                             "Qué variable es más importante por el tamaño de su coeficiente, ni la significancia de cada coeficiente (los datos son dependientes)",
+                             "Probabilidades exactas: no están calibradas (pendiente 0.82)",
+                             "Capacidad de pronóstico: usa meteorología observada del mismo día")), c(50, 50))
+```
+
+**Limitaciones.** (1) Es retrospectivo: para una alerta se necesita meteorología pronosticada, cuyo error reduciría la mejora. (2) La prueba 2024–2025 ya se había usado en etapas anteriores (Sección 5.4). (3) Hay dependencia entre días y estaciones que el modelo no absorbe; se trató con el bootstrap por bloques, pero impide interpretar errores estándar. (4) La muestra no es aleatoria: depende de qué estaciones y días tienen respuesta medida. (5) Hubo cambios de equipos y reubicaciones, y una anomalía del PM2.5 de NO2; las sensibilidades no cambian la conclusión, pero faltan fechas confirmadas. (6) No hay altura de capa de mezcla ni información de emisiones. (7) Las probabilidades no están calibradas y el corte es único para toda la red (Anexo C).
+
+**Recomendaciones para SIMA, por prioridad.**
+
+1. Evaluar el modelo con meteorología pronosticada, con su área de pronósticos.
+2. Incorporar a su control de calidad las reglas de radiación de madrugada y de viento contra la red.
+3. Revisar los sensores de radiación de NO2 y NTE y el equipo de PM2.5 de NO2 entre 2023 y 2025.
+4. Definir cortes por estación y recalibrar las probabilidades antes de comunicarlas.
+5. Hacer un análisis horario de transporte en Santa Catarina (SO) y Juárez (SE2).
+
+**Preguntas nuevas.** ¿Se sostiene la mejora con meteorología pronosticada? ¿Qué aporta la persistencia, es decir, el PM2.5 del día anterior? ¿En Santa Catarina dominan el transporte desde la ciudad o la acumulación local? ¿Qué papel tienen la fracción gruesa y la resuspensión en Juárez? ¿Cuál fue el efecto de la política ambiental antes y después de 2022 y el de la pandemia? ¿Hay grupos de estaciones con una sensibilidad meteorológica parecida? ¿Cambia la mejora si se usa la reconstrucción completa de MIMA-v1, incluidos los huecos largos?
+
+# Referencias
+
+::: {custom-style="Referencia"}
+
+Aguirre-López, M. A., Rodríguez-González, M. A., Soto-Villalobos, R., Gómez-Sánchez, L. E., Benavides-Ríos, Á. G., Benavides-Bravo, F. G., Walle-García, O., & Pamanés-Aguilar, M. G. (2022). Statistical analysis of PM10 concentration in the Monterrey Metropolitan Area, Mexico (2010–2018). *Atmosphere, 13*(2), 297. https://doi.org/10.3390/atmos13020297
+
+Bartlett, M. S. (1950). Tests of significance in factor analysis. *British Journal of Statistical Psychology, 3*(2), 77–85. https://doi.org/10.1111/j.2044-8317.1950.tb00285.x
+
+Belachsen, I., & Broday, D. M. (2022). Imputation of missing PM2.5 observations in a network of air quality monitoring stations by a new kNN method. *Atmosphere, 13*(11), 1934. https://doi.org/10.3390/atmos13111934
+
+Box, G. E. P. (1949). A general distribution theory for a class of likelihood criteria. *Biometrika, 36*(3/4), 317–346. https://doi.org/10.1093/biomet/36.3-4.317
+
+Brier, G. W. (1950). Verification of forecasts expressed in terms of probability. *Monthly Weather Review, 78*(1), 1–3. https://doi.org/10.1175/1520-0493(1950)078<0001:VOFEIT>2.0.CO;2
+
+Carlstein, E. (1986). The use of subseries values for estimating the variance of a general statistic from a stationary sequence. *The Annals of Statistics, 14*(3), 1171–1179. https://doi.org/10.1214/aos/1176350057
+
+Efron, B. (1975). The efficiency of logistic regression compared to normal discriminant analysis. *Journal of the American Statistical Association, 70*(352), 892–898. https://doi.org/10.1080/01621459.1975.10480319
+
+Estévez, J., Gavilán, P., & Giráldez, J. V. (2011). Guidelines on validation procedures for meteorological data from automatic weather stations. *Journal of Hydrology, 402*(1–2), 144–154. https://doi.org/10.1016/j.jhydrol.2011.02.031
+
+Fawcett, T. (2006). An introduction to ROC analysis. *Pattern Recognition Letters, 27*(8), 861–874. https://doi.org/10.1016/j.patrec.2005.10.010
+
+Fiebrich, C. A., Morgan, C. R., McCombs, A. G., Hall, P. K., & McPherson, R. A. (2010). Quality assurance procedures for mesoscale meteorological data. *Journal of Atmospheric and Oceanic Technology, 27*(10), 1565–1582. https://doi.org/10.1175/2010JTECHA1433.1
+
+Gobierno del Estado de Nuevo León. (2024, 7 de marzo). *Busca Estado ganar atribuciones para sancionar a Refinería* [Boletín].
+
+Gómez, E., Sánchez, M., Medina, J., Montibeller, L., & Pérez, S. (2025). *MIMA-v1: Modelo de imputación para monitoreo ambiental* [Proyecto final del curso, no publicado]. Tecnológico de Monterrey.
+
+Gómez Santos, J. E., Sánchez Rodríguez, M., Medina García, J. E., Pérez Almazán, S., Montibeller González, J. L., Ruiz Hernández, B. R., & Gómez Muñoz, R. (2026). *A hybrid transformer-diffusion architecture for multivariate air quality data imputation* [Ponencia]. XVIII Congreso Mexicano de Inteligencia Artificial (COMIA 2026), Cuernavaca, México.
+
+Hadeed, S. J., O'Rourke, M. K., Burgess, J. L., Harris, R. B., & Canales, R. A. (2020). Imputation methods for addressing missing data in short-term monitoring of air pollutants. *Science of the Total Environment, 730*, 139140. https://doi.org/10.1016/j.scitotenv.2020.139140
+
+Hernández-Romero, K., Hernández-Romero, I. M., Mendoza, A., Pérez-Rodríguez, M., Barajas-Villarruel, L. R., Medellín-Carrillo, S., & González, L. T. (2026). Persistent air pollution regimes and regulatory exceedances of PM10, PM2.5, and O3 in the Monterrey Metropolitan Area, Mexico. *City and Environment Interactions, 31*, 100410. https://doi.org/10.1016/j.cacint.2026.100410
+
+James, G., Witten, D., Hastie, T., & Tibshirani, R. (2021). *An introduction to statistical learning: With applications in R* (2nd ed.). Springer. https://doi.org/10.1007/978-1-0716-1418-1
+
+Johnson, R. A., & Wichern, D. W. (2007). *Applied multivariate statistical analysis* (6th ed.). Pearson.
+
+Jolliffe, I. T., & Cadima, J. (2016). Principal component analysis: A review and recent developments. *Philosophical Transactions of the Royal Society A, 374*(2065), 20150202. https://doi.org/10.1098/rsta.2015.0202
+
+Kaiser, H. F. (1960). The application of electronic computers to factor analysis. *Educational and Psychological Measurement, 20*(1), 141–151. https://doi.org/10.1177/001316446002000116
+
+Kaiser, H. F. (1974). An index of factorial simplicity. *Psychometrika, 39*(1), 31–36. https://doi.org/10.1007/BF02291575
+
+Krzanowski, W. J. (1975). Discrimination and classification using both binary and continuous variables. *Journal of the American Statistical Association, 70*(352), 782–790. https://doi.org/10.1080/01621459.1975.10480303
+
+Künsch, H. R. (1989). The jackknife and the bootstrap for general stationary observations. *The Annals of Statistics, 17*(3), 1217–1241. https://doi.org/10.1214/aos/1176347265
+
+Mardia, K. V. (1970). Measures of multivariate skewness and kurtosis with applications. *Biometrika, 57*(3), 519–530. https://doi.org/10.1093/biomet/57.3.519
+
+Martínez-Cinco, M. A., Santos-Guzmán, J., & Mejía-Velázquez, G. M. (2016). Source apportionment of PM2.5 for supporting control strategies in the Monterrey Metropolitan Area, Mexico. *Journal of the Air & Waste Management Association, 66*(6), 631–642. https://doi.org/10.1080/10962247.2016.1159259
+
+Moons, K. G. M., Donders, A. R. T., Stijnen, T., & Harrell, F. E. (2006). Using the outcome for imputation of missing predictor values was preferred. *Journal of Clinical Epidemiology, 59*(10), 1092–1101. https://doi.org/10.1016/j.jclinepi.2006.01.009
+
+Moritz, S., & Bartz-Beielstein, T. (2017). imputeTS: Time series missing value imputation in R. *The R Journal, 9*(1), 207–218. https://doi.org/10.32614/RJ-2017-009
+
+Orellano, P., Reynoso, J., Quaranta, N., Bardach, A., & Ciapponi, A. (2020). Short-term exposure to particulate matter (PM10 and PM2.5), nitrogen dioxide (NO2), and ozone (O3) and all-cause and cause-specific mortality: Systematic review and meta-analysis. *Environment International, 142*, 105876. https://doi.org/10.1016/j.envint.2020.105876
+
+Plaia, A., & Bondì, A. L. (2006). Single imputation method of missing values in environmental pollution data sets. *Atmospheric Environment, 40*(38), 7316–7330. https://doi.org/10.1016/j.atmosenv.2006.06.040
+
+Quinteros, M. E., Lu, S., Blazquez, C., Cárdenas-R, J. P., Ossa, X., Delgado-Saborit, J. M., Harrison, R. M., & Ruiz-Rudolph, P. (2019). Use of data imputation tools to reconstruct incomplete air quality datasets: A case-study in Temuco, Chile. *Atmospheric Environment, 200*, 40–49. https://doi.org/10.1016/j.atmosenv.2018.11.053
+
+Ramírez-Velarde, R., Esquivel-Flores, O., & Mejía-Velázquez, G. (2024). Forecasting air pollution contingencies using predictive analytic techniques. *Atmosphere, 15*(11), 1271. https://doi.org/10.3390/atmos15111271
+
+Rencher, A. C. (1992). Interpretation of canonical discriminant functions, canonical variates, and principal components. *The American Statistician, 46*(3), 217–225. https://doi.org/10.1080/00031305.1992.10475889
+
+Roberts, D. R., Bahn, V., Ciuti, S., Boyce, M. S., Elith, J., Guillera-Arroita, G., Hauenstein, S., Lahoz-Monfort, J. J., Schröder, B., Thuiller, W., Warton, D. I., Wintle, B. A., Hartig, F., & Dormann, C. F. (2017). Cross-validation strategies for data with temporal, spatial, hierarchical, or phylogenetic structure. *Ecography, 40*(8), 913–929. https://doi.org/10.1111/ecog.02881
+
+Schiavo, B., Morton-Bermea, O., Arredondo-Palacios, T. E., Meza-Figueroa, D., Robles-Morua, A., García-Martínez, R., Valera-Fernández, D., Inguaggiato, C., & Gonzalez-Grijalva, B. (2023). Analysis of COVID-19 lockdown effects on urban air quality: A case study of Monterrey, Mexico. *Sustainability, 15*(1), 642. https://doi.org/10.3390/su15010642
+
+Secretaría de Medio Ambiente del Estado de Nuevo León & Clean Air Institute. (2024). *Plan Integral de Gestión Estratégica de la Calidad del Aire 2023–2033 (PIGECA)*. Gobierno del Estado de Nuevo León. http://aire.nl.gob.mx/docs/reportes/PIGECA_2023_2033.pdf
+
+Secretaría de Salud. (2021, 27 de octubre). NOM-025-SSA1-2021, Salud ambiental. Criterio para evaluar la calidad del aire ambiente, con respecto a las partículas suspendidas PM10 y PM2.5. *Diario Oficial de la Federación*.
+
+Sistema Integral de Monitoreo Ambiental [SIMA]. (2026, 14 de agosto). *Red de monitoreo y manejo de datos de calidad del aire* [Presentación de diapositivas]. Gobierno de Nuevo León.
+
+van Buuren, S., & Groothuis-Oudshoorn, K. (2011). mice: Multivariate imputation by chained equations in R. *Journal of Statistical Software, 45*(3), 1–67. https://doi.org/10.18637/jss.v045.i03
+
+Vélez-Pereira, A. M., Núñez-Magaña, N., Barreau, D., Bremer, K., & O'Connor, D. J. (2025). Simplifying air quality forecasting: Logistic regression for predicting particulate matter in Chile. *Atmosphere, 16*(12), 1377. https://doi.org/10.3390/atmos16121377
+
+Wilks, D. S. (2019). *Statistical methods in the atmospheric sciences* (4th ed.). Elsevier.
+
+World Health Organization. (2021). *WHO global air quality guidelines: Particulate matter (PM2.5 and PM10), ozone, nitrogen dioxide, sulfur dioxide and carbon monoxide*. https://www.who.int/publications/i/item/9789240034228
+
+:::
+
+# Liga al código y organización
+
+**Repositorio:** https://github.com/Leo-issacs/reto-sima-multivariados (rama `analisis/etapa4`; decisiones cerradas en la etiqueta `etapa4-decisiones-cerradas`). El README explica la organización y el orden de ejecución.
+
+```{r}
+#| label: tbl-codigo
+#| tbl-cap: "Scripts del repositorio, en orden de ejecución, y sección del informe que alimentan."
+tabla(data.table(
+  Script = c("02_importar_diagnosticar.R", "03_limpiar.R, 04_validar_limpios.R, 05_probar_limpieza.R", "06_explorar_etapa2.R",
+             "07a, 07b, 07c", "08a_enmascaramiento_horario.R", "08b_construir_base_v2.R", "08c_enmascaramiento_diario.R, 08d_imputar_diario.R",
+             "09a_evaluar_prueba_v2.R", "09b_validar_lda.R", "09c_area_estudio_reubicaciones.R",
+             "09d_diagnostico_errores_v2.R, 09e_sensibilidades_posteriores.R", "09f_viento_pm_no2.R", "09g_pca_y_residuos_v2.R"),
+  `Qué hace` = c("Importa los 6 libros y diagnostica faltantes, rangos y consistencia", "Limpia por reglas, agrega a diario y valida y prueba la limpieza",
+                 "Construye y describe la muestra de la etapa 2", "Etapa 3: validación progresiva, evaluación única y diagnósticos",
+                 "Elige la imputación horaria por enmascaramiento", "Construye la base v2", "Valida y aplica la imputación diaria (y MICE)",
+                 "Evaluación única con v2, tabla puente y sensibilidades", "Estabilidad de coeficientes, logística, pliegues, QDA y calibración",
+                 "Superación por estación, reubicaciones y mapa", "Errores, supuestos y sensibilidades posteriores", "Viento, PM2.5/PM10 y NO2",
+                 "PCA v2, residuos, largo de los huecos, radiación por estación y figuras compactas"),
+  Sección = c("4.1", "4.2, Anexo B", "4.5", "5.6, 5.7, Anexo A", "4.3", "4.3, 4.5", "4.3", "5.6, 6", "5.4, 6.3, Anexo C", "3", "5.4, 5.5, 6.4", "3", "3, 4.1, 5.2, 6.1, 6.2")), c(40, 45, 15))
+```
+
+**Lenguajes.** R hace todo el análisis: limpieza, imputación, modelos, validaciones, figuras y la aplicación Shiny. Python solo se usó en la prueba de viabilidad del 4 de octubre y en verificaciones cruzadas; ningún resultado del informe depende de él. **Cómo correrlo:** `renv::restore()` instala las versiones de los paquetes. Los scripts 02 y 03 necesitan los Excel de SIMA (en `data/raw/` o en la carpeta de `SIMA_DATA_DIR`); de 06 en adelante todo corre solo con `data/clean/`, que está en el repositorio. Se comprobó desde un clon limpio. El dataset de MIMA-v1 no se usa ni se redistribuye (licencia CC BY-ND); está en el anexo de Gómez et al. (2025).
+
+{{< pagebreak >}}
+
+# Anexo A. Técnicas no exitosas o no adoptadas
+
+```{r}
+#| label: tbl-a-noexitosas
+#| tbl-cap: "Técnicas que se probaron o se consideraron y no se adoptaron, con su resultado y la razón."
+tabla(data.table(
+  Técnica = c("Conglomerados para regímenes multicontaminante (etapa 1)", "Componentes principales como predictores de M1",
+              "Interacción estación × temporada", "Transformaciones logarítmicas (lluvia y viento)", "QDA (regularizada y sin regularizar)",
+              "MICE para la imputación diaria", "Aprendizaje profundo para imputar (MIMA-v1)", "Imputación por vecinos cercanos (KNN)"),
+  `Qué se hizo` = c("Propuesta de la etapa 1: agrupar días por la combinación de seis contaminantes", "M1 con PC1–PC3 en lugar de las 8 variables (etapa 3)",
+                    "M0 y M1 con la interacción (etapa 3)", "Validación progresiva en 2021–2023 (etapa 3)", "Misma partición que el LDA (base v2)",
+                    "Enmascaramiento diario en 2021–2023 (base v2)", "Revisión del método y de sus condiciones de uso", "No se aplicó"),
+  Resultado = c("No se llegó a ajustar", "ΔAUC 0.064 [0.039, 0.090] frente a 0.070", "ΔAUC 0.056 [0.036, 0.076] frente a 0.070",
+                "AUC +0.003 y +0.007 en la validación", "AUC 0.788 frente a 0.792 (todos los predictores); 0.704–0.712 frente a 0.718 (solo meteorología)",
+                "RMSE relativo 0.593 frente a 0.450 de la mediana ajustada; como sensibilidad, ΔAUC 0.078", "Sin acceso al dataset imputado", "—"),
+  `Por qué no se adoptó` = c("La retroalimentación pidió acotar el problema; se reenfocó en el PM2.5",
+                             "Los componentes maximizan la varianza, no la separación, y mezclan efectos opuestos",
+                             "No cambia la conclusión y duplica los parámetros", "Mejora mínima; el logaritmo sobrecorregía la asimetría del viento",
+                             "Estima muchos más parámetros; ganar en supuestos no se tradujo en mejor clasificación",
+                             "Perdió en la validación; queda como sensibilidad",
+                             "Imputa la respuesta, no cubre SE2, SE3, SUR ni NE2 y su código no admite modificaciones (Sección 4.3)",
+                             "La profesora la señaló como inadecuada para estos datos")), c(22, 24, 27, 27))
+```
+
+# Anexo B. Reglas de limpieza y diccionario resumido
+
+Las reglas se aplican en el orden de la @tbl-limpieza, sobre los valores horarios observados y antes de imputar. Las horas anuladas por consistencia espacial, saturación o radiación de madrugada nunca se imputan. Todo valor imputado se revalida con las mismas reglas y, si incumple alguna, vuelve a faltante (bandera X); nunca se modifica un valor original válido. La consistencia espacial se repite hasta que ninguna lectura conservada incumple respecto de su propia mediana de la red, y sus umbrales se eligieron con la distribución de las desviaciones y un análisis de sensibilidad (8, 10 y 15 °C; 30, 40 y 50 puntos porcentuales). El detalle completo, con las cifras por estación, está en `data/clean/README.md`.
+
+```{r}
+#| label: tbl-b-diccionario
+#| tbl-cap: "Variables de la base diaria v2 que usa el modelo (data/clean/v2/diario_v2_imputado_2021_2025.csv)."
+tabla(data.table(
+  Variable = c("estacion, fecha, anio, temporada", "PM2.5", "supera_25", "TOUT, RH, SR, PRS", "viento_u, viento_v, viento_rapidez_ms", "horas_lluvia",
+               "imp_TOUT, imp_RH, … (una por variable)", "sitio_valido"),
+  Descripción = c("Clave del estación-día y temporada (seca-fría nov–feb, seca-cálida mar–may, cálida-húmeda jun–oct)",
+                  "Media diaria con ≥ 18 h observadas (µg/m³); no se imputa", "1 si PM2.5 > 25 µg/m³ (referencia fija)",
+                  "Media diaria de temperatura (°C), humedad (%), radiación (kW/m²) y presión (mm Hg)", "Componentes y rapidez media diaria del viento (m/s)",
+                  "Horas del día con lluvia (0–24)", "1 si la variable de ese día se imputó a nivel diario",
+                  "0 en los días previos a la reubicación de la estación (D23)")), c(35, 65))
+```
+
+# Anexo C. Diagnósticos complementarios
+
+```{r}
+#| label: tbl-c-errores-estacion
+#| tbl-cap: "Errores de M1 por estación en la prueba 2024–2025 (corte 0.259): días, porcentaje de superación, sensibilidad, especificidad y razón entre el error cuadrático observado y el esperado."
+ee <- fread(paste0(E4, "errores/errores_por_estacion.csv"))[modelo == "M1"]
+he <- fread(paste0(E4, "errores/heterogeneidad_por_estacion.csv"))
+x <- merge(ee, he[, .(estacion, razon)], by = "estacion")[order(-pct_superacion)]
+tabla(x[, .(Estación = estacion, Días = miles(n), `% superación` = f1(pct_superacion), Sensibilidad = f2(sensibilidad),
+            Especificidad = f2(especificidad), `Error observado / esperado` = f2(razon))], c(14, 12, 16, 16, 16, 26), c("l", rep("r", 5)))
+```
+
+La @tbl-c-errores-estacion muestra que, con un solo corte para toda la red, el modelo detecta casi todas las superaciones donde son frecuentes (SE2, SO) a costa de muchas falsas alarmas, y pierde muchas donde son raras (SUR, NO2) y en SO2. Es la razón de recomendar cortes por estación. El error supera al esperado sobre todo en SO2 (1.49) y SE3 (1.17).
+
+```{r}
+#| label: tbl-c-calibracion
+#| tbl-cap: "Calibración de M1 en la prueba 2024–2025: probabilidad media y frecuencia observada de superación por decil de probabilidad."
+cd <- fread(paste0(E4, "lda/calibracion_deciles.csv"))[modelo == "M1"][order(decil)]
+cal <- as.data.table(rbind(c("Probabilidad media", f2(cd$p_media)), c("Frecuencia observada", f2(cd$frecuencia_observada))))
+setnames(cal, c("Decil", as.character(cd$decil)))
+tabla(cal, c(28, rep(7.2, 10)), c("l", rep("r", 10)))
+```
+
+```{r}
+#| label: tbl-c-cal-temporada
+#| tbl-cap: "Recalibración de M1 por temporada en la prueba (regresión logística de la superación sobre el logit de la probabilidad; ideal: intercepto 0 y pendiente 1)."
+ct <- fread(paste0(E4, "errores/calibracion_m1_por_temporada.csv"))
+nt <- c(seca_fria = "Seca-fría (nov–feb)", seca_calida = "Seca-cálida (mar–may)", calida_humeda = "Lluvias (jun–oct)")
+tabla(ct[, .(Temporada = nt[temporada], Días = miles(n), `Probabilidad media` = f2(p_media), `Frecuencia observada` = f2(frecuencia_observada),
+             Intercepto = f2(intercepto), Pendiente = f2(pendiente))], c(28, 12, 15, 15, 15, 15), c("l", rep("r", 5)))
+```
+
+La @tbl-c-calibracion y la @tbl-c-cal-temporada muestran que las probabilidades de M1 ordenan bien los días (la frecuencia observada crece con el decil), pero son demasiado extremas: la pendiente de la recalibración es menor que 1 en las tres temporadas.
+
+```{r}
+#| label: tbl-c-dias
+#| tbl-cap: "Estación-días por año en el modelado: muestra de la etapa 3 (datos-v1.2) frente al análisis final de la etapa 4 (base v2)."
+d <- fread(paste0(E4, "imputacion/dias_por_estacion_anio_v12_v2.csv"))
+a <- d[, .(v12 = sum(v12_muestra), v2 = sum(v2_final)), by = anio]
+tabla(a[, .(Año = anio, `Etapa 3` = miles(v12), `Etapa 4` = miles(v2), Diferencia = miles(v2 - v12))], c(25, 25, 25, 25), c("c", "r", "r", "r"))
+```
+
+La @tbl-c-dias muestra que la base final gana días en todos los años salvo 2021, donde los días previos a las reubicaciones salen del entrenamiento (D23). La @fig-c-no2 respalda la pregunta para SIMA sobre el equipo de PM2.5 de NO2, y la @fig-c-coef completa la @fig-coef con las indicadoras de estación: SO es la única con un efecto estable mayor que el de CE (la referencia), y el de SE2 no se distingue del de CE.
+
+![PM2.5 y PM10 de NO2 (García) divididos entre la mediana de la red, por mes, 2021–2025. El PM2.5 baja a la mitad mientras el PM10 sigue en su nivel, lo que apunta a un problema del equipo de PM2.5.](../output/etapa4/descriptivos/no2_pm25_pm10_relativo.png){#fig-c-no2 width="5.5in"}
+
+![Coeficientes estandarizados de M1 con todas las indicadoras de estación, e IC 95 % por bootstrap por bloques de 14 días en el entrenamiento (1 000 réplicas).](../output/etapa4/lda/coeficientes_ic.png){#fig-c-coef width="5in"}
+
+{{< pagebreak >}}
+
+# Anexo D. Declaratoria de uso de IA (Opción B)
+
+- **Herramientas:** Claude (Anthropic): Claude Opus y Claude Code; ChatGPT y Codex (OpenAI).
+- **Uso realizado:**
+  - Claude Opus: planeación de cada etapa, búsqueda y verificación de literatura, decisiones de análisis propuestas, revisión de resultados y redacción de los informes.
+  - Claude Code: scripts de R de limpieza, imputación, modelos, validaciones y figuras (`scripts/02` a `09g`), aplicación Shiny, armado de este documento en Quarto y verificación de cifras y citas.
+  - Codex: revisión independiente del código y de las cifras, y edición de la redacción.
+  - Claude y ChatGPT, usados por integrantes del equipo: borradores de contexto de la etapa 1 y fichas de lectura, a partir de los PDF de las fuentes. [COMPLETAR: qué IA usó cada integrante en las etapas 3 y 4 y para qué].
+- **Secciones:** todo el informe y el código del repositorio.
+- **Validación realizada por los estudiantes:** [COMPLETAR].
+- Confirmamos que revisamos y verificamos el contenido final y asumimos la responsabilidad sobre él.
