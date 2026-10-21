@@ -38,7 +38,7 @@ Las fechas y los requisitos de cada entrega se ajustarán a lo que indiquen las 
 
 | Carpeta | Contenido |
 |---|---|
-| `R/` y `scripts/` | Funciones (`R/`) y pasos numerados del análisis (`scripts/02` a `09g`, en orden de ejecución); utilidades del informe final en `scripts/utilidades/`. |
+| `R/` y `scripts/` | Funciones (`R/`) y pasos numerados del análisis (`scripts/02` a `09h`, en orden de ejecución); utilidades del informe final en `scripts/utilidades/`. |
 | `data/` | Bases limpias publicables (`data/clean/`, con la base v2 en `data/clean/v2/`) e instrucciones para los Excel de SIMA (`data/raw/`, no se suben). |
 | `config/` | Diccionario de variables y rangos de operación y del fabricante que usa la limpieza. |
 | `quarto/` | Fuentes de los informes (etapas 1 y 2 e informe final) y plantillas de Word. |
@@ -64,10 +64,10 @@ Quarto escribe el borrador en `docs/quarto/`. `formato_docx.R` solo ajusta la pa
 
 ## Cómo reproducir
 
-**Orden completo:** 02 → 03 → 06 → 07a–c → 08a–d → 09a–g (desde la raíz del proyecto, con `renv::restore()` hecho).
+**Orden completo:** 02 → 03 → 06 → 07a–c → 08a–d → 09a–h (desde la raíz del proyecto, con `renv::restore()` hecho).
 
 - **Necesitan los Excel** (`BD 2020.xlsx` … `BD 2025.xlsx` en `data/raw/` o en la carpeta de `SIMA_DATA_DIR`): 01, 02 y 03, que generan `data/clean/` desde cero. El cuaderno de auditoría también los usa.
-- **Corren solo con `data/clean/`** (lo que está en el repositorio): 04, 05, 06, 06b, 07a–c, 08a–d y 09a–g. 08a usa los Excel solo para una comprobación opcional si `SIMA_DATA_DIR` está definido.
+- **Corren solo con `data/clean/`** (lo que está en el repositorio): 04, 05, 06, 06b, 07a–c, 08a–d y 09a–h. 08a usa los Excel solo para una comprobación opcional si `SIMA_DATA_DIR` está definido.
 - **Evaluaciones únicas de la prueba:** 07b (etapa 3) y 09a (etapa 4) dejan registro (`output/etapa3/registro_prueba.txt`, `output/etapa4/registro_prueba_v2.txt`) y no vuelven a correr sin `MOTIVO_RECORRIDA`. Ambos tienen un modo `ENSAYO=1` que no lee 2024–2025.
 
 **Lenguajes:** R para todo el análisis (limpieza, imputación, modelos, validaciones, figuras y app). Python solo se usó en la prueba de viabilidad del 4 de octubre (`docs/etapa2/prueba_viabilidad_2026-10-04.py`) y en verificaciones cruzadas: ningún resultado del informe depende de Python.
@@ -104,6 +104,7 @@ Etapas 3 y 4 (no necesitan los Excel):
 | 18 | `Rscript scripts/09e_sensibilidades_posteriores.R` | Etapa 4, fase D: sensibilidades posteriores a la prueba (SR ≥ 0, reubicaciones según SIMA, sin NO2), anotadas en el registro | `output/etapa4/sensibilidades_posteriores/` |
 | 19 | `Rscript scripts/09f_viento_pm_no2.R` | Etapa 4, fase D: viento por estación, cociente PM2.5/PM10, PM2.5 frente a la red (NO2) y boletín estatal | `output/etapa4/descriptivos/` |
 | 20 | `Rscript scripts/09g_pca_y_residuos_v2.R` | Informe final: PCA con el entrenamiento v2, varianza de los residuos, calibración por temporada, largo de los huecos, radiación por estación y figuras compactas. No ajusta modelos nuevos | `output/etapa4/pca/`, `output/etapa4/errores/`, `output/etapa4/figuras/roc_y_dauc_informe.png` |
+| 21 | `Rscript scripts/09h_figuras_informe.R` | Informe final: versión de las Figuras 1, 2 y 6 con etiquetas en español y tamaño para el ancho de página. Solo presentación: lee los CSV de 08a, 09c y 09g y no recalcula nada | `output/etapa4/figuras/` (`mapa_estaciones_informe.png`, `rmse_imputacion_informe.png`, `pca_cargas_informe.png`) |
 
 Decisiones de la etapa 4: [`docs/etapa4/decisiones_etapa4.md`](docs/etapa4/decisiones_etapa4.md); resumen: [`output/etapa4/RESUMEN_ETAPA4.md`](output/etapa4/RESUMEN_ETAPA4.md).
 

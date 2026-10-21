@@ -39,7 +39,7 @@ Convenciones: «análisis final» = paso 4 de la tabla puente (base v2, entrenam
 | Tabla 2: ΔAUC con reubicaciones de SIMA 0.081; sin NO2 0.082; SR ≥ 0 0.079 | 0.0807; 0.0820; 0.0790 | `E4/sensibilidades_posteriores/sensibilidades_posteriores.csv` |
 | Tabla 2: mejora por año 0.069 (2024) y 0.088 (2025) | — | `E4/prueba_v2_dauc_por_anio.csv` |
 | Tabla 2: nivel del viento cambia entre marzo y abril de 2021 | — | `output/etapa3/diagnostico/viento_mes_de_cambio_2021.csv`; `docs/etapa3/texto_etapa3_borrador.md` |
-| Tabla 2: PM2.5 de NO2 a la mitad con PM10 normal (enero–mayo de 2021; julio de 2023–enero de 2025) | — | `E4/descriptivos/periodos_pm25_bajo_con_pm10_normal.csv`, `E4/descriptivos/pm25_pm10_relativo_mensual.csv` |
+| Tabla 2: PM2.5 de NO2 a cerca de la mitad del nivel de la red con PM10 normal (enero–mayo de 2021; julio de 2023–enero de 2025) | mediana del PM2.5 relativo 0.55–0.61; PM10 0.93–1.11 | `E4/descriptivos/periodos_pm25_bajo_con_pm10_normal.csv`, `E4/descriptivos/pm25_pm10_relativo_mensual.csv` |
 | Tabla 2: SR media NO2 0.015 y NTE 0.041 kW/m²; demás 0.12–0.18 | 0.0149; 0.0413; 0.117–0.178 | `E4/descriptivos/sr_media_por_estacion.csv` (09g, bloque 7) |
 | Tabla 2: reubicaciones y fechas del PIGECA | — | SMA y CAI (2024), p. 91; fechas de corte en `scripts/08b_construir_base_v2.R` (`REUBICACION`) y `E4/area_estudio/prs_antes_despues_reubicacion.csv` |
 | Tabla 2: reubicaciones y equipos según SIMA | — | `docs/etapa4/retroalimentacion_final.md` (R2, R3) |
@@ -58,6 +58,8 @@ Convenciones: «análisis final» = paso 4 de la tabla puente (base v2, entrenam
 | Regla de descalificación (> 5 % de reversión) y umbral (0.10 × DE de la anomalía) | — | D19 en `docs/etapa4/decisiones_etapa4.md` (registro de cambios de la fase A) |
 | Tabla 5 (método, maxgap, lineal frente al ganador, % revertido, horas imputadas) | — | `E4/imputacion/eleccion_metodo_horario.csv` y `E4/imputacion/imputacion_horaria_v12_v2.csv` (se leen al renderizar) |
 | D20: RMSE relativo 0.450 / 0.593 / 0.736 | 0.4500; 0.5932; 0.7358 | `E4/imputacion/eleccion_metodo_diario.csv` |
+| D20: MICE con el promedio de sus 20 imputaciones, 0.436 (referencia; la regla registrada compara cada base imputada) | 0.4359 | `E4/imputacion/eleccion_metodo_diario.csv` (`referencia_rmse_rel_medio_mice_promedio_m`) |
+| D20: MICE como sensibilidad, ΔAUC 0.078 | 0.0784 | `E4/prueba_v2_sensibilidades.csv` (fila «MICE») |
 | D20: gana también en temperatura y humedad | — | `E4/imputacion/enmascaramiento_diario_ganador_por_variable.csv`; `E4/imputacion/RESUMEN_FASE_A.md` |
 | MICE con m = 20 | — | `scripts/08d_imputar_diario.R`; D20 en `docs/etapa4/decisiones_etapa4.md` |
 | Celdas imputadas a nivel diario (sobre todo SR y RH) | SR 1 970, RH 1 870 | `E4/imputacion/imputacion_diaria_conteo.csv` |
@@ -114,6 +116,7 @@ Convenciones: «análisis final» = paso 4 de la tabla puente (base v2, entrenam
 | Cifra | Valor | Fuente |
 |---|---|---|
 | Hallazgos y Tabla 11 | Repiten cifras ya trazadas arriba | — |
+| Hallazgos: el PM2.5 no tiene una periodicidad tan marcada como la del ozono | — | SIMA, comentario en la exposición de la etapa 3 (15 de octubre de 2026), citado como comunicación personal; `docs/etapa4/retroalimentacion_final.md` (R2) |
 | Anexo A (Tabla 13): 0.064 [0.039, 0.090]; 0.056 [0.036, 0.076]; frente a 0.070 | — | `output/etapa3/prueba_sensibilidades.csv` |
 | Anexo A: QDA, MICE, logaritmos | — | `E4/lda/qda_vs_lda.csv`; `E4/imputacion/eleccion_metodo_diario.csv`; `output/etapa3/validacion/seccion2_transformaciones.csv` |
 | Anexo B (Tabla 14) | Diccionario | `data/clean/v2/diario_v2_imputado_2021_2025.csv` (columnas) |
@@ -128,10 +131,12 @@ Convenciones: «análisis final» = paso 4 de la tabla puente (base v2, entrenam
 
 | Figura | Archivo | Script |
 |---|---|---|
-| 1. Mapa de estaciones | `E4/area_estudio/mapa_estaciones_altitud.png` | 09c |
-| 2. RMSE por método y hueco | `E4/imputacion/rmse_por_metodo_y_hueco.png` | 08a |
+| 1. Mapa de estaciones | `E4/figuras/mapa_estaciones_informe.png` | 09h (bloque 1), con `E4/area_estudio/mapa_estaciones_altitud.csv` de 09c |
+| 2. RMSE por método y hueco | `E4/figuras/rmse_imputacion_informe.png` | 09h (bloque 2), con `E4/imputacion/enmascaramiento_horario.csv` y `eleccion_metodo_horario.csv` de 08a |
 | 3. ACF de la respuesta y de los residuos | `E4/errores/acf_respuesta_y_residuos.png` | 09d |
 | 4. ROC y ΔAUC por temporada y año | `E4/figuras/roc_y_dauc_informe.png` | 09g (bloque 6) |
 | 5. Clasificación según la magnitud del PM2.5 | `E4/errores/errores_magnitud_pm25.png` | 09d |
-| 6. Cargas del PCA | `E4/pca/pca_v2_cargas.png` | 09g (bloque 1) |
+| 6. Cargas del PCA | `E4/figuras/pca_cargas_informe.png` | 09h (bloque 3), con `E4/pca/pca_v2_cargas.csv` y `pca_v2_valores_propios.csv` de 09g |
 | 7. Coeficientes de la meteorología | `E4/lda/coeficientes_ic_meteorologia.png` | 09g (bloque 5) |
+
+09h solo cambia la presentación de las Figuras 1, 2 y 6 (etiquetas en español y tamaño para el ancho de página): lee los CSV de 08a, 09c y 09g y no recalcula nada. Las figuras originales de esos scripts se conservan.
