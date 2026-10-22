@@ -160,3 +160,11 @@ Ninguno cambia una cifra del análisis.
 - **Salidas versionadas (380 archivos):** todos los CSV, PNG y datos coinciden en contenido con el commit. Solo difieren, como se espera, la fecha y el commit de cuatro `RESUMEN.md` (etapas 2, 3 y 4 y el diagnóstico de la etapa 3), los registros de la prueba de 07b y 09a (agregan esta corrida), los tiempos de cómputo de 08a (`tiempos_enmascaramiento_horario.csv`) y la fecha de creación dentro de `output/etapa3/modelo_final.rds` (`all.equal` sin ese campo: TRUE).
 - **09h del commit `9726021`:** en el mismo clon, las siete figuras del informe salen idénticas a las versionadas.
 - **Receta del Word en el clon:** `quarto render`, `scripts/utilidades/formato_docx.R` (con `zip` 3.0.2 de la biblioteca restaurada) y `scripts/utilidades/verificar_citas.R` terminan sin error; el Word resultante es idéntico al de la entrega salvo `docProps/core.xml` (fecha).
+
+## Reproducción de la fase F desde un clon limpio
+
+22 de octubre de 2026, Windows 11, R 4.6.1. Clon desde GitHub de la rama `analisis/etapa4-retro` en el commit `75ed765`, en una carpeta nueva, sin los Excel. `renv::restore()` dejó el proyecto consistente (incluido `mgcv` 1.9-4). No se repitieron 06–09h porque no cambiaron (su reproducción está en la sección anterior).
+
+- **`scripts/10_analisis_retro_final.R`:** terminó con código 0 en unos 13 minutos.
+- **Salidas (`output/etapa4/retro_final/`, 40 archivos):** todos los CSV y PNG coinciden con los versionados, byte a byte; `decisiones_entrenamiento.csv` sale idéntico. Solo cambia, como se espera, la hora de generación en `RESUMEN.md`. De los 439 archivos versionados del clon, ningún otro cambió.
+- **Informe en el clon:** `quarto render`, `formato_docx.R` y `verificar_citas.R` terminan sin error (44 referencias, 0 diferencias); el Word resultante es idéntico al de la entrega salvo `docProps/core.xml` (fecha).
