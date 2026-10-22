@@ -10,8 +10,9 @@ library(data.table)
 carpeta_datos <- Sys.getenv("SIMA_DATA_DIR", unset = "data/raw")
 dir.create("data/clean", showWarnings = FALSE)
 dir.create("output/diagnostico", recursive = TRUE, showWarnings = FALSE)
-escribir <- function(x, ruta) {
-  utils::write.csv(x, ruta, row.names = FALSE, na = "", fileEncoding = "UTF-8")
+escribir <- function(x, ruta) {   # conexion binaria: fin de linea "\n" tambien en Windows
+  con <- file(ruta, "wb"); on.exit(close(con))
+  utils::write.csv(x, con, row.names = FALSE, na = "")
 }
 redondear <- function(x) round(x, 3)
 
@@ -55,7 +56,7 @@ stopifnot(anyDuplicated(names(horario)) == 0L)
 
 for (a in sort(unique(horario$anio))) {
   d <- horario[horario$anio == a, setdiff(names(horario), "anio")]
-  data.table::fwrite(d, sprintf("data/clean/sima_horario_limpio_%d.csv", a))
+  data.table::fwrite(d, sprintf("data/clean/sima_horario_limpio_%d.csv", a), eol = "\n")
 }
 
 # ---- Tabla diaria ------------------------------------------------------------------------
@@ -91,7 +92,7 @@ comp_n <- function(d, vars) Reduce(`&`, lapply(vars, function(v) !is.na(d[[var_d
 diario$en_nucleo_A <- as.integer(comp_n(diario, NUCLEO_A))
 diario$en_nucleo_B <- as.integer(comp_n(diario, NUCLEO_B))
 diario$en_periodo_modelado <- as.integer(diario$anio >= 2021 & diario$anio <= 2025)
-data.table::fwrite(diario, "data/clean/sima_diario_2020_2025.csv")
+data.table::fwrite(diario, "data/clean/sima_diario_2020_2025.csv", eol = "\n")
 
 # ---- Cobertura de dias validos por hoja-anio x variable -----------------------------------
 var_dia <- c(CO = "CO", NO = "NO", NO2 = "NO2", NOX = "NOX", O3 = "O3_max8h", PM10 = "PM10",

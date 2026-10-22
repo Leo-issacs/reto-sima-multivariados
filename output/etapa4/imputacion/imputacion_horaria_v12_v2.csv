@@ -1,0 +1,7 @@
+"variable","faltantes_antes","imputadas_v2","revertidas_X_v2","imputadas_v12","revertidas_X_v12","metodo_elegido","maxgap_h"
+"TOUT",36067,5800,5,3149,0,"seadec",12
+"RH",57672,4398,191,3345,4,"kalman",6
+"SR",49887,1473,6,1711,0,"stine",2
+"PRS",20941,7629,54,4742,54,"seadec",12
+"viento_u",38200,4790,0,4793,0,"linear",3
+"viento_v",38200,4790,0,4793,0,"linear",3

@@ -35,6 +35,8 @@ output/*
 !output/diagnostico/
 !output/etapa2/
 !output/etapa3/
+!output/etapa4/
+output/etapa4/**/log_*.txt
 _output/
 .quarto/
 _freeze/
@@ -64,6 +66,10 @@ renv/sandbox/
 
 # Word del informe de la etapa 3 (lleva matriculas; no se publica)
 docs/etapa3/*.docx
+
+# Word y PDF del informe final (Leo agrega las matriculas; no se publican)
+docs/etapa4/*.docx
+docs/etapa4/*.pdf
 
 # Imagenes de revision de la presentacion (se regeneran; no se publican)
 docs/presentacion/revision/

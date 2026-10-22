@@ -1,0 +1,12 @@
+"requisito","n_v12","pct_v12","n_v2","pct_v2","diferencia"
+"Universo (13 estaciones x 2021-2025)",23738,100,23738,100,0
+"Con respuesta válida (PM2.5 diario con >= 18 h; v1.2 cuenta horas imputadas, v2 solo observadas)",19918,83.9,19392,81.7,-526
+"Pierde por PM2.5",3820,16.1,4346,18.3,526
+"Respuesta válida y las 8 meteorológicas completas (casos completos)",15390,64.8,15011,63.2,-379
+"Respuesta válida y 1 a 4 meteorológicas faltantes (candidatos a MICE)",4330,18.2,4192,17.7,-138
+"Respuesta válida y 5 a 8 faltantes (no se imputan)",198,0.8,189,0.8,-9
+"Disponibles tras MICE (casos completos + 1 a 4 faltantes)",19720,83.1,19203,80.9,-517
+"  de ellos en entrenamiento (2021-2023)",12560,52.9,12340,52,-220
+"    previos a la reubicación (sitio_valido = 0; D23, se quitan del entrenamiento)",1380,5.8,1375,5.8,-5
+"    entrenamiento final (sitio_valido = 1)",11180,47.1,10965,46.2,-215
+"  de ellos en prueba (2024-2025)",7160,30.2,6863,28.9,-297

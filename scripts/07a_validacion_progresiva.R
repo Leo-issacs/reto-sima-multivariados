@@ -25,7 +25,7 @@ suppressPackageStartupMessages({
 })
 SALIDA <- "output/etapa3/validacion"
 dir.create(SALIDA, recursive = TRUE, showWarnings = FALSE)
-escribir <- function(x, nombre) fwrite(x, file.path(SALIDA, nombre))
+escribir <- function(x, nombre) fwrite(x, file.path(SALIDA, nombre), eol = "\n")
 
 
 # ---- Bloque 1. Datos: solo 2021-2023 -----------------------------------------------------------

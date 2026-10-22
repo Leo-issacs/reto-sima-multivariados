@@ -7,7 +7,10 @@
 #          dominio, pct_nulos_antes y pct_nulos_despues. El .docx sale de quarto/anexo_c.qmd.
 if (!file.exists("sima.Rproj")) stop("Abre sima.Rproj y ejecuta desde la raiz del proyecto.", call. = FALSE)
 suppressPackageStartupMessages(library(data.table))
-escribir <- function(x, ruta) utils::write.csv(x, ruta, row.names = FALSE, na = "", fileEncoding = "UTF-8")
+escribir <- function(x, ruta) {   # conexion binaria: fin de linea "\n" tambien en Windows
+  con <- file(ruta, "wb"); on.exit(close(con))
+  utils::write.csv(x, con, row.names = FALSE, na = "")
+}
 
 # ---- 1. Leer las tres bases y comprobar el inventario de columnas --------------------------
 archivos_h <- sort(Sys.glob("data/clean/sima_horario_limpio_*.csv"))

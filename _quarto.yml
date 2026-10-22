@@ -7,6 +7,7 @@ project:
     - quarto/presentacion.qmd
     - quarto/etapa1.qmd
     - quarto/etapa2.qmd
+    - quarto/etapa4_informe_final.qmd
 
 lang: es
 format:
