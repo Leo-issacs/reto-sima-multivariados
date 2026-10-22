@@ -18,7 +18,7 @@ Convenciones: «análisis final» = paso 4 de la tabla puente (base v2, entrenam
 | Días > 40 µg/m³ marcados | M1 90 %, M0 81 % | `E4/errores/errores_por_magnitud_pm25.csv` (89.7 y 81.1) |
 | ΔAUC seca-cálida | 0.151 | `E4/prueba_v2_dauc_por_temporada.csv` |
 | Rango de ΔAUC en las variantes | 0.071 a 0.082 | `E4/prueba_v2_sensibilidades.csv` (mín. 0.071, logística y casos completos) y `E4/sensibilidades_posteriores/sensibilidades_posteriores.csv` (máx. 0.082, sin NO2) |
-| SIMA desde 1992, 15 estaciones | — | SIMA (2026), presentación; `docs/etapa1/texto_etapa1_final.md` |
+| SIMA desde 1992, 15 estaciones | — | Sistema Integral de Monitoreo Ambiental [SIMA] (2026), presentación; `docs/etapa1/texto_etapa1_final.md` |
 | Metaanálisis de 196 artículos | — | Orellano et al. (2020); `docs/etapa1/texto_etapa1_final.md` |
 | Guía OMS 15 µg/m³; límite 25 µg/m³ | — | WHO (2021); Secretaría de Salud (2021) |
 
@@ -32,7 +32,7 @@ Convenciones: «análisis final» = paso 4 de la tabla puente (base v2, entrenam
 | Dirección resultante 68° a 140° | 68.4–139.7 | `E4/descriptivos/viento_por_estacion.csv` (`direccion_resultante_grados`, las 11 estaciones) |
 | SE2: viento más débil (1.55 m/s) | 1.550 | `E4/descriptivos/viento_por_estacion.csv` (`rapidez_media`) |
 | SE2: Spearman PM2.5–PM10 0.82; cociente 0.40 | 0.816; 0.396 | `E4/descriptivos/cociente_pm25_pm10_por_estacion.csv` |
-| Enero: SE2 33.1 → 43.1 µg/m³; SE3 22.4 | 33.11 → 43.12; 22.36 / 22.36 | `E4/descriptivos/boletin_enero_2023_2024.csv` |
+| Enero: SE2 33.1 → 43.1 µg/m³; SE3 22.4 | 33.11 → 43.12; 22.36 / 22.36 | `E4/descriptivos/boletin_enero_2023_2024.csv`. El boletín estatal (Gobierno del Estado de Nuevo León, 2024) da otras cifras; el informe solo dice que el cambio va en la misma dirección |
 | SO: SMD de la rapidez −0.76; u −1.16 frente a −2.01 m/s | −0.762; −1.160 / −2.008 | `E4/descriptivos/viento_por_estacion.csv` |
 | SUR: 3.0 % en 2021; 10–12 % desde 2022 | 2.98; 10.1–12.1 | `E4/area_estudio/superacion_por_estacion_anio.csv` |
 | Cambio de presión frente a la red: SUR +5.7, NTE +1.6 mm Hg | 5.68; 1.62 | `E4/area_estudio/prs_antes_despues_reubicacion.csv` |
@@ -58,25 +58,25 @@ Convenciones: «análisis final» = paso 4 de la tabla puente (base v2, entrenam
 | Regla de descalificación (> 5 % de reversión) y umbral (0.10 × DE de la anomalía) | — | D19 en `docs/etapa4/decisiones_etapa4.md` (registro de cambios de la fase A) |
 | Tabla 5 (método, maxgap, lineal frente al ganador, % revertido, horas imputadas) | — | `E4/imputacion/eleccion_metodo_horario.csv` y `E4/imputacion/imputacion_horaria_v12_v2.csv` (se leen al renderizar) |
 | D20: RMSE relativo 0.450 / 0.593 / 0.736 | 0.4500; 0.5932; 0.7358 | `E4/imputacion/eleccion_metodo_diario.csv` |
-| D20: MICE con el promedio de sus 20 imputaciones, 0.436 (referencia; la regla registrada compara cada base imputada) | 0.4359 | `E4/imputacion/eleccion_metodo_diario.csv` (`referencia_rmse_rel_medio_mice_promedio_m`) |
-| D20: MICE como sensibilidad, ΔAUC 0.078 | 0.0784 | `E4/prueba_v2_sensibilidades.csv` (fila «MICE») |
+| D20: MICE con el promedio de las cinco imputaciones del experimento de selección, 0.436 (referencia; la regla registrada compara cada base imputada) | 0.4359 | `E4/imputacion/eleccion_metodo_diario.csv` (`referencia_rmse_rel_medio_mice_promedio_m`); m = 5 en `scripts/08c_enmascaramiento_diario.R` (`M_VALIDACION`) |
+| D20: sensibilidad posterior del clasificador con 20 bases imputadas de MICE, ΔAUC 0.078 | 0.0784 | `E4/prueba_v2_sensibilidades.csv` (fila «MICE») |
 | D20: gana también en temperatura y humedad | — | `E4/imputacion/enmascaramiento_diario_ganador_por_variable.csv`; `E4/imputacion/RESUMEN_FASE_A.md` |
-| MICE con m = 20 | — | `scripts/08d_imputar_diario.R`; D20 en `docs/etapa4/decisiones_etapa4.md` |
+| MICE con m = 20 (sensibilidad) y m = 5 (selección del método) | — | `scripts/08d_imputar_diario.R`; `scripts/08c_enmascaramiento_diario.R`; D20 en `docs/etapa4/decisiones_etapa4.md` |
 | Celdas imputadas a nivel diario (sobre todo SR y RH) | SR 1 970, RH 1 870 | `E4/imputacion/imputacion_diaria_conteo.csv` |
-| MIMA-v1: 9 estaciones, hasta junio de 2025, sin SE2/SE3/SUR/NE2; MAE 4.01 de la lineal | — | Gómez et al. (2025), reporte del proyecto; `docs/etapa4/prompt_claude_code_fase_E_mima.md`; `docs/etapa4/imputacion_reto_sima_consolidado.md` |
-| Presión media por sitio de 701 a 731 mm Hg | 700.8–731.5 | `data/clean/v2/diario_v2_imputado_2021_2025.csv` (entrenamiento del análisis final); `docs/etapa3/texto_etapa3_borrador.md` |
+| MIMA-v1: 9 estaciones (SE, CE, SO2, SO, NTE2, NO, NO2, NTE, NE), de enero de 2021 a junio de 2025, sin SE2/SE3/SUR/NE2; MAE 4.01 de la lineal; licencia del código «MIT modificada», que exige autorización escrita para modificaciones o distribución derivada | — | Gómez et al. (2025), reporte del proyecto (cifras verificadas por Opus contra los originales que dio Leo); `docs/etapa4/imputacion_reto_sima_consolidado.md`. SAITS + CSDI: Gómez Santos et al. (2027), capítulo de Springer (CCIS 3097, pp. 728–739) |
+| Presión media por sitio de 700.8 a 731.5 mm Hg | 700.788 (NO2) – 731.500 (SE3) | `data/clean/v2/diario_v2_imputado_2021_2025.csv`: media de PRS por estación en el entrenamiento del análisis final (2021–2023, `sitio_valido` = 1, respuesta válida y las 8 meteorológicas; n = 10 965), la misma que resta `prs_anomalia()` en `R/modelo_etapa4.R` |
 | Logaritmos: AUC +0.003 y +0.007 | 0.0035; 0.0069 | `output/etapa3/validacion/seccion2_transformaciones.csv` |
 | Asimetría del viento +0.37 → −0.98 | 0.372; −0.984 | `output/etapa3/validacion/seccion4_supuestos.csv` |
-| Muestra: 23 738; 19 392; 15 011; 4 192; 189; 1 375 | — | `E4/imputacion/perdidas_v12_v2.csv` |
+| Muestra: 23 738; 19 392 con respuesta válida; de ellos, 15 011 con las 8 meteorológicas; 4 192; 189; 1 375 | — | `E4/imputacion/perdidas_v12_v2.csv`. Los 15 011 son la intersección (respuesta válida y 8 meteorológicas); sin condicionar a la respuesta hay 18 041 días con las 8 meteorológicas |
 | Entrenamiento 10 965 (25.9 %); prueba 6 863 (26.2 %) | 0.2589; 0.2621 | `E4/prueba_v2_sensibilidades.csv` (`n_entrena`, `prevalencia_entrena`, `n`, `prevalencia`) |
 | 2 438 días más que la etapa 3 | 17 828 − 15 390 | `E4/imputacion/perdidas_v12_v2.csv` (15 390 casos completos v1.2) |
-| NO2 511 → 1 532; NTE 597 → 1 373; qué faltaba | — | `E4/imputacion/dias_por_estacion_anio_v12_v2.csv`; columnas `imp_SR` e `imp_RH` de `data/clean/v2/diario_v2_imputado_2021_2025.csv` (NO2: 925 días con SR imputada; NTE: 864 con RH imputada) |
+| NO2 511 → 1 532; NTE 597 → 1 373; qué faltaba | — | `E4/imputacion/dias_por_estacion_anio_v12_v2.csv`; columnas `imp_SR` e `imp_RH` de `data/clean/v2/diario_v2_imputado_2021_2025.csv` (en la muestra final: NO2, 925 días con SR imputada; NTE, 855 días con RH imputada, 864 antes de excluir los 9 días previos a la reubicación) |
 
 ## Sección 5. Modelación y validación
 
 | Cifra | Valor | Fuente |
 |---|---|---|
-| KMO 0.64; Bartlett χ² 26 503, gl 28; 3 valores propios > 1; 66.5 % | 0.635; 26 503; 28; 3; 66.5 | `E4/pca/pca_v2_resumen.csv` (09g, bloque 1) |
+| KMO 0.64 («mediocre» según Kaiser y Rice, 1974); Bartlett χ² 26 503, gl 28; 3 valores propios > 1; 66.5 % | 0.635; 26 503; 28; 3; 66.5 | `E4/pca/pca_v2_resumen.csv` (09g, bloque 1) |
 | PCs como predictores (etapa 3) | 0.064 | `output/etapa3/prueba_sensibilidades.csv` |
 | Categorías de referencia CE y cálida-húmeda; 14 indicadoras; 22 predictores | — | `E4/lda/estabilidad_coeficientes.csv` (lista de predictores); `R/modelo_etapa4.R` |
 | Prior y corte | 0.259 | `E4/prueba_v2_sensibilidades.csv` (`prevalencia_entrena` 0.2589) |
@@ -86,13 +86,14 @@ Convenciones: «análisis final» = paso 4 de la tabla puente (base v2, entrenam
 | Tabla 7 y 5.5: ACF a 1 día 0.50 (respuesta), 0.44 (M0), 0.42 (M1); a 14 días 0.12 (M1) | 0.495; 0.443; 0.422; 0.120 | `E4/errores/acf_promedio_y_residuos.csv` |
 | Correlación entre estaciones el mismo día 0.48 → 0.36 | 0.477; 0.417; 0.356 | `E4/errores/correlacion_mismo_dia_y_residuos.csv` |
 | VIF máximo 2.28; número de condición 2.97 | 2.276; 2.975 | `E4/errores/supuestos_vif.csv`, `E4/errores/supuestos_numero_condicion.csv` |
-| Varianza del residuo de M1: 0.086 (lluvias) a 0.205 (seca-cálida); F = 503 | — | `E4/errores/residuos_varianza_por_temporada.csv`, `E4/errores/residuos_brown_forsythe.csv` (09g, bloque 2) |
+| Tabla 7, diagnóstico adicional: varianza de Y − p̂ de M1 de 0.086 (lluvias) a 0.205 (seca-cálida); F = 503 (Brown-Forsythe, solo descriptivo) | — | `E4/errores/residuos_varianza_por_temporada.csv`, `E4/errores/residuos_brown_forsythe.csv` (09g, bloque 2) |
 | Error 1.34 veces el esperado en el decil 10 | 1.341 | `E4/errores/heterogeneidad_por_decil.csv` |
 | Logística 0.071 | 0.0711 | `E4/prueba_v2_sensibilidades.csv` |
 | QDA 0.788 frente a 0.792; solo meteorología 0.704–0.712 frente a 0.718 | — | `E4/lda/qda_vs_lda.csv` |
 | Pendiente de recalibración 0.82; por temporada 0.69–0.76 | 0.822; 0.691–0.757 | `E4/lda/calibracion_recalibracion.csv`; `E4/errores/calibracion_m1_por_temporada.csv` (09g, bloque 3) |
 | Validación progresiva: 0.074 (2022) y 0.083 (2023) | 0.0744; 0.0830 | `E4/lda/pliegues_auc_validacion.csv` |
-| 1 000 réplicas, bloques de 14 días | — | `E4/registro_prueba_v2.txt`; `scripts/09a_evaluar_prueba_v2.R` |
+| 1 000 réplicas, bloques de 14 días; los IC remuestrean predicciones de modelos ya ajustados; MICE con 20 × 200 réplicas agrupadas | — | `E4/registro_prueba_v2.txt`; `scripts/09a_evaluar_prueba_v2.R` (`N_REPLICAS`, `N_REPLICAS_MICE`); `R/modelo_etapa4.R` (bootstrap pareado por bloques) |
+| Pliegues internos: la imputación y su selección usaron todo 2021–2023 | — | `scripts/08a_enmascaramiento_horario.R` y `scripts/08c_enmascaramiento_diario.R` (selección en 2021–2023); `scripts/08d_imputar_diario.R` (diferencia sitio-red con 2021–2023); `scripts/09b_validar_lda.R` (pliegues sobre la base ya imputada) |
 | Tabla 8 (puente) | — | `E4/tabla_puente.csv` (se lee al renderizar) |
 | 5.7: interacción 0.056; MICE 0.078 | — | `output/etapa3/prueba_sensibilidades.csv`; `E4/prueba_v2_sensibilidades.csv` |
 
@@ -102,7 +103,7 @@ Convenciones: «análisis final» = paso 4 de la tabla puente (base v2, entrenam
 |---|---|---|
 | Tabla 9 (métricas e IC) | — | `E4/prueba_v2_metricas_m0_m1.csv`, `E4/prueba_v2_sensibilidades.csv` (se leen al renderizar) |
 | Figura 4a (ROC) | — | `E4/prueba_v2_predicciones.csv` (09g, bloque 6) |
-| Figura 4b y texto: seca-cálida 0.151 [0.102, 0.193]; seca-fría 0.069 [0.037, 0.100]; lluvias 0.039 [−0.018, 0.104]; superación en lluvias 9.7 % | — | `E4/prueba_v2_dauc_por_temporada.csv` |
+| Figura 4b y texto: seca-cálida 0.151 [0.102, 0.193]; seca-fría 0.069 [0.037, 0.100]; lluvias 0.039 [−0.018, 0.104]; superación en lluvias 9.7 %; AUC de M1 en lluvias 0.706 | 0.7060 | `E4/prueba_v2_dauc_por_temporada.csv` (`auc_M1`, fila `calida_humeda`) |
 | 2024: 0.069 [0.032, 0.106]; 2025: 0.088 [0.061, 0.124] | — | `E4/prueba_v2_dauc_por_anio.csv` |
 | Figura 5 y texto: > 40 µg/m³ 90 % / 81 %; < 15 µg/m³ 21 % / 27 % | 89.7 / 81.1; 21.3 / 26.5 | `E4/errores/errores_por_magnitud_pm25.csv` |
 | PCA: 36 %, 17 %, 13 %; cargas | 35.8; 17.5; 13.2 | `E4/pca/pca_v2_valores_propios.csv`, `E4/pca/pca_v2_cargas.csv` |
@@ -125,7 +126,7 @@ Convenciones: «análisis final» = paso 4 de la tabla puente (base v2, entrenam
 | Anexo C, Tabla 17 (recalibración por temporada) | — | `E4/errores/calibracion_m1_por_temporada.csv` |
 | Anexo C, Tabla 18 (días por año) | — | `E4/imputacion/dias_por_estacion_anio_v12_v2.csv` |
 | Anexo C: SO única estación con efecto estable mayor que CE; SE2 no se distingue | estSO 0.128, 99.8 %; estSE2 0.008, 56 % | `E4/lda/estabilidad_coeficientes.csv` |
-| Figura 8 (NO2) y Figura 9 (coeficientes con estaciones) | — | `E4/descriptivos/no2_pm25_pm10_relativo.png` (09f); `E4/lda/coeficientes_ic.png` (09b) |
+| Figura 8 (NO2) y Figura 9 (coeficientes con estaciones) | — | `E4/figuras/no2_relativo_informe.png` y `E4/figuras/coeficientes_ic_informe.png` (09h, bloques 6 y 7), con `E4/descriptivos/pm25_pm10_relativo_mensual.csv` de 09f y `E4/lda/estabilidad_coeficientes.csv` de 09b |
 
 ## Figuras del cuerpo
 
@@ -133,10 +134,10 @@ Convenciones: «análisis final» = paso 4 de la tabla puente (base v2, entrenam
 |---|---|---|
 | 1. Mapa de estaciones | `E4/figuras/mapa_estaciones_informe.png` | 09h (bloque 1), con `E4/area_estudio/mapa_estaciones_altitud.csv` de 09c |
 | 2. RMSE por método y hueco | `E4/figuras/rmse_imputacion_informe.png` | 09h (bloque 2), con `E4/imputacion/enmascaramiento_horario.csv` y `eleccion_metodo_horario.csv` de 08a |
-| 3. ACF de la respuesta y de los residuos | `E4/errores/acf_respuesta_y_residuos.png` | 09d |
+| 3. ACF de la respuesta y de los residuos | `E4/figuras/acf_residuos_informe.png` | 09h (bloque 4), con `E4/errores/acf_promedio_y_residuos.csv` de 09d |
 | 4. ROC y ΔAUC por temporada y año | `E4/figuras/roc_y_dauc_informe.png` | 09g (bloque 6) |
-| 5. Clasificación según la magnitud del PM2.5 | `E4/errores/errores_magnitud_pm25.png` | 09d |
+| 5. Clasificación según la magnitud del PM2.5 | `E4/figuras/errores_magnitud_informe.png` | 09h (bloque 5), con `E4/errores/errores_por_magnitud_pm25.csv` de 09d |
 | 6. Cargas del PCA | `E4/figuras/pca_cargas_informe.png` | 09h (bloque 3), con `E4/pca/pca_v2_cargas.csv` y `pca_v2_valores_propios.csv` de 09g |
 | 7. Coeficientes de la meteorología | `E4/lda/coeficientes_ic_meteorologia.png` | 09g (bloque 5) |
 
-09h solo cambia la presentación de las Figuras 1, 2 y 6 (etiquetas en español y tamaño para el ancho de página): lee los CSV de 08a, 09c y 09g y no recalcula nada. Las figuras originales de esos scripts se conservan.
+09h solo cambia la presentación de las Figuras 1, 2, 3, 5, 6, 8 y 9 (etiquetas en español, tamaño para el ancho de página y sin título interno): lee los CSV de 08a, 09b, 09c, 09d, 09f y 09g y no recalcula nada. Las figuras originales de esos scripts se conservan.

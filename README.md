@@ -69,6 +69,8 @@ Quarto escribe el borrador en `docs/quarto/`. `formato_docx.R` solo ajusta la pa
 - **Necesitan los Excel** (`BD 2020.xlsx` … `BD 2025.xlsx` en `data/raw/` o en la carpeta de `SIMA_DATA_DIR`): 01, 02 y 03, que generan `data/clean/` desde cero. El cuaderno de auditoría también los usa.
 - **Corren solo con `data/clean/`** (lo que está en el repositorio): 04, 05, 06, 06b, 07a–c, 08a–d y 09a–h. 08a usa los Excel solo para una comprobación opcional si `SIMA_DATA_DIR` está definido.
 - **Evaluaciones únicas de la prueba:** 07b (etapa 3) y 09a (etapa 4) dejan registro (`output/etapa3/registro_prueba.txt`, `output/etapa4/registro_prueba_v2.txt`) y no vuelven a correr sin `MOTIVO_RECORRIDA`. Ambos tienen un modo `ENSAYO=1` que no lee 2024–2025.
+- **Finales de línea:** todos los CSV se escriben con `\n`, también en Windows, y `.gitattributes` los guarda con LF. 09a exige que `R/`, `scripts/` y `data/clean/v2/` no tengan cambios sin commit, pero compara el contenido sin `\r` (y descomprimido en el `.csv.gz`), así que volver a correr 08b y 08d no lo bloquea si su contenido no cambia.
+- **Informe en Word:** `scripts/utilidades/formato_docx.R` usa el paquete `zip`, registrado en `renv.lock`.
 
 **Lenguajes:** R para todo el análisis (limpieza, imputación, modelos, validaciones, figuras y app). Python solo se usó en la prueba de viabilidad del 4 de octubre (`docs/etapa2/prueba_viabilidad_2026-10-04.py`) y en verificaciones cruzadas: ningún resultado del informe depende de Python.
 
@@ -104,7 +106,7 @@ Etapas 3 y 4 (no necesitan los Excel):
 | 18 | `Rscript scripts/09e_sensibilidades_posteriores.R` | Etapa 4, fase D: sensibilidades posteriores a la prueba (SR ≥ 0, reubicaciones según SIMA, sin NO2), anotadas en el registro | `output/etapa4/sensibilidades_posteriores/` |
 | 19 | `Rscript scripts/09f_viento_pm_no2.R` | Etapa 4, fase D: viento por estación, cociente PM2.5/PM10, PM2.5 frente a la red (NO2) y boletín estatal | `output/etapa4/descriptivos/` |
 | 20 | `Rscript scripts/09g_pca_y_residuos_v2.R` | Informe final: PCA con el entrenamiento v2, varianza de los residuos, calibración por temporada, largo de los huecos, radiación por estación y figuras compactas. No ajusta modelos nuevos | `output/etapa4/pca/`, `output/etapa4/errores/`, `output/etapa4/figuras/roc_y_dauc_informe.png` |
-| 21 | `Rscript scripts/09h_figuras_informe.R` | Informe final: versión de las Figuras 1, 2 y 6 con etiquetas en español y tamaño para el ancho de página. Solo presentación: lee los CSV de 08a, 09c y 09g y no recalcula nada | `output/etapa4/figuras/` (`mapa_estaciones_informe.png`, `rmse_imputacion_informe.png`, `pca_cargas_informe.png`) |
+| 21 | `Rscript scripts/09h_figuras_informe.R` | Informe final: versión de las Figuras 1, 2, 3, 5, 6, 8 y 9 con etiquetas en español, tamaño para el ancho de página y sin título interno. Solo presentación: lee los CSV de 08a, 09b, 09c, 09d, 09f y 09g y no recalcula nada | `output/etapa4/figuras/` (`mapa_estaciones_informe.png`, `rmse_imputacion_informe.png`, `pca_cargas_informe.png`, `acf_residuos_informe.png`, `errores_magnitud_informe.png`, `no2_relativo_informe.png`, `coeficientes_ic_informe.png`) |
 
 Decisiones de la etapa 4: [`docs/etapa4/decisiones_etapa4.md`](docs/etapa4/decisiones_etapa4.md); resumen: [`output/etapa4/RESUMEN_ETAPA4.md`](output/etapa4/RESUMEN_ETAPA4.md).
 

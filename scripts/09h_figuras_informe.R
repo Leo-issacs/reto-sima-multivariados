@@ -1,16 +1,23 @@
 # =============================================================================================
-# Etapa 4: version para el informe final de tres figuras ya calculadas. Solo cambia la presentacion
-# (etiquetas en espanol, tamano de letra para el ancho de pagina); no recalcula nada: lee los CSV que
-# guardaron 08a, 09c y 09g y no ajusta ni cambia ningun modelo.
+# Etapa 4: version para el informe final de figuras ya calculadas. Solo cambia la presentacion
+# (etiquetas en espanol, tamano de letra para el ancho de pagina, sin titulo interno porque el pie de
+# figura lo da); no recalcula nada: lee los CSV que guardaron 08a, 09b, 09c, 09d, 09f y 09g y no ajusta
+# ni cambia ningun modelo.
 #
 #   1. Mapa de estaciones con altitud (datos de 09c: area_estudio/mapa_estaciones_altitud.csv).
 #   2. RMSE del promedio diario por metodo y largo del hueco (datos de 08a: imputacion/enmascaramiento_horario.csv;
 #      umbral de imputacion/eleccion_metodo_horario.csv).
 #   3. Cargas del PCA v2 (datos de 09g: pca/pca_v2_cargas.csv y pca/pca_v2_valores_propios.csv).
+#   4. Autocorrelacion de la respuesta y de los residuos (datos de 09d: errores/acf_promedio_y_residuos.csv).
+#   5. Clasificacion segun la magnitud del PM2.5 (datos de 09d: errores/errores_por_magnitud_pm25.csv).
+#   6. PM2.5 y PM10 de NO2 frente a la red (datos de 09f: descriptivos/pm25_pm10_relativo_mensual.csv).
+#   7. Coeficientes de M1 con las indicadoras de estacion (datos de 09b: lda/estabilidad_coeficientes.csv).
 #
-# Las figuras originales de 08a, 09c y 09g se conservan sin cambios.
-# Ejecutar desde la raiz:  Rscript scripts/09h_figuras_informe.R   (despues de 08a, 09c y 09g)
-# Escribe: output/etapa4/figuras/{mapa_estaciones_informe,rmse_imputacion_informe,pca_cargas_informe}.png
+# Las figuras 4 a 7 son las de 09d, 09f y 09b sin el titulo interno, con los mismos datos y colores.
+# Las figuras originales de 08a, 09b, 09c, 09d, 09f y 09g se conservan sin cambios.
+# Ejecutar desde la raiz:  Rscript scripts/09h_figuras_informe.R   (despues de 08a y 09b-09g)
+# Escribe: output/etapa4/figuras/{mapa_estaciones_informe,rmse_imputacion_informe,pca_cargas_informe,
+#          acf_residuos_informe,errores_magnitud_informe,no2_relativo_informe,coeficientes_ic_informe}.png
 # =============================================================================================
 
 
@@ -92,4 +99,58 @@ g <- ggplot(cl, aes(componente, variable, fill = carga)) +
   labs(x = NULL, y = NULL) +
   theme_minimal(base_size = 9.5) + theme(panel.grid = element_blank(), axis.text = element_text(size = 9, colour = "grey15"))
 guardar(g, "pca_cargas_informe.png", 4.4, 2.5)
+
+
+# ---- Bloques 4 a 7. Figuras de 09d, 09f y 09b sin titulo interno --------------------------------------------
+# Mismo dibujo y colores que en su script de origen, sin labs(title, subtitle). Las figuras 4 y 5 van en el
+# cuerpo del informe: se dibujan al ancho en que se muestran (4.4 pulgadas) con letra de 9 pt y la leyenda
+# dentro del panel; las 6 y 7 (anexo) conservan tamano y resolucion, y en la 6 la etiqueta del eje y pasa a
+# dos lineas.
+guardar150 <- function(g, nombre, ancho, alto) ggsave(file.path(SALIDA, nombre), g, width = ancho, height = alto, dpi = 150)
+COLORES_M <- c(M0 = "#0072B2", M1 = "#D55E00")
+tema <- theme_minimal(base_size = 10)
+
+# 4. Autocorrelacion (09d, Bloque 6).
+acf_prom <- fread(file.path(E4, "errores/acf_promedio_y_residuos.csv"))
+etq <- c(y = "Respuesta (supera_25)", r_M0 = "Residuo de M0", r_M1 = "Residuo de M1")
+stopifnot(setequal(acf_prom$serie, names(etq)))
+g <- ggplot(acf_prom[, serie := factor(etq[serie], levels = etq)], aes(rezago, acf_promedio, colour = serie)) +
+  geom_hline(yintercept = 0, colour = "grey50") + geom_line(linewidth = 0.8) + geom_point() +
+  scale_colour_manual(values = c("#000000", "#0072B2", "#D55E00"), name = NULL) + scale_x_continuous(breaks = 1:14) +
+  labs(x = "Rezago (días)", y = "Autocorrelación promedio\nentre estaciones") +
+  theme_minimal(base_size = 9) + theme(legend.position = "inside", legend.position.inside = c(0.78, 0.82))
+guardar(g, "acf_residuos_informe.png", 4.4, 2.6)
+
+# 5. Clasificacion segun la magnitud del PM2.5 (09d, Bloque 6).
+INTERVALOS <- c("[0,15)", "[15,20)", "[20,25]", "(25,30]", "(30,40]", ">40")
+err_mag <- fread(file.path(E4, "errores/errores_por_magnitud_pm25.csv"))
+stopifnot(identical(err_mag$intervalo, INTERVALOS))
+em <- melt(err_mag, id.vars = c("intervalo", "n"), variable.name = "modelo", value.name = "pct")
+em[, modelo := sub("pct_clasif_superacion_", "", modelo)][, intervalo := factor(intervalo, INTERVALOS)]
+g <- ggplot(em, aes(intervalo, pct, fill = modelo)) + geom_col(position = "dodge") + geom_vline(xintercept = 3.5, linetype = "dashed") +
+  scale_fill_manual(values = COLORES_M, name = NULL) + ylim(0, 100) +
+  labs(x = "PM2.5 observado (µg/m³)", y = "% de días clasificados\ncomo superación") +
+  theme_minimal(base_size = 9) + theme(legend.position = "inside", legend.position.inside = c(0.07, 0.87), legend.key.size = unit(0.35, "cm"))
+guardar(g, "errores_magnitud_informe.png", 4.4, 2.6)
+
+# 6. PM2.5 y PM10 de NO2 frente a la red (09f).
+rel <- fread(file.path(E4, "descriptivos/pm25_pm10_relativo_mensual.csv"))[, mes := as.Date(mes)]
+n2 <- melt(rel[estacion == "NO2", .(mes, `PM2.5 / red` = pm25_relativo, `PM10 / red` = pm10_relativo)], id.vars = "mes")
+g <- ggplot(n2, aes(mes, value, colour = variable)) + geom_hline(yintercept = 1, colour = "grey50") + geom_line() + geom_point(size = 1) +
+  scale_colour_manual(values = c("#D55E00", "#0072B2"), name = NULL) +
+  labs(x = NULL, y = "Mediana mensual del cociente\nestación / mediana de la red") + tema + theme(legend.position = "bottom")   # en dos lineas: sin titulo, en una se corta
+guardar150(g, "no2_relativo_informe.png", 7.5, 4)
+
+# 7. Coeficientes de M1 con todas las indicadoras de estacion (09b, Bloque 8).
+fe <- fread(file.path(E4, "lda/estabilidad_coeficientes.csv"))[, etiqueta := sub("^est", "estación ", sub("^tem", "temporada ", predictor))]
+fe[predictor == "PRS", etiqueta := "PRS (anomalía de su estación)"]
+fe[, etiqueta := factor(etiqueta, levels = etiqueta[order(coef_estandarizado)])]
+g <- ggplot(fe, aes(coef_estandarizado, etiqueta, colour = signo_estable)) +
+  geom_vline(xintercept = 0, colour = "grey50") +
+  geom_pointrange(aes(xmin = coef_li, xmax = coef_ls)) +
+  scale_colour_manual(values = c(`TRUE` = "#D55E00", `FALSE` = "grey60"), labels = c(`TRUE` = "signo estable (≥ 95 %)", `FALSE` = "signo no estable"), name = NULL) +
+  facet_grid(tipo ~ ., scales = "free_y", space = "free_y") +
+  labs(x = "Coeficiente estandarizado de M1 (IC 95 %, bootstrap por bloques de 14 días en el entrenamiento)", y = NULL) +
+  theme_minimal(base_size = 9) + theme(legend.position = "bottom")
+guardar150(g, "coeficientes_ic_informe.png", 7.5, 7)
 message("Listo: ", SALIDA)

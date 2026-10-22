@@ -86,8 +86,8 @@
 
 - **Media global, valor aleatorio y LOCF:** las fuentes los ubican al fondo en exactitud y borran el ciclo diario (Moritz & Bartz-Beielstein, 2017). LOCF solo entra como piso de referencia en D19.
 - **Rellenar apagones largos de PM2.5 (días o semanas):** inventa la variable respuesta (D18).
-- **Aprendizaje profundo (SAITS + CSDI, BRITS):** su fuerza es reconstruir apagones largos, que aquí implicaría inventar la respuesta. Además requiere GPU y semanas de trabajo, y no es una técnica del curso. Se menciona con respeto como antecedente con datos del SIMA (Gómez Santos et al., 2026).
-  - **Ojo:** ese trabajo es de profesores del curso. En el informe no se le señalan contradicciones; solo se explica por qué no aplica a nuestra pregunta.
+- **Aprendizaje profundo (SAITS + CSDI, BRITS):** su fuerza es reconstruir apagones largos, que aquí implicaría inventar la respuesta. Además requiere GPU y semanas de trabajo, y no es una técnica del curso. Se menciona con respeto como antecedente con datos del SIMA (Gómez Santos et al., 2027).
+  - El trabajo MIMA-v1 se describe sin calificarlo.
 - **Antecedentes que respaldan la decisión:**
   - Quinteros et al. (2019): con datos de PM2.5 de Temuco, la imputación múltiple y KNN fueron los mejores, y mejoran con covariables de una segunda estación.
   - Belachsen y Broday (2022): en una red, los métodos que usan estaciones vecinas funcionan bien en huecos cortos y largos.
@@ -301,7 +301,7 @@ Se anotó después de la etiqueta, pero **antes** de la evaluación de 2024–20
   - Comparación con el boletín estatal de enero de 2023 y 2024.
 - **Corrección de D22:** los % de superación por año de SE2 y SO, con la base v2 completa (ver D22).
 - **Cifras y figuras para el informe final (`09g_pca_y_residuos_v2.R`, 21 de octubre).** Solo descriptivos y figuras con las salidas congeladas de 09a y 09b; no ajusta modelos de clasificación. Largo de los huecos horarios antes de imputar, radiación media por estación (`output/etapa4/descriptivos/sr_media_por_estacion.csv`, fuente de las medias de NO2 y NTE citadas arriba) y figuras compactas (coeficientes de la meteorología; ROC y ΔAUC por temporada y año).
-- **Presentación de figuras para el informe (`09h_figuras_informe.R`, 21 de octubre).** Redibuja el mapa de estaciones, el RMSE de la imputación horaria y las cargas del PCA con etiquetas en español y tamaño para el ancho de página, leyendo los CSV de 08a, 09c y 09g. No recalcula ninguna cifra; las figuras originales se conservan.
+- **Presentación de figuras para el informe (`09h_figuras_informe.R`, 21 de octubre).** Redibuja el mapa de estaciones, el RMSE de la imputación horaria y las cargas del PCA con etiquetas en español y tamaño para el ancho de página, leyendo los CSV de 08a, 09c y 09g. En la revisión de Codex se agregaron, sin título interno, la autocorrelación de los residuos y la clasificación según la magnitud del PM2.5 (CSV de 09d), el PM2.5 y PM10 de NO2 frente a la red (CSV de 09f) y los coeficientes con las indicadoras de estación (CSV de 09b). No recalcula ninguna cifra; las figuras originales se conservan.
 
 ## Fase E: comparación con la imputación MIMA-v1
 
