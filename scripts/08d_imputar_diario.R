@@ -112,7 +112,7 @@ largo <- rbindlist(lapply(seq_len(M_MICE), function(k) {
 }))
 for (v in MET_DIARIA) set(largo, j = v, value = round(largo[[v]], 3))
 ruta_mice <- "data/clean/v2/muestra_v2_mice_m20.csv.gz"
-fwrite(largo, ruta_mice, compress = "gzip")
+fwrite(largo, ruta_mice, compress = "gzip", eol = "\n")
 mb <- file.size(ruta_mice) / 1e6
 message(sprintf("%s: %.1f MB", ruta_mice, mb))
 stopifnot(mb < 50)

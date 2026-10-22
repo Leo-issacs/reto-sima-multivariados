@@ -11,7 +11,10 @@ suppressPackageStartupMessages({
 })
 
 dir.create("output/etapa2/figuras", recursive = TRUE, showWarnings = FALSE)
-escribir <- function(x, ruta) utils::write.csv(x, ruta, row.names = FALSE, na = "", fileEncoding = "UTF-8")
+escribir <- function(x, ruta) {   # conexion binaria: fin de linea "\n" tambien en Windows
+  con <- file(ruta, "wb"); on.exit(close(con))
+  utils::write.csv(x, con, row.names = FALSE, na = "")
+}
 fmt <- function(x, d = 0) formatC(x, format = "f", digits = d, big.mark = ",")
 pct <- function(x, d = 1) formatC(x, format = "f", digits = d)
 

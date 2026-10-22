@@ -188,11 +188,11 @@ mutaciones <- list(
   "u = 50 m/s, v = 0 imputados (f_uv = I)" = function(x) x[fila, `:=`(f_uv = "I", viento_u = 50, viento_v = 0)])
 esperado <- c("conservan WSR", "conservan WDR", "rapidez supera la mediana")
 for (i in seq_along(mutaciones)) {
-  m <- mutaciones[[i]](copy(original)); fwrite(m, arch)
+  m <- mutaciones[[i]](copy(original)); fwrite(m, arch, eol = "\n")
   msg <- falla()
   ok(grepl(esperado[i], msg, fixed = TRUE), paste("validador rechaza:", names(mutaciones)[i]))
 }
-fwrite(original, arch); unlink(copia, recursive = TRUE)
+fwrite(original, arch, eol = "\n"); unlink(copia, recursive = TRUE)
 
 # 13. Conteo de D15 por claves (revision del PR #9, punto 2): SO 2023-10-24 debe contarse como
 #     retirado por D15. En datos-v1.1 ese dia tenia 19 h de SR (17 originales + 2 imputadas) y entraba

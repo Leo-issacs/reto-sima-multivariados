@@ -30,7 +30,7 @@ suppressPackageStartupMessages({
 source("R/modelo_etapa4.R")
 SALIDA <- "output/etapa4/lda"
 dir.create(SALIDA, recursive = TRUE, showWarnings = FALSE)
-escribir <- function(x, nombre) fwrite(x, file.path(SALIDA, nombre))
+escribir <- function(x, nombre) fwrite(x, file.path(SALIDA, nombre), eol = "\n")
 ANIOS_ENTRENA <- 2021:2023; ANIOS_PRUEBA <- 2024:2025
 INICIO_BLOQUES <- as.Date("2024-01-01")       # bloques de la prueba (no se usan aqui)
 INICIO_ENTRENA <- as.Date("2021-01-01")       # bloques del entrenamiento

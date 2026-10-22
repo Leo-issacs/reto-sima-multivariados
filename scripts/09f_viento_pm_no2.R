@@ -25,7 +25,7 @@ suppressPackageStartupMessages({
 })
 SALIDA <- "output/etapa4/descriptivos"
 dir.create(SALIDA, recursive = TRUE, showWarnings = FALSE)
-escribir <- function(x, nombre) fwrite(x, file.path(SALIDA, nombre))
+escribir <- function(x, nombre) fwrite(x, file.path(SALIDA, nombre), eol = "\n")
 tema <- theme_minimal(base_size = 10)
 smd <- function(x, g) { x1 <- x[g == 1 & !is.na(x)]; x0 <- x[g == 0 & !is.na(x)]; (mean(x1) - mean(x0)) / sqrt((var(x1) + var(x0)) / 2) }
 

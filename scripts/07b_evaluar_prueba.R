@@ -29,7 +29,7 @@ ENSAYO <- Sys.getenv("ENSAYO") == "1"
 SALIDA <- if (ENSAYO) "output/etapa3/ensayo" else "output/etapa3"
 FIGURAS <- file.path(SALIDA, "figuras")
 dir.create(FIGURAS, recursive = TRUE, showWarnings = FALSE)
-escribir <- function(x, nombre) fwrite(x, file.path(SALIDA, nombre))
+escribir <- function(x, nombre) fwrite(x, file.path(SALIDA, nombre), eol = "\n")
 ANIOS_ENTRENA <- if (ENSAYO) 2021:2022 else 2021:2023
 ANIOS_PRUEBA <- if (ENSAYO) 2023 else 2024:2025
 INICIO_BLOQUES <- as.Date(if (ENSAYO) "2023-01-01" else "2024-01-01")

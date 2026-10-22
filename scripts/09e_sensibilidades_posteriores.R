@@ -84,6 +84,6 @@ ESTACIONES <- setdiff(sort(unique(d$estacion)), "NO2")
 res$sin_no2 <- evaluar("c) Sin NO2 (entrenamiento y prueba)", d[estacion != "NO2"], solo_sitio_valido = TRUE)$fila
 ESTACIONES <- sort(unique(d$estacion))
 tabla <- rbindlist(res, fill = TRUE)
-fwrite(tabla, file.path(SALIDA, "sensibilidades_posteriores.csv"))
+fwrite(tabla, file.path(SALIDA, "sensibilidades_posteriores.csv"), eol = "\n")
 print(tabla[, .(analisis, n_entrena, n, auc_M0, auc_M1, d_auc, d_auc_li, d_auc_ls)])
 message("Listo: ", SALIDA)

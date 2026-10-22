@@ -42,7 +42,7 @@ ENSAYO <- Sys.getenv("ENSAYO") == "1"
 SALIDA <- if (ENSAYO) "output/etapa4/ensayo" else "output/etapa4"
 FIGURAS <- file.path(SALIDA, "figuras")
 dir.create(FIGURAS, recursive = TRUE, showWarnings = FALSE)
-escribir <- function(x, nombre) fwrite(x, file.path(SALIDA, nombre))
+escribir <- function(x, nombre) fwrite(x, file.path(SALIDA, nombre), eol = "\n")
 ANIOS_ENTRENA <- if (ENSAYO) 2021:2022 else 2021:2023
 ANIOS_PRUEBA <- if (ENSAYO) 2023 else 2024:2025
 ANIOS <- c(ANIOS_ENTRENA, ANIOS_PRUEBA)
@@ -57,14 +57,30 @@ TEMPORADAS <- c("calida_humeda", "seca_calida", "seca_fria")
 # ---- Bloque 1. Registro de la evaluacion (antes de mirar nada) ------------------------------------------
 # Se deja constancia de cuando se abrio la prueba, del commit de la etiqueta de decisiones y del commit
 # del codigo. Para que ese commit sea de verdad el codigo que corrio, no se permiten cambios pendientes
-# en R/, scripts/ ni data/clean/v2/.
-git <- function(...) system2("git", c("-c", paste0("safe.directory=", normalizePath(getwd(), winslash = "/")), ...),
-                             stdout = TRUE, stderr = FALSE)
+# en R/, scripts/ ni data/clean/v2/. git status compara bytes en los binarios (el .csv.gz de MICE) y, si
+# 08b y 08d se vuelven a correr, sus archivos pueden diferir del commit solo en los finales de linea; por
+# eso un archivo cuenta como pendiente solo si su contenido sin "\r" (descomprimido si es .gz) difiere del
+# de HEAD.
+git_args <- c("-c", paste0("safe.directory=", normalizePath(getwd(), winslash = "/")))
+git <- function(...) system2("git", c(git_args, ...), stdout = TRUE, stderr = FALSE)
+contenido <- function(ruta, gz) {
+  b <- readBin(ruta, "raw", file.info(ruta)$size)
+  if (gz) b <- memDecompress(b, "gzip")
+  b[b != as.raw(13L)]
+}
+igual_a_head <- function(ruta) {
+  if (!file.exists(ruta)) return(FALSE)
+  en_head <- tempfile(); on.exit(unlink(en_head))
+  if (system2("git", c(git_args, "cat-file", "blob", paste0("HEAD:", ruta)), stdout = en_head, stderr = FALSE) != 0) return(FALSE)
+  gz <- grepl("\\.gz$", ruta)
+  identical(contenido(en_head, gz), contenido(ruta, gz))
+}
 hash_etiqueta <- git("rev-list", "-n", "1", "etapa4-decisiones-cerradas")
 hash_actual <- git("rev-parse", "HEAD")
 if (!length(hash_etiqueta) || !nzchar(hash_etiqueta)) stop("No encuentro la etiqueta etapa4-decisiones-cerradas.", call. = FALSE)
 if (!ENSAYO) {
   pendientes <- git("status", "--porcelain", "--", "R", "scripts", "data/clean/v2")
+  pendientes <- pendientes[!vapply(substring(pendientes, 4), igual_a_head, logical(1))]
   if (length(pendientes)) stop("Hay cambios sin commit en R/, scripts/ o data/clean/v2/:\n", paste(pendientes, collapse = "\n"), call. = FALSE)
   registro <- "output/etapa4/registro_prueba_v2.txt"
   motivo <- Sys.getenv("MOTIVO_RECORRIDA")

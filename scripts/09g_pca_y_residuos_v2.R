@@ -56,8 +56,8 @@ resumen <- data.table(n = nrow(x), kmo = kmo(R), bartlett_chi2 = b[["chi2"]], ba
                       bartlett_p = pchisq(b[["chi2"]], b[["gl"]], lower.tail = FALSE), componentes_kaiser = sum(ev > 1),
                       varianza_acum_3 = 100 * sum(ev[1:3]) / sum(ev))
 valores <- data.table(componente = paste0("PC", 1:8), valor_propio = ev, pct_varianza = 100 * ev / sum(ev))
-fwrite(resumen, file.path(PCA_DIR, "pca_v2_resumen.csv")); fwrite(cargas, file.path(PCA_DIR, "pca_v2_cargas.csv"))
-fwrite(valores, file.path(PCA_DIR, "pca_v2_valores_propios.csv"))
+fwrite(resumen, file.path(PCA_DIR, "pca_v2_resumen.csv"), eol = "\n"); fwrite(cargas, file.path(PCA_DIR, "pca_v2_cargas.csv"), eol = "\n")
+fwrite(valores, file.path(PCA_DIR, "pca_v2_valores_propios.csv"), eol = "\n")
 print(resumen); print(cargas)
 cl <- melt(cargas, id.vars = "variable", variable.name = "componente", value.name = "carga")
 cl[, variable := factor(variable, levels = rev(MET))]
@@ -88,8 +88,8 @@ v_est <- var_grupo("estacion"); v_temp <- var_grupo("temporada")
 bf <- rbindlist(lapply(c("M0", "M1"), function(m) rbind(
   cbind(modelo = m, grupo = "estación", brown_forsythe(pred[[paste0("r_", m)]], pred$estacion)),
   cbind(modelo = m, grupo = "temporada", brown_forsythe(pred[[paste0("r_", m)]], pred$temporada)))))
-fwrite(v_est, file.path(ERR_DIR, "residuos_varianza_por_estacion.csv")); fwrite(v_temp, file.path(ERR_DIR, "residuos_varianza_por_temporada.csv"))
-fwrite(bf, file.path(ERR_DIR, "residuos_brown_forsythe.csv"))
+fwrite(v_est, file.path(ERR_DIR, "residuos_varianza_por_estacion.csv"), eol = "\n"); fwrite(v_temp, file.path(ERR_DIR, "residuos_varianza_por_temporada.csv"), eol = "\n")
+fwrite(bf, file.path(ERR_DIR, "residuos_brown_forsythe.csv"), eol = "\n")
 print(bf); print(v_temp[modelo == "M1"])
 
 
@@ -98,7 +98,7 @@ cal_temp <- pred[, {
   co <- coef(glm(supera_25 ~ qlogis(p_M1), family = binomial))
   .(n = .N, intercepto = co[[1]], pendiente = co[[2]], p_media = mean(p_M1), frecuencia_observada = mean(supera_25))
 }, by = temporada]
-fwrite(cal_temp, file.path(ERR_DIR, "calibracion_m1_por_temporada.csv"))
+fwrite(cal_temp, file.path(ERR_DIR, "calibracion_m1_por_temporada.csv"), eol = "\n")
 print(cal_temp)
 
 
@@ -115,7 +115,7 @@ huecos <- rbindlist(lapply(c("PM2.5", "TOUT", "RH", "SR", "PRS", "viento_u"), fu
   data.table(variable = v, pct_horas_faltantes = 100 * tot / nrow(h), clase = CLASES,
              pct_de_las_faltantes = vapply(CLASES, function(k) 100 * sum(largos[clase == k]) / tot, numeric(1)))
 }))
-fwrite(huecos, file.path(ERR_DIR, "largo_huecos_horarios.csv"))
+fwrite(huecos, file.path(ERR_DIR, "largo_huecos_horarios.csv"), eol = "\n")
 print(dcast(huecos, variable + pct_horas_faltantes ~ clase, value.var = "pct_de_las_faltantes"))
 
 
@@ -174,7 +174,7 @@ invisible(dev.off())
 # mucho mas bajo que el resto; va como pregunta para SIMA, no cambia el analisis.
 dsr <- fread("data/clean/v2/diario_v2_imputado_2021_2025.csv", select = c("estacion", "fecha", "SR", "imp_SR"))[imp_SR == 0L & !is.na(SR)]
 sr_est <- dsr[, .(dias = .N, sr_media = mean(SR), sr_mediana = median(SR)), by = estacion][order(sr_media)]
-fwrite(sr_est, "output/etapa4/descriptivos/sr_media_por_estacion.csv")
+fwrite(sr_est, "output/etapa4/descriptivos/sr_media_por_estacion.csv", eol = "\n")
 print(sr_est)
 dsr[, mes := as.IDate(format(as.IDate(fecha), "%Y-%m-01"))]
 sr_mes <- dsr[, .(sr_media = mean(SR)), by = .(estacion, mes)]

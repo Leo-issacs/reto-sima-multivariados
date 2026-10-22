@@ -12,9 +12,9 @@ source("R/diagnostico.R")
 carpeta_datos <- Sys.getenv("SIMA_DATA_DIR", unset = "data/raw")
 salida <- "output/diagnostico"
 dir.create(file.path(salida, "heatmaps"), recursive = TRUE, showWarnings = FALSE)
-escribir <- function(x, nombre) {
-  utils::write.csv(x, file.path(salida, nombre), row.names = FALSE, na = "",
-                   fileEncoding = "UTF-8")
+escribir <- function(x, nombre) {   # conexion binaria: fin de linea "\n" tambien en Windows
+  con <- file(file.path(salida, nombre), "wb"); on.exit(close(con))
+  utils::write.csv(x, con, row.names = FALSE, na = "")
 }
 
 # 0. Huellas: los Excel deben ser los inventariados el 25 de septiembre.

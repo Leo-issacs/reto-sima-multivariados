@@ -29,7 +29,7 @@ suppressPackageStartupMessages({
 source("R/modelo_etapa4.R")
 SALIDA <- "output/etapa4/errores"
 dir.create(SALIDA, recursive = TRUE, showWarnings = FALSE)
-escribir <- function(x, nombre) fwrite(x, file.path(SALIDA, nombre))
+escribir <- function(x, nombre) fwrite(x, file.path(SALIDA, nombre), eol = "\n")
 ANIOS_ENTRENA <- 2021:2023; ANIOS_PRUEBA <- 2024:2025
 INICIO_BLOQUES <- as.Date("2024-01-01"); N_REPLICAS <- 1000L; SEMILLA <- 2026L
 MET <- c("TOUT", "RH", "SR", "PRS", "viento_rapidez_ms", "viento_u", "viento_v", "horas_lluvia")

@@ -28,7 +28,7 @@ SALIDA <- "output/etapa3"
 DIAG <- file.path(SALIDA, "diagnostico")
 FIGURAS <- file.path(SALIDA, "figuras")
 dir.create(DIAG, recursive = TRUE, showWarnings = FALSE)
-escribir <- function(x, nombre) fwrite(x, file.path(DIAG, nombre))
+escribir <- function(x, nombre) fwrite(x, file.path(DIAG, nombre), eol = "\n")
 ANIOS_ENTRENA <- 2021:2023
 ANIOS_PRUEBA <- 2024:2025
 INICIO_BLOQUES <- as.Date("2024-01-01")

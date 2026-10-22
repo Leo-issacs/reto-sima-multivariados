@@ -101,5 +101,9 @@ mediana_red <- function(d, v) {
   merge(d[, .(id, fecha, estacion)], out, by = c("fecha", "estacion"), all.x = TRUE)[order(id), med]
 }
 
-# Escribe un CSV en UTF-8 sin la columna de nombres de fila y con NA vacio.
-escribir_csv <- function(x, ruta) utils::write.csv(x, ruta, row.names = FALSE, na = "", fileEncoding = "UTF-8")
+# Escribe un CSV en UTF-8 sin la columna de nombres de fila y con NA vacio. La conexion binaria deja el
+# fin de linea en "\n" tambien en Windows (en modo texto seria "\r\n"); R usa UTF-8 nativo desde la 4.2.
+escribir_csv <- function(x, ruta) {
+  con <- file(ruta, "wb"); on.exit(close(con))
+  utils::write.csv(x, con, row.names = FALSE, na = "")
+}

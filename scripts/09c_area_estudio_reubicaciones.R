@@ -23,7 +23,7 @@ suppressPackageStartupMessages({
 })
 SALIDA <- "output/etapa4/area_estudio"
 dir.create(SALIDA, recursive = TRUE, showWarnings = FALSE)
-escribir <- function(x, nombre) fwrite(x, file.path(SALIDA, nombre))
+escribir <- function(x, nombre) fwrite(x, file.path(SALIDA, nombre), eol = "\n")
 tema <- theme_minimal(base_size = 10)
 ENFASIS <- c("SE2", "SO", "SUR")
 REUBICACION <- c(NO = "2021-07-01", SE = "2021-10-01", SO = "2021-10-01", NTE = "2021-10-01",
