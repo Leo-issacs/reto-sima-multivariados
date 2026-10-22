@@ -22,7 +22,7 @@ Estado: ✔ atendido · ◐ atendido en parte (ver nota) · ✘ no atendido.
 | 7 | Interpretación de gráficos y tablas, numeración y descripción; sin código | 9 figuras y 18 tablas, todas numeradas, con pie y con llamada explícita en el texto (las Tablas 11–14 la tienen desde la revisión de Codex); ninguna figura con título interno (la Figura 4 solo conserva los rótulos de sus paneles a y b); Figuras 1, 2, 3, 5, 6, 8 y 9 en su versión para el informe (09h); ningún bloque de código visible | todas | ✔ |
 | 8 | Resultados relevantes, recomendaciones y nuevas preguntas | 7: hallazgos, Tabla 11, limitaciones, 5 recomendaciones por prioridad, 7 preguntas nuevas | 16–17 | ✔ |
 | 9 | Referencias APA y coherencia citas–lista | Referencias (40 entradas); `scripts/utilidades/verificar_citas.R`: 0 citas sin referencia, 0 referencias sin cita, orden alfabético correcto | 17–20 | ✔ (ver la sección de referencias abajo) |
-| 10 | Liga al código; organización, comentarios, lenguajes y ejecución con el dataset | «Liga al código y organización»: hipervínculo a la etiqueta `informe-final` (rama main), Tabla 12, lenguajes, cómo correrlo; README del repositorio | 20–21 | ✔ (la etiqueta se crea al fusionar el PR #11; reproducción desde un clon limpio, abajo) |
+| 10 | Liga al código; organización, comentarios, lenguajes y ejecución con el dataset | «Liga al código y organización»: hipervínculo a la etiqueta `informe-final` (rama main), Tabla 12, lenguajes, cómo correrlo; README del repositorio | 20–21 | ✔ (la etiqueta anotada `informe-final` apunta al commit de fusión del PR #11 en main; reproducción desde un clon limpio, abajo) |
 
 ## Retroalimentación (`docs/etapa4/retroalimentacion_final.md`)
 
@@ -91,7 +91,7 @@ Ninguno cambia una cifra del análisis.
 - **I1.** 5.6: los pliegues internos diagnostican la estabilidad del ajuste sobre la base final; la imputación y su selección usaron todo 2021–2023. Limitación 2 lo repite.
 - **I2.** Tabla 7: la fila «Homogeneidad de los errores» pasa a «Diagnóstico adicional: variación de los residuos y calibración» (no es un supuesto del LDA; Brown-Forsythe solo descriptivo); implicaciones de normalidad y covarianzas reescritas; 5.5 dice que la variación es esperable en parte con una respuesta binaria.
 - **I3.** 4.3 (D20): el 0.436 es el promedio de las cinco imputaciones de MICE del experimento de selección; la sensibilidad del clasificador usa 20 bases (ΔAUC 0.078).
-- **I4.** Liga al código: hipervínculo a la etiqueta `informe-final`, que se crea al fusionar el PR #11.
+- **I4.** Liga al código: hipervínculo a la etiqueta `informe-final`, creada sobre el commit de fusión del PR #11 (no se enlaza el commit `4644e16`).
 - **I5.** `zip` registrado en `renv.lock`.
 - **I6.** 5.2: KMO con Kaiser y Rice (1974); la entrada sustituye a Kaiser (1974).
 - **I7.** 1, «Alcance»: umbral fijo de 25 µg/m³; no se evalúa el cumplimiento normativo.
@@ -115,4 +115,10 @@ Ninguno cambia una cifra del análisis.
 
 ## Reproducción desde un clon limpio
 
-PENDIENTE
+21 de octubre de 2026, Windows 11, R 4.6.1. Clon desde GitHub de la rama `analisis/etapa4` en el commit `fa4baf0`, en una carpeta nueva; `renv::restore()` instaló 159 paquetes (incluido `zip`) y `renv::status()` no reportó problemas. Sin los Excel y sin `SIMA_DATA_DIR`; con `MOTIVO_RECORRIDA`, porque los registros de 07b y 09a ya están versionados.
+
+- **Orden del README:** 06 → 06b → 07a → 07b → 07c → 08a → 08b → 08c → 08d → 09a → 09b → 09c → 09d → 09e → 09f → 09g → 09h. Los 17 scripts terminaron con código 0 (unos 50 minutos; 08a, 35).
+- **El candado de 09a ya no se dispara:** 08d regeneró `data/clean/v2/muestra_v2_mice_m20.csv.gz` con otros bytes (ahora con `\n`), pero su contenido descomprimido y sin `\r` es el mismo que en el commit, y 09a corrió.
+- **Salidas versionadas (380 archivos):** todos los CSV, PNG y datos coinciden en contenido con el commit. Solo difieren, como se espera, la fecha y el commit de cuatro `RESUMEN.md` (etapas 2, 3 y 4 y el diagnóstico de la etapa 3), los registros de la prueba de 07b y 09a (agregan esta corrida), los tiempos de cómputo de 08a (`tiempos_enmascaramiento_horario.csv`) y la fecha de creación dentro de `output/etapa3/modelo_final.rds` (`all.equal` sin ese campo: TRUE).
+- **09h del commit `9726021`:** en el mismo clon, las siete figuras del informe salen idénticas a las versionadas.
+- **Receta del Word en el clon:** `quarto render`, `scripts/utilidades/formato_docx.R` (con `zip` 3.0.2 de la biblioteca restaurada) y `scripts/utilidades/verificar_citas.R` terminan sin error; el Word resultante es idéntico al de la entrega salvo `docProps/core.xml` (fecha).
