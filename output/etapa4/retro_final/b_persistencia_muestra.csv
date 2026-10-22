@@ -1,0 +1,3 @@
+parte,n_total,n_con_persistencia,pct_superacion_total,pct_superacion_con_persistencia,escala,edf_spline_entrenamiento,cor_spearman_pm_ayer_pm
+entrenamiento,10965,10345,25.8914728682171,26.26389560174,original,5.76639290458291,0.654574847646569
+prueba,6863,6280,26.2130263733061,26.3216560509554,original,5.76639290458291,0.697595762685825
