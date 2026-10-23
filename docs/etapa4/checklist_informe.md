@@ -178,3 +178,13 @@ Ninguno cambia una cifra del análisis.
   - `trazabilidad_presentacion.md`: sin el nombre del personal de SIMA.
   - Diapositiva 12, notas, guion y trazabilidad: etiqueta `entrega-final`, con un QR nuevo que lleva a `https://github.com/Leo-issacs/reto-sima-multivariados/tree/entrega-final`, verificado con un lector en la imagen y en el PDF exportado.
   - El .pptx y el PDF se exportaron otra vez con PowerPoint; solo cambian los textos de las diapositivas 5 y 12 y sus notas.
+
+## Reproducción desde un clon limpio de la etiqueta `entrega-final`
+
+22 de octubre de 2026, Windows 11, R 4.6.1. Clon desde GitHub de la etiqueta `entrega-final` (commit de fusión `9431b7c`, árbol `c71240b`), en una carpeta nueva y sin los Excel. `renv::restore()` dejó el proyecto consistente. Esta nota es posterior a la etiqueta, así que no está dentro de ella.
+
+- **`scripts/10_analisis_retro_final.R`:** terminó con código 0 en unos 8.5 minutos.
+- **Tablas A1, B, C3, D y E:** idénticas a las versionadas (`a1_odds_ratios_logistica.csv`, `a1_importancia_permutacion.csv`, `b_persistencia_auc.csv`, `b_persistencia_dauc.csv`, `b_persistencia_muestra.csv`, `c_cortes_en_prueba.csv`, `d_bootstrap_estratificado.csv` y `e_episodios_resumen.csv`), igual que el resto de los CSV de `output/etapa4/retro_final/`.
+- **Dos archivos cambian sin que cambie ninguna cifra:**
+  - `RESUMEN.md`, por la hora de generación.
+  - `linealidad_logit_informe.png`, por el orden de sus dos leyendas: ggplot no fija el orden entre la leyenda de los puntos y la de las líneas. Los datos de la figura (`a2_gam_curvas.csv` y `a2_logits_empiricos.csv`) son idénticos; en la corrida desde el clon de `75ed765` la figura había salido idéntica.
