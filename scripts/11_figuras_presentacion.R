@@ -126,7 +126,7 @@ ve <- fread(file.path(E4, "pca/pca_v2_valores_propios.csv"))
 nombre_var <- c(TOUT = "Temperatura", RH = "Humedad relativa", SR = "Radiación solar", PRS = "Presión (anomalía)",
                 viento_rapidez_ms = "Rapidez del viento", viento_u = "Viento u (este-oeste)",
                 viento_v = "Viento v (norte-sur)", horas_lluvia = "Horas con lluvia")
-eje <- c(PC1 = "Calor y\nradiación", PC2 = "Humedad y\nflujo del este", PC3 = "Presión baja\ny lluvia")
+eje <- c(PC1 = "Día cálido,\nsoleado y\nventilado", PC2 = "Día húmedo\ny lluvioso", PC3 = "Día de presión\nbaja y poco\nviento")
 cl <- melt(cargas, id.vars = "variable", variable.name = "pc", value.name = "carga")
 cl[, `:=`(variable = factor(nombre_var[variable], rev(nombre_var)),
           eje = sprintf("%s · %.0f %%\n%s", pc, ve$pct_varianza[match(pc, ve$componente)], eje[as.character(pc)]))]

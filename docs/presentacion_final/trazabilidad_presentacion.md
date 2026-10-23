@@ -75,8 +75,8 @@ Todas las figuras se regeneran con `scripts/11_figuras_presentacion.R` (lee los 
 | 36, 17 y 13 % | 35.80; 17.48; 13.18 | `E4/pca/pca_v2_valores_propios.csv` |
 | Cargas (celdas de la figura) | — | `E4/pca/pca_v2_cargas.csv` |
 | KMO 0.64 (solo notas) | 0.635 | `E4/pca/pca_v2_resumen.csv` |
-| Nombres de los ejes («calor y radiación», «humedad y flujo del este», «presión baja y lluvia») | — | **Lectura propia de las cargas** (no están en el informe). PC1: temperatura 0.84, radiación 0.82, rapidez 0.68; PC2: humedad 0.61, u −0.63, v 0.51; PC3: presión −0.67, lluvia 0.38 |
-| PC1 mezcla temperatura y viento con efectos opuestos | — | Informe, Sección 5 (PCA) y 6.3 |
+| Nombres de los ejes («día cálido, soleado y ventilado», «día húmedo y lluvioso», «día de presión baja y poco viento») | — | **Salen del informe**, `quarto/etapa4_informe_final.qmd`, sección 6.2 (PCA). Respaldo, las cargas de `E4/pca/pca_v2_cargas.csv`: PC1 temperatura 0.84, radiación 0.82, rapidez del viento 0.68, presión −0.59, u −0.61; PC2 humedad 0.61, lluvia 0.43, v 0.51, u −0.63; PC3 presión −0.67, rapidez −0.35 |
+| PC1 mezcla temperatura y viento con efectos opuestos | — | Informe, secciones 5 (PCA) y 6.3; coherente con el nombre de PC1: temperatura y rapidez del viento cargan con el mismo signo (0.84 y 0.68) y se asocian con la superación en sentidos contrarios (`RF/a1_odds_ratios_logistica.csv`: 1.78 y 0.49) |
 
 ## Diapositiva 8. Resultado principal
 
@@ -160,5 +160,5 @@ Todas las figuras se regeneran con `scripts/11_figuras_presentacion.R` (lee los 
 Ninguna cifra queda sin origen. Hay tres tipos de caso que conviene saber:
 
 1. **Calculadas por primera vez en el script 11** (diapositiva 4): la superación por temporada (36.9, 35.0, 11.7 %) y las diferencias de temperatura (−0.3, +2.0, +3.3, +0.8 °C). Son reproducibles con `scripts/11_figuras_presentacion.R` pero no aparecen en el informe ni en los CSV previos.
-2. **Interpretación propia, no cifra:** los nombres de los tres ejes del PCA.
+2. **Nombres de los ejes del PCA:** no son cifras; salen del informe (sección 6.2) y las cargas los respaldan.
 3. **Redondeo distinto del enunciado:** la varianza acumulada del PCA es 66.46 %, que el informe da como **66.5 %** y la presentación escribe igual (el enunciado decía «67 %»).

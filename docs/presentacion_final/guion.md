@@ -2,17 +2,17 @@
 
 Exposición de 15 minutos más 5 de preguntas. Doce diapositivas; este guion es el mismo texto que está en las notas del orador del `.pptx`. Todas las cifras se explican en `trazabilidad_presentacion.md`.
 
-**Tiempo planeado:** 14:30 de exposición (30 s de holgura para las transiciones y las pausas). **Palabras del guion:** 1744 (≈ 805 s a 130 palabras por minuto; el ritmo real por diapositiva queda entre 112 y 141 palabras por minuto).
+**Tiempo planeado:** 14:30 de exposición (30 s de holgura para las transiciones y las pausas). **Palabras del guion:** 1753 (≈ 809 s a 130 palabras por minuto; el ritmo real por diapositiva queda entre 112 y 141 palabras por minuto).
 
 ## Reparto
 
 | Expositor | Diapositivas | Tiempo | Palabras del guion |
 |---|---|---|---|
 | Leonardo Orozco | 1, 5, 8 | 3:40 | 422 |
-| Pablo Alonso Robles Nava | 6, 7, 11 | 3:10 | 366 |
+| Pablo Alonso Robles Nava | 6, 7, 11 | 3:10 | 375 |
 | Ignacio Kume | 2, 3, 12 | 3:50 | 470 |
 | Daniel Ayala | 4, 9, 10 | 3:50 | 486 |
-| **Total** | 1–12 | **14:30** | **1744** |
+| **Total** | 1–12 | **14:30** | **1753** |
 
 Orden de la voz: Leo (1) → Ignacio (2–3) → Daniel (4) → Leo (5) → Pablo (6–7) → Leo (8) → Daniel (9–10) → Pablo (11) → Ignacio (12). Cada cambio de expositor está marcado con una transición al final del texto del que termina.
 
@@ -56,9 +56,9 @@ Nuestra ruta tiene cuatro pasos, y cada uno responde una pregunta. Primero, comp
 
 ## Diapositiva 7 · Estructura del clima (PCA)
 
-**Expositor:** Pablo Alonso Robles Nava · **Duración:** 0:50 · **Reloj:** 6:50–7:40 · 104 palabras
+**Expositor:** Pablo Alonso Robles Nava · **Duración:** 0:50 · **Reloj:** 6:50–7:40 · 113 palabras
 
-Los componentes principales resumen cómo varía el clima, medido como anomalía respecto de la media de cada estación. Tres ejes explican el 66.5 por ciento de la varianza: calor y radiación, 36 por ciento; humedad con flujo del este, 17; y presión baja con lluvia, 13. Los nombres son nuestra lectura de las cargas. La adecuación es modesta, KMO de 0.64, así que lo usamos de forma exploratoria. Y no lo usamos para predecir: el primer eje mezcla temperatura y viento, que se asocian con la superación en sentidos contrarios, y maximizar varianza no es maximizar separación entre clases. Leo presenta el resultado principal.
+Los componentes principales resumen cómo varía el clima, medido como anomalía respecto de la media de cada estación. Tres ejes explican el 66.5 por ciento de la varianza: día cálido, soleado y ventilado, 36 por ciento; día húmedo y lluvioso, 17; y día de presión baja y poco viento, 13. Los nombres son los del informe. La adecuación es modesta, KMO de 0.64, así que lo usamos de forma exploratoria. Y no lo usamos para predecir: el primer eje, el del día cálido, soleado y ventilado, mezcla temperatura y viento, que se asocian con la superación en sentidos contrarios, y maximizar varianza no es maximizar separación entre clases. Leo presenta el resultado principal.
 
 ## Diapositiva 8 · Resultado principal
 
