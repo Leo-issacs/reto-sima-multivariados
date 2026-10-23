@@ -1,0 +1,3 @@
+clasificador,d_auc,ic_actual_li,ic_actual_ls,ic_estratificado_li,ic_estratificado_ls,bloques,empates_asignados
+LDA,0.0786292323188149,0.0536971505606139,0.104348100816547,0.0564639239303405,0.100917448936589,calida_humeda: 22; seca_calida: 14; seca_fria: 17,0
+Logística,0.0711476755121988,0.047450624146061,0.0953707386556793,0.0504532603394843,0.0914637621849233,calida_humeda: 22; seca_calida: 14; seca_fria: 17,0

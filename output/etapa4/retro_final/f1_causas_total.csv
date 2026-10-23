@@ -1,0 +1,6 @@
+causa,N,pct,descripcion
+a,4346,18.3081978262701,(a) Sin PM2.5 suficiente (< 18 h observadas)
+b,15011,63.2361614289325,(b) PM2.5 y meteorología completa
+c,4192,17.6594489847502,(c) PM2.5 y 1–4 meteorológicas imputadas (incluidos)
+d,189,0.796191760047182,(d) PM2.5 y 5–8 meteorológicas faltantes (excluidos)
+e,1375,5.79240037071362,"(e) De (b) o (c), previos a una reubicación (fuera del entrenamiento)"

@@ -1,8 +1,8 @@
 # Checklist del informe final
 
-Páginas según el PDF de revisión (`docs/etapa4/Informe_final_SIMA_Equipo1.pdf`, convertido con Word desde el .docx; 26 páginas en total). Si Leo edita el .docx, las páginas pueden moverse.
+Páginas según el PDF de revisión (`docs/etapa4/Informe_final_SIMA_Equipo1.pdf`, convertido con Word desde el .docx; 31 páginas en total). Si Leo edita el .docx, las páginas pueden moverse.
 
-**Extensión:** las secciones 1–7 van de la página 3 («1. Introducción y justificación») a la 17 (fin de «7. Discusión y conclusiones»): **15 páginas** (límite 15). Con las correcciones de la revisión de Codex el cuerpo pasó de 14 a 15 páginas; la sección 7 termina a 8.65 pulgadas de la p. 17, así que caben unas 1.3 pulgadas más antes de pasar a 16. Las Referencias empiezan en la misma p. 17. El Resumen ocupa una página (p. 2).
+**Extensión:** las secciones 1–7 van de la página 3 («1. Introducción y justificación») a la 17 (fin de «7. Discusión y conclusiones»): **15 páginas** (límite 15). La sección 7 termina con 0.43 pulgadas libres al pie de la p. 17, y las Referencias empiezan en la p. 18. El Resumen ocupa una página (p. 2, con 1.1 pulgadas libres). Para que la fase F cupiera se movieron a los anexos los seis elementos de la lista de prioridad y, además, la tabla de reglas de limpieza (ver «Fase F: elementos movidos a los anexos»).
 
 Estado: ✔ atendido · ◐ atendido en parte (ver nota) · ✘ no atendido.
 
@@ -10,19 +10,19 @@ Estado: ✔ atendido · ◐ atendido en parte (ver nota) · ✘ no atendido.
 
 | # | Criterio | Dónde | Pág. | Estado |
 |---|---|---|---|---|
-| 1 | Estructura mínima completa, ≤ 15 páginas, PDF sin recortes | Carátula, Resumen, secciones 1–7, Referencias, Liga al código, Anexos A–D | 1–26; 1–7 en pp. 3–17 | ✔ (revisadas las 26 páginas como imagen: nada cortado ni encimado) |
+| 1 | Estructura mínima completa, ≤ 15 páginas, PDF sin recortes | Carátula, Resumen, secciones 1–7, Referencias, Liga al código, Anexos A–D | 1–31; 1–7 en pp. 3–17 | ✔ (revisadas las 31 páginas como imagen: nada cortado ni encimado; las tablas largas que se parten repiten el encabezado) |
 | 1 | Identificación con equipo y matrículas | Carátula: «Matrícula: ________» para cada integrante (Leo las llena en Word); «Profesores: Blanca Rosa Ruiz Hernández y Jesús [COMPLETAR apellidos]» | 1 | ◐ faltan matrículas y los apellidos del segundo profesor |
-| 1 | Ortografía y redacción | Todo el documento; revisión automática de «¿», «µg/m³», «PM2.5», palabras repetidas y dobles espacios; los números con separador de miles llevan espacio de no separación | — | ✔ (sin corrector ortográfico instalado: revisión de Leo en Word recomendada) |
-| 2 | Resumen de una página, claro y completo | Resumen: problema, datos y preparación, técnicas, resultados con cifras, qué sí y qué no, recomendaciones | 2 | ✔ |
-| 3 | Claridad y coherencia; descripción de la estación y factores geográficos | Sección 3 (valle, altitud, flujo del este, salida por Santa Catarina y García; Figura 1, Tablas 1–2; contexto de SE2, SO y SUR) | 4–6 | ✔ |
-| 4 | Limpieza, imputaciones, transformaciones y justificación | 4.1 (Tabla 3), 4.2 (Tabla 4), 4.3 (Figura 2, Tabla 5, D18–D20, MIMA-v1), 4.4, 4.5; Anexo B | 6–9; 22 | ✔ |
-| 5 | Al menos dos técnicas (dependencia e interdependencia), aplicación y validación | 5.1 (Tabla 6, ruta), 5.2 PCA, 5.3 LDA, 5.4 supuestos (Tabla 7), 5.5 errores (Figura 3), 5.6 validación (Tabla 8; alcance de los IC y de los pliegues internos) | 9–13 | ✔ |
-| 5 | Técnicas no exitosas y su justificación | 5.7 y Anexo A (Tabla 13) | 13; 22 | ✔ |
-| 6 | Solidez, calidad y pertinencia de los hallazgos | 6.1–6.4 (Tablas 9–10, Figuras 4–7); 7 | 13–17 | ✔ |
-| 7 | Interpretación de gráficos y tablas, numeración y descripción; sin código | 9 figuras y 18 tablas, todas numeradas, con pie y con llamada explícita en el texto (las Tablas 11–14 la tienen desde la revisión de Codex); ninguna figura con título interno (la Figura 4 solo conserva los rótulos de sus paneles a y b); Figuras 1, 2, 3, 5, 6, 8 y 9 en su versión para el informe (09h); ningún bloque de código visible | todas | ✔ |
-| 8 | Resultados relevantes, recomendaciones y nuevas preguntas | 7: hallazgos, Tabla 11, limitaciones, 5 recomendaciones por prioridad, 7 preguntas nuevas | 16–17 | ✔ |
-| 9 | Referencias APA y coherencia citas–lista | Referencias (40 entradas); `scripts/utilidades/verificar_citas.R`: 0 citas sin referencia, 0 referencias sin cita, orden alfabético correcto | 17–20 | ✔ (ver la sección de referencias abajo) |
-| 10 | Liga al código; organización, comentarios, lenguajes y ejecución con el dataset | «Liga al código y organización»: hipervínculo a la etiqueta `informe-final` (rama main), Tabla 12, lenguajes, cómo correrlo; README del repositorio | 20–21 | ✔ (la etiqueta anotada `informe-final` apunta al commit de fusión del PR #11 en main; reproducción desde un clon limpio, abajo) |
+| 1 | Ortografía y redacción | Todo el documento; los números con separador de miles llevan espacio de no separación | — | ✔ (sin corrector ortográfico instalado: revisión de Leo en Word recomendada) |
+| 2 | Resumen de una página, claro y completo | Resumen: problema, datos y preparación, técnicas (LDA y logística en paralelo; bootstrap como validación temporal útil), resultados con la frase central, persistencia, qué sí y qué no, recomendaciones con el corte | 2 | ✔ |
+| 3 | Claridad y coherencia; descripción de la estación y factores geográficos | Sección 3 (valle, altitud, flujo del este; Figura 1, Tabla 1; contexto de SE2, SO y SUR; cambios en la red en un párrafo, con la Tabla 12 en el Anexo B) | 4–5; 23 | ✔ |
+| 4 | Limpieza, imputaciones, transformaciones y justificación | 4.1 (Tabla 13, Anexo B), 4.2 (Tabla 15, Anexo B), 4.3 (Tabla 2; Figura 6, Anexo B; D18–D20; MIMA-v1), 4.4, 4.5 (Tabla 3: exclusiones y posible sesgo); Anexo B | 6–8; 22–24 | ✔ |
+| 5 | Al menos dos técnicas (dependencia e interdependencia), aplicación y validación | 5.1 (Tabla 4, con aplicación previa), 5.2 PCA, 5.3 LDA (dos clasificadores en paralelo), 5.4 supuestos (Tabla 5), 5.5 logística (variables y linealidad), 5.6 errores (Figura 2), 5.7 validación (bootstrap también estratificado por temporada; Tabla 17 en el Anexo C) | 8–13 | ✔ |
+| 5 | Técnicas no exitosas y su justificación | 5.8 y Anexo A (Tabla 11) | 13; 22 | ✔ |
+| 6 | Solidez, calidad y pertinencia de los hallazgos | 6.1–6.6 (Tablas 6–8, Figuras 3–5); 7 | 13–17 | ✔ |
+| 7 | Interpretación de gráficos y tablas, numeración y descripción; sin código | 11 figuras y 22 tablas, todas numeradas, con pie y llamada explícita en el texto; ninguna figura con título interno (las Figuras 3 y 5 solo rotulan sus paneles); ningún bloque de código visible | todas | ✔ |
+| 8 | Resultados relevantes, recomendaciones y nuevas preguntas | 7: conclusión, hallazgos, Tabla 9, 7 limitaciones, 5 recomendaciones por prioridad, 7 preguntas nuevas | 16–17 | ✔ |
+| 9 | Referencias APA y coherencia citas–lista | Referencias (44 entradas); `scripts/utilidades/verificar_citas.R`: 0 citas sin referencia, 0 referencias sin cita, orden alfabético correcto | 18–19 | ✔ |
+| 10 | Liga al código; organización, comentarios, lenguajes y ejecución con el dataset | «Liga al código y organización»: hipervínculo a la etiqueta `entrega-final` (rama main), con la nota de que `informe-final` es la versión previa a la retroalimentación del 22 de octubre; Tabla 10 (con `10_analisis_retro_final.R`), lenguajes, cómo correrlo; README | 20–21 | ✔ (la etiqueta anotada `entrega-final` apunta al commit de fusión del PR #12 en main; reproducción desde un clon limpio de la etiqueta, abajo) |
 
 ## Retroalimentación (`docs/etapa4/retroalimentacion_final.md`)
 
@@ -30,47 +30,85 @@ Estado: ✔ atendido · ◐ atendido en parte (ver nota) · ✘ no atendido.
 
 | Punto | Dónde | Pág. | Estado |
 |---|---|---|---|
-| Explicar cómo entran estación y temporada al LDA y por qué es apropiado para M0 y M1 | 5.3: indicadoras k − 1, referencias CE y cálida-húmeda, M0 aditivo con 39 combinaciones, M1, razones 1–4, prior y corte | 10–11 | ✔ |
-| Respaldo académico de PCA, logística y bootstrap por bloques, ligado a pregunta y variables | 5.1, Tabla 6 (columnas pregunta, variables, por qué, respaldo); 5.2 (KMO con Kaiser y Rice, 1974); 5.3, razón 4 (alcance de Efron, 1975) | 9–10 | ✔ |
-| Normalidad multivariada no se cumple con indicadoras; datos dependientes en el tiempo y entre estaciones | 5.3 (razón 3) y 5.4 (Tabla 7) | 10–11 | ✔ |
-| El bootstrap no vuelve independientes los datos del ajuste; el PCA no controla la autocorrelación; la prueba ya se usó | 5.4, párrafo antes de la Tabla 7; Resumen; 5.2 (frase en negritas); 5.6 (los IC se condicionan a la preparación elegida y los pliegues internos no repiten la imputación); limitación 2 | 2, 10–12, 17 | ✔ |
-| Exponer los supuestos con honestidad; validación temporal y logística como evidencia empírica; no interpretar como modelo generativo | 5.4 (Tabla 7, con implicaciones que no afirman cuál es la frontera óptima); 6.4; Tabla 11 | 11, 16–17 | ✔ |
+| Explicar cómo entran estación y temporada al LDA y por qué es apropiado para M0 y M1 | 5.3: indicadoras k − 1, referencias CE y cálida-húmeda, M0 aditivo con 39 combinaciones, M1, razones 1–4, prior y corte | 9–10 | ✔ |
+| Respaldo académico de PCA, logística y bootstrap por bloques, ligado a pregunta y variables | 5.1, Tabla 4 (pregunta, variables, por qué, respaldo y aplicación previa); 5.2 (KMO con Kaiser y Rice, 1974); 5.3, razón 4 | 8–10 | ✔ |
+| Normalidad multivariada no se cumple con indicadoras; datos dependientes en el tiempo y entre estaciones | 5.3 (razón 3) y 5.4 (Tabla 5) | 10–11 | ✔ |
+| El bootstrap no vuelve independientes los datos del ajuste; el PCA no controla la autocorrelación; la prueba ya se usó | 5.4; 5.2 (frase en negritas); 5.7 (el bootstrap no elimina la autocorrelación ni la incorpora al ajuste); Resumen; limitaciones 2 y 3 | 2, 9–13, 17 | ✔ |
+| Exponer los supuestos con honestidad; validación temporal y logística como evidencia empírica; no interpretar como modelo generativo | 5.4 (Tabla 5); 5.3 («Dos clasificadores en paralelo»); 6.4; Tabla 9 | 10–11, 15, 17 | ✔ |
 
 ### R2. Exposición de la etapa 3 (15 oct 2026)
 
 | Punto | Dónde | Pág. | Estado |
 |---|---|---|---|
-| LDA supone normalidad: cuidado con la interpretación | 5.3 (razón 3: modelo de localización de Krzanowski y la aproximación lineal), 5.4; 6.3 (solo signos estables; la temperatura, sin leerla como efecto por temporada) | 10–11, 15 | ✔ |
-| ¿El modelo absorbe la autocorrelación y la heterogeneidad de varianzas? | 5.5 (Figura 3: ACF 0.50 → 0.44 → 0.42; varianza por temporada, esperable en parte con una respuesta binaria; calibración); Tabla 7 (diagnóstico adicional, Brown-Forsythe solo descriptivo); Anexo C | 11–12; 23–24 | ✔ |
-| Va a pedir la validación; qué sí y qué no se puede concluir | 5.6 (Tabla 8; pliegues internos como diagnóstico de estabilidad); Tabla 11 | 12–13; 17 | ✔ (la validación de todo el procedimiento dentro de cada pliegue queda declarada como pendiente) |
-| «Vecinos cercanos» es malo para estos datos | 4.3 (no se usa KNN); Anexo A (no se aplicó, siguiendo la retroalimentación; un KNN que ignore el tiempo y la red puede elegir donantes poco pertinentes; existen variantes que sí los usan) | 7; 22 | ✔ |
-| Usar los métodos del curso (MIMA-v1) en lugar de hacer otro proyecto de imputación | 4.3: métodos de imputeTS (fuente principal del curso) y párrafo «Imputación de referencia del curso» sobre MIMA-v1 | 7–8 | ◐ no se pudo comparar con MIMA-v1: no obtuvimos acceso al dataset (Fase E no realizada); 5.7 ya no dice que lo confirma |
-| Imputar puede mejorar, sobre todo en ventanas grandes | 4.1 (Tabla 3: los huecos son largos); 4.3, párrafo «Principio» (las ventanas grandes de la meteorología se recuperan a nivel diario con la red; las del PM2.5 no se rellenan); 4.3 D20 (4 192 días recuperados); pregunta nueva sobre MIMA-v1 | 6–8, 17 | ✔ (respondido de forma explícita; los huecos largos se cubren a nivel diario, no horario) |
+| LDA supone normalidad: cuidado con la interpretación | 5.3 (razón 3), 5.4; 6.3 (solo signos estables) | 10–11, 14 | ✔ |
+| ¿El modelo absorbe la autocorrelación y la heterogeneidad de varianzas? | 5.6 (Figura 2; varianza por temporada; calibración); Tabla 5 (diagnóstico adicional); Anexo C | 12; 10–11; 28 | ✔ |
+| Va a pedir la validación; qué sí y qué no se puede concluir | 5.7 (pliegues internos como diagnóstico de estabilidad; Tabla 17); Tabla 9 | 12–13; 25; 17 | ✔ (la validación de todo el procedimiento dentro de cada pliegue queda declarada como pendiente) |
+| «Vecinos cercanos» es malo para estos datos | 4.3 (no se usa KNN); Anexo A | 7; 22 | ✔ |
+| Usar los métodos del curso (MIMA-v1) en lugar de hacer otro proyecto de imputación | 4.3: métodos de imputeTS y párrafo «Imputación de referencia del curso» | 7 | ◐ no se pudo comparar con MIMA-v1: no obtuvimos acceso al dataset (Fase E no realizada) |
+| Imputar puede mejorar, sobre todo en ventanas grandes | 4.1 (Tabla 13, Anexo B); 4.3 («Principio» y D20); pregunta nueva sobre MIMA-v1 | 6–7, 17 | ✔ |
 | Métodos en la presentación; Spearman «solo es una correlación» | Spearman solo como descriptivo (sección 3) | 5 | ✔ (lo de la presentación no aplica al informe) |
-| SIMA: reubicaciones confirmadas (NO3, SUR, SE, NE, NO; no SO ni NTE) | Tabla 2; sensibilidad con la lista de SIMA (Tabla 10) | 5–6; 16 | ✔ |
-| SIMA: Juárez (pluma de la refinería, resuspensión, quemas, transporte, obras) | 3, contexto por estación: SE2, con cociente PM2.5/PM10 y viento | 5 | ✔ |
+| SIMA: reubicaciones confirmadas (NO3, SUR, SE, NE, NO; no SO ni NTE) | Sección 3 («Cambios en la red»); Tabla 12 (Anexo B); sensibilidad en la Tabla 18 | 5; 23; 25–26 | ✔ |
+| SIMA: Juárez (pluma de la refinería, resuspensión, quemas, transporte, obras) | 3, contexto por estación: SE2 | 5 | ✔ |
 | SIMA: Santa Catarina (industria, suelo, receptor de la salida del viento) | 3, contexto por estación: SO | 5 | ✔ |
-| SIMA: cuidado con la imputación en esas dos estaciones; hace falta un buen validador | 4.3 D18 (la respuesta no se imputa) y validación por enmascaramiento de cada imputación | 7 | ✔ |
-| SIMA: el PM2.5 es caótico, sin la periodicidad del ozono | 7, Hallazgos (comunicación personal: por eso estación y temporada separan solo una parte de los días); ACF de la respuesta (5.5, 5.6) | 16; 11–12 | ✔ |
-| SIMA: interés en la alerta con pronóstico | 1 (justificación), 7 (recomendación 1 y primera pregunta nueva) | 3; 17 | ✔ |
+| SIMA: cuidado con la imputación en esas dos estaciones; hace falta un buen validador | 4.3 D18 (la respuesta no se imputa) y validación por enmascaramiento | 6–7 | ✔ |
+| SIMA: el PM2.5 es caótico, sin la periodicidad del ozono | 7, Hallazgos; ACF de la respuesta (5.6) | 16; 12 | ✔ |
+| SIMA: interés en la alerta con pronóstico | 1 (justificación); 6.5 (la persistencia como base); 7 (recomendación 1 y primera pregunta nueva) | 3; 15–16; 17 | ✔ |
 
 ### R3. Información previa del socio (9 oct 2026)
 
 | Punto | Dónde | Pág. | Estado |
 |---|---|---|---|
-| 2021: renovación de sensores de viento y analizadores | Tabla 2 y 4.2 (exclusión de 2020) | 6 | ✔ |
-| 2025: equipos nuevos de PM2.5 (Thermo 5014i) en SE2, NTE2, SUR, SO2 y NO | Tabla 2; mejora por año (6.1, Figura 4b) | 6; 14 | ✔ |
-| Citar como comunicación personal en el texto, no en la lista | Secciones 1, 3, 7 y Tabla 2 | 3–5, 16 | ✔ (no está en la lista; el verificador de citas no lo busca) |
+| 2021: renovación de sensores de viento y analizadores | Sección 3 («Cambios en la red»), Tabla 12 y 4.2 (exclusión de 2020) | 5–6; 23 | ✔ |
+| 2025: equipos nuevos de PM2.5 (Thermo 5014i) en SE2, NTE2, SUR, SO2 y NO | Sección 3; mejora por año (6.1, Figura 3b) | 5; 14 | ✔ |
+| Citar como comunicación personal en el texto, no en la lista | Secciones 1, 3, 7 y Tabla 12 | 3–5, 16, 23 | ✔ (no está en la lista; el verificador de citas no lo busca) |
+
+### R4. Retroalimentación de la etapa 3 y puntos para el reporte final (22 oct 2026)
+
+Todo lo de este bloque es posterior a la evaluación de la prueba (fase F de `decisiones_etapa4.md`); no cambia el modelo principal.
+
+| Punto | Dónde | Pág. | Estado |
+|---|---|---|---|
+| Etapa 3: aplicación previa de PCA, LDA y logística en artículos, en series de tiempo o contextos ambientales, y su utilidad para el objetivo | 5.1: Tabla 4, columna «Aplicación previa en contexto ambiental o de series de tiempo» (Ramírez-Velarde et al., 2024; Mohd Shafi'i y Juahir, 2024; Vélez-Pereira et al., 2025; Saminathan y Malathy, 2023; Wilks, 2019), y una oración por técnica sobre su utilidad | 8–9 | ✔ (que Vélez-Pereira et al. usen validación temporal no se pudo verificar en el texto completo; la tabla no lo afirma) |
+| Etapa 3: variables relevantes de la logística y cómo influyen en las conclusiones | 5.5, «Variables relevantes»: OR por 1 DE con IC por bootstrap por bloques, % de réplicas con el mismo signo, coincidencia con el LDA, importancia por permutación, interpretación en momios y sin valores p; la radiación, con un intervalo que llega a 1, se presenta como efecto débil (también en la Tabla 9 y en el pie de la Figura 5); Figura 5, panel b | 11; 15; 17 | ✔ |
+| Etapa 3: linealidad de los predictores continuos en la escala logit y tratamiento | 5.5, «Linealidad»: logits empíricos por decil, GAM con grados de libertad efectivos, AUC con splines en los pliegues y en la prueba; regla cumplida, así que los splines se reportan como tratamiento (ΔAUC 0.090) sin cambiar el modelo principal; Figura 8 y Tabla 18 (Anexo C) | 11; 25–27 | ✔ |
+| 1. Conclusión acotada: clasificación retrospectiva en el periodo evaluado, sin respaldar un pronóstico | Resumen; 6.1 (frase central); 7, «Conclusión»; Tabla 9 | 2; 13; 16–17 | ✔ |
+| 2. Describir con precisión el bootstrap, con la estructura estacional; validación temporal útil, no confirmación independiente | 5.7, «Bootstrap por bloques» (texto pedido e IC estratificado por temporada); Resumen | 12; 2 | ✔ |
+| 3. Línea base de persistencia | 6.5 (Tabla 7); 7 (Hallazgos, recomendación 1); Resumen | 15–16; 16–17; 2 | ✔ (la persistencia clasifica mejor: AUC 0.872 frente a 0.792; la meteorología le agrega 0.016) |
+| 4. Umbral según el uso, elegido con el entrenamiento y evaluado en la prueba; métricas por corte | 6.6 (Tabla 8); Figura 9 (Anexo C); 7, recomendación 2; Resumen | 16; 27; 17; 2 | ✔ |
+| 5. Distinguir días-estación de episodios | Todo el informe usa «días-estación» para los conteos y «episodio» solo con la definición de la fase F; detección por episodio en 6.1 | 14 | ✔ (no había «episodios graves» en el texto; se cambiaron cuatro usos genéricos de «episodio») |
+| 6. Causas y patrones de exclusión; respuesta en los excluidos; posible sesgo | 4.5 (Tabla 3 y texto, incluida la comparación etapa 3 → etapa 4 de NO2); Tabla 14 (Anexo B); Resumen y limitación 4 (NO 57 %, NE2 33 %, SUR 26 %, 2024–2025) | 8; 24; 2; 17 | ✔ |
+| 7. Interpretación empírica del LDA y logística como referencia | 5.3, «Dos clasificadores en paralelo»; Tabla 6 con las dos columnas; 5.5; Figura 5 | 10; 13; 11; 15 | ✔ |
+| 8. Las medidas acotan la incertidumbre, pero no hacen un modelo temporal completo ni una alerta operativa | 7, limitación 3 (frase textual); Tabla 9; Resumen | 17; 2 | ✔ |
+| Preguntas nuevas: modelo temporal explícito y evaluación con pronóstico | 7, «Preguntas nuevas» (las dos primeras) | 17 | ✔ |
+
+## Fase F: elementos movidos a los anexos
+
+En el orden de prioridad pedido, cada uno sigue citado en el cuerpo:
+
+1. Figura 2 de `informe-final` (error de imputación por método) → Figura 6, Anexo B; 4.3 conserva la tabla del método y una oración.
+2. Tabla 3 (largo de los huecos) → Tabla 13, Anexo B; 4.1 conserva la cifra clave (51 % a 82 % en huecos de más de un día).
+3. Tabla 2 (cambios en la red) → Tabla 12, Anexo B; la sección 3 la resume en un párrafo.
+4. Tabla 8 (puente) → Tabla 17, Anexo C; 5.7 conserva una oración con 0.070 → 0.079.
+5. Figura 5 (magnitud del PM2.5) → Figura 7, Anexo C; 6.1 la resume en una oración.
+6. Tabla 10 (robustez) → Tabla 18, Anexo C; 6.4 la resume con el rango 0.071–0.082, y la tabla suma la fila de los splines.
+7. **Fuera de la lista:** la tabla de reglas de limpieza (antes Tabla 4) → Tabla 15, Anexo B; 4.2 conserva el resumen. Con los seis anteriores el cuerpo seguía en 16 páginas.
+
+Además, la Figura 7 de `informe-final` (coeficientes del LDA) se sustituyó por la Figura 5, del LDA frente a la logística. También se acortaron textos de las secciones 4.5, 5.1, 5.3, 6.3 y 7, se reacomodaron figuras y tablas para no dejar huecos de página, y se ajustó el tamaño de las figuras (mapa a 6.0 pulgadas, ACF a 4.0, ROC a 5.0, PCA a 3.6 y coeficientes a 5.4). En 7 se quitó la frase de comparación con Vélez-Pereira et al. (2025), que Codex había señalado como generalización; el artículo sigue citado en la sección 1 y en la Tabla 4.
 
 ## Referencias
 
-Comprobadas por la revisión de Codex en Crossref y con el editor (los 31 DOI existen y sus metadatos coinciden), con las correcciones ya aplicadas: Kaiser y Rice (1974) sustituye a Kaiser (1974), que trata otro índice; autores de Martínez-Cinco et al. (2016) y Moons et al. (2006); nombre completo de la revista de Jolliffe y Cadima (2016); «Artículo» antes del número de artículo en las nueve entradas que lo tienen. Wilks (2019, 4.ª ed., Elsevier) y Johnson y Wichern (2007, 6.ª ed., Pearson Prentice Hall) quedaron confirmados. Se agregaron las URL oficiales del boletín estatal (2024) y de la NOM-025-SSA1-2021 en el DOF (con su título completo); el PIGECA va con HTTPS.
+44 entradas. Comprobadas por la revisión de Codex en Crossref y con el editor, con las correcciones ya aplicadas en la versión `informe-final`. Nuevas en la fase F, verificadas el 22 de octubre de 2026:
 
-Gómez Santos et al. (2027): capítulo publicado en *Artificial intelligence – COMIA 2026* (CCIS 3097, pp. 728–739, Springer), verificado por Opus en Springer; sustituye a la ponencia de 2026. Gómez et al. (2025), reporte de MIMA-v1: cobertura (9 estaciones, enero de 2021 a junio de 2025), MAE 4.01 y licencia verificadas por Opus contra los originales que dio Leo.
+- **Mohd Shafi'i y Juahir (2024).** *Environmental Monitoring and Assessment, 196*(7), Artículo 640, en Crossref; el resumen (Europe PMC) confirma datos diarios de 8 estaciones (2011–2021), análisis discriminante (90.50 % de asignación correcta) y PCA.
+- **Saminathan y Malathy (2023).** *Frontiers in Big Data, 6*, Artículo 1175259, en PMC; logística entre otros clasificadores de PM2.5 con variables meteorológicas en 12 estaciones de Pekín.
+- **Wood (2017).** 2.ª ed., Chapman and Hall/CRC, en Crossref.
+- **Youden (1950).** *Cancer, 3*(1), 32–35, en Crossref.
+- **Vélez-Pereira et al. (2025)**, ya citado: el resumen confirma la logística para superaciones diarias de PM2.5 y PM10 en Chile, pero no se pudo leer el texto completo para confirmar una validación temporal.
+- **Ramírez-Velarde et al. (2024)**, ya citado: el resumen confirma PCA con datos meteorológicos para contingencias en la ZMM.
 
-**Sin fuente pública:** Sistema Integral de Monitoreo Ambiental (2026, 14 de agosto), presentación de diapositivas (viene de la etapa 1). En el texto, la primera cita define la sigla: (Sistema Integral de Monitoreo Ambiental [SIMA], 2026); en la lista va el nombre completo sin la sigla.
+**Sin fuente pública:** Sistema Integral de Monitoreo Ambiental (2026, 14 de agosto), presentación de diapositivas. En el texto, la primera cita define la sigla; en la lista va el nombre completo sin la sigla.
 
-## Cambios de la revisión de Opus (borrador 37de55d)
+## Cambios de la revisión de Opus (borrador 37de55d; numeración de tablas y figuras de esa versión)
 
 1. Prueba: en 5.4 y en el Resumen se dice que 2024–2025 ya se había usado y que los cambios de la etapa 4 se decidieron después de conocer el resultado de la etapa 3.
 2. 5.3, razón 3: Krzanowski (1975) como modelo de localización; la regla lineal supone el mismo efecto de la meteorología en todas las estaciones y temporadas.
@@ -84,7 +122,7 @@ Gómez Santos et al. (2027): capítulo publicado en *Artificial intelligence –
 10. Anexo A, KNN: razón nueva.
 11. Liga al código: rama main, etiqueta informe-final.
 
-## Cambios de la revisión de Codex (`4644e16`)
+## Cambios de la revisión de Codex (`4644e16`; numeración de tablas y figuras de la versión `informe-final`)
 
 Ninguno cambia una cifra del análisis.
 
@@ -113,7 +151,7 @@ Ninguno cambia una cifra del análisis.
 - **Además (Opus):** sección 3, «por debajo de la mitad de la red»; carátula con los profesores. **Maquetación:** las Figuras 3 y 5 se dibujan a 4.4 pulgadas con letra de 9 pt y la Figura 9 se muestra a 6.5 pulgadas, para que se lean; los números con separador de miles ya no se parten entre líneas.
 - **Reproducibilidad.** Los CSV se escriben con `\n` también en Windows, y el candado de 09a compara el contenido sin `\r` (descomprimido en el `.csv.gz`). Resultado de la corrida desde un clon limpio: ver abajo.
 
-## Reproducción desde un clon limpio
+## Reproducción desde un clon limpio (versión `informe-final`)
 
 21 de octubre de 2026, Windows 11, R 4.6.1. Clon desde GitHub de la rama `analisis/etapa4` en el commit `fa4baf0`, en una carpeta nueva; `renv::restore()` instaló 159 paquetes (incluido `zip`) y `renv::status()` no reportó problemas. Sin los Excel y sin `SIMA_DATA_DIR`; con `MOTIVO_RECORRIDA`, porque los registros de 07b y 09a ya están versionados.
 
@@ -122,3 +160,21 @@ Ninguno cambia una cifra del análisis.
 - **Salidas versionadas (380 archivos):** todos los CSV, PNG y datos coinciden en contenido con el commit. Solo difieren, como se espera, la fecha y el commit de cuatro `RESUMEN.md` (etapas 2, 3 y 4 y el diagnóstico de la etapa 3), los registros de la prueba de 07b y 09a (agregan esta corrida), los tiempos de cómputo de 08a (`tiempos_enmascaramiento_horario.csv`) y la fecha de creación dentro de `output/etapa3/modelo_final.rds` (`all.equal` sin ese campo: TRUE).
 - **09h del commit `9726021`:** en el mismo clon, las siete figuras del informe salen idénticas a las versionadas.
 - **Receta del Word en el clon:** `quarto render`, `scripts/utilidades/formato_docx.R` (con `zip` 3.0.2 de la biblioteca restaurada) y `scripts/utilidades/verificar_citas.R` terminan sin error; el Word resultante es idéntico al de la entrega salvo `docProps/core.xml` (fecha).
+
+## Reproducción de la fase F desde un clon limpio
+
+22 de octubre de 2026, Windows 11, R 4.6.1. Clon desde GitHub de la rama `analisis/etapa4-retro` en el commit `75ed765`, en una carpeta nueva, sin los Excel. `renv::restore()` dejó el proyecto consistente (incluido `mgcv` 1.9-4). No se repitieron 06–09h porque no cambiaron (su reproducción está en la sección anterior).
+
+- **`scripts/10_analisis_retro_final.R`:** terminó con código 0 en unos 13 minutos.
+- **Salidas (`output/etapa4/retro_final/`, 40 archivos):** todos los CSV y PNG coinciden con los versionados, byte a byte; `decisiones_entrenamiento.csv` sale idéntico. Solo cambia, como se espera, la hora de generación en `RESUMEN.md`. De los 439 archivos versionados del clon, ningún otro cambió.
+- **Informe en el clon:** `quarto render`, `formato_docx.R` y `verificar_citas.R` terminan sin error (44 referencias, 0 diferencias); el Word resultante es idéntico al de la entrega salvo `docProps/core.xml` (fecha).
+
+## Cierre de la entrega final: presentación
+
+- **Cifras:** las de las 12 diapositivas, las notas, `guion.md`, `banco_preguntas.md`, `repaso_por_integrante.md` y `trazabilidad_presentacion.md` coinciden con los CSV finales de `output/etapa4/retro_final/` del commit `75ed765` (A1, B, C3, E, F y la tabla de LDA y logística) y con los de `output/etapa4/`. La superación por temporada y las diferencias de temperatura de la diapositiva 4 se recalcularon aparte: 36.9 / 35.0 / 11.7 % y −0.3, +2.0, +3.3 y +0.8 °C.
+- **Figuras:** `scripts/11_figuras_presentacion.R`, corrido en un clon limpio de `75ed765`, reproduce las nueve figuras de `docs/presentacion_final/figuras/` byte a byte.
+- **Correcciones:**
+  - Diapositiva 5 y guion: de MIMA-v1, lo que no obtuvimos fue el dataset imputado, no el código.
+  - `trazabilidad_presentacion.md`: sin el nombre del personal de SIMA.
+  - Diapositiva 12, notas, guion y trazabilidad: etiqueta `entrega-final`, con un QR nuevo que lleva a `https://github.com/Leo-issacs/reto-sima-multivariados/tree/entrega-final`, verificado con un lector en la imagen y en el PDF exportado.
+  - El .pptx y el PDF se exportaron otra vez con PowerPoint; solo cambian los textos de las diapositivas 5 y 12 y sus notas.

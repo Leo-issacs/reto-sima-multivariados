@@ -1,0 +1,8 @@
+decision,resultado,base
+A2: splines como tratamiento de la no linealidad,sí,Diferencia de AUC de validación (splines − lineal): 0.0056 y 0.0214; regla ≥ 0.005 en los dos pliegues
+B: escala del PM2.5 del día anterior,original,Diferencia de AUC de validación de MP logístico (log − original): 0.0030 y -0.0002; regla > 0 en los dos pliegues
+C: corte de vigilancia (lda),0.1822,Predicciones de M1 en 2022 y 2023 (pliegues de la validación progresiva)
+C: corte de vigilancia (logistica),0.1924,Predicciones de M1 en 2022 y 2023 (pliegues de la validación progresiva)
+C: corte de equilibrio (lda),0.2625,Predicciones de M1 en 2022 y 2023 (pliegues de la validación progresiva)
+C: corte de equilibrio (logistica),0.2671,Predicciones de M1 en 2022 y 2023 (pliegues de la validación progresiva)
+C: corte actual,0.2589,Prevalencia del entrenamiento

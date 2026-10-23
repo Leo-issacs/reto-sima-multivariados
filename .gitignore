@@ -73,3 +73,6 @@ docs/etapa4/*.pdf
 
 # Imagenes de revision de la presentacion (se regeneran; no se publican)
 docs/presentacion/revision/
+
+# Imagenes de revision de la presentacion final (se regeneran; no se publican)
+docs/presentacion_final/revision/
