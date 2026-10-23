@@ -1,6 +1,6 @@
 # =============================================================================================
-# Funciones del modelo final (M0 y M1, LDA) que comparten la app, scripts/07c y las pruebas.
-# Usan solo lo guardado en output/etapa3/modelo_final.rds: no reajustan nada.
+# Funciones del modelo final (M0 y M1, LDA) que comparten la app, scripts/07c, scripts/12 y las pruebas.
+# Usan solo lo guardado en output/etapa4/modelo_final_v2.rds (o el de la etapa 3, misma estructura): no reajustan nada.
 # =============================================================================================
 
 # ---- 1. Temporada a partir de la fecha ------------------------------------------------------------

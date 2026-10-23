@@ -44,7 +44,7 @@ Las fechas y los requisitos de cada entrega se ajustarán a lo que indiquen las 
 | `quarto/` | Fuentes de los informes (etapas 1 y 2 e informe final) y plantillas de Word. |
 | `docs/` | Decisiones, protocolo, retroalimentación, textos de cada etapa y control de calidad del informe final. |
 | `output/` | Resultados de cada etapa (tablas, figuras y resúmenes), versionados. |
-| `app/` | Interfaz Shiny del modelo final de la etapa 3. |
+| `app/` | Interfaz Shiny del modelo final de la etapa 4 (base v2). |
 
 Las seis bases del equipo se colocan en `data/raw/`; no se suben a GitHub. Para revisar sus hojas y columnas:
 
@@ -108,20 +108,21 @@ Etapas 3 y 4 (no necesitan los Excel):
 | 20 | `Rscript scripts/09g_pca_y_residuos_v2.R` | Informe final: PCA con el entrenamiento v2, varianza de los residuos, calibración por temporada, largo de los huecos, radiación por estación y figuras compactas. No ajusta modelos nuevos | `output/etapa4/pca/`, `output/etapa4/errores/`, `output/etapa4/figuras/roc_y_dauc_informe.png` |
 | 21 | `Rscript scripts/09h_figuras_informe.R` | Informe final: versión de siete figuras (mapa, error de la imputación horaria, cargas del PCA, autocorrelación de los residuos, magnitud del PM2.5, NO2 y coeficientes con las estaciones) con etiquetas en español, tamaño para el ancho de página y sin título interno. Solo presentación: lee los CSV de 08a, 09b, 09c, 09d, 09f y 09g y no recalcula nada | `output/etapa4/figuras/` (`mapa_estaciones_informe.png`, `rmse_imputacion_informe.png`, `pca_cargas_informe.png`, `acf_residuos_informe.png`, `errores_magnitud_informe.png`, `no2_relativo_informe.png`, `coeficientes_ic_informe.png`) |
 | 22 | `Rscript scripts/10_analisis_retro_final.R` | Fase F, **posterior** a la evaluación de la prueba: regresión logística (odds ratios, importancia por permutación y linealidad con GAM), persistencia, umbral elegido con los pliegues, bootstrap estratificado por temporada, episodios y exclusiones. No cambia el modelo principal. Con `SOLO_ENTRENAMIENTO=1` calcula solo las decisiones del entrenamiento y se detiene (unos 15 min la corrida completa) | `output/etapa4/retro_final/` (`RESUMEN.md`, CSV y tres figuras) |
+| 23 | `Rscript scripts/12_exportar_modelo_app_v2.R` | Reajusta M0 y M1 como en 09a (paso 4) para la app y comprueba que reproduce `prueba_v2_predicciones.csv`. No cambia el análisis | `output/etapa4/modelo_final_v2.rds` |
 
 Decisiones de la etapa 4: [`docs/etapa4/decisiones_etapa4.md`](docs/etapa4/decisiones_etapa4.md); resumen: [`output/etapa4/RESUMEN_ETAPA4.md`](output/etapa4/RESUMEN_ETAPA4.md).
 
 ## Interfaz
 
-La etapa 3 incluye una interfaz gráfica para usar el modelo final (LDA, M0 y M1) y revisar su desempeño en la prueba 2024–2025. Está en [`app/`](app/) y lee el modelo congelado `output/etapa3/modelo_final.rds`; no reentrena nada.
+Una interfaz gráfica permite usar el modelo final de la etapa 4 (base v2; LDA, M0 y M1) y revisar su desempeño en la prueba 2024–2025. Está en [`app/`](app/) y lee el modelo congelado `output/etapa4/modelo_final_v2.rds`; no reentrena nada.
 
-1. Si no existe `output/etapa3/modelo_final.rds`, genéralo con `Rscript scripts/07c_diagnostico_errores.R` (también escribe los diagnósticos de `output/etapa3/diagnostico/` y `RESUMEN_DIAGNOSTICO.md`).
+1. Si no existe `output/etapa4/modelo_final_v2.rds`, genéralo con `Rscript scripts/12_exportar_modelo_app_v2.R` (reajusta el análisis final de 09a y verifica que reproduce sus predicciones). El modelo de la etapa 3 sigue en `output/etapa3/modelo_final.rds`, ya sin uso en la app.
 2. Abre `sima.Rproj` y corre `shiny::runApp("app")`.
 3. Pruebas: `Rscript tests/test_app_predicciones.R` comprueba que la app reproduce las probabilidades de la prueba (tolerancia 1e-10) y que no falla con los deslizadores en sus extremos.
 
 Pestañas: **Calcular** (probabilidad de superación según M0 y M1 para una estación, temporada o fecha y valores meteorológicos; contribución de cada variable), **Desempeño 2024–2025** (métricas y serie de tiempo con falsos positivos y negativos) y **Acerca de**. Es una clasificación retrospectiva con meteorología observada, no un pronóstico. Capturas: `output/etapa3/figuras/app_*.png`; se tomaron con el paquete `webshot2`, que no está en `renv.lock` y no hace falta para correr la app.
 
-Publicación en shinyapps.io (opcional; solo cuando el equipo lo decida): copia `output/etapa3/modelo_final.rds` dentro de `app/`, instala `rsconnect`, configura la cuenta con `rsconnect::setAccountInfo()` y ejecuta `rsconnect::deployApp("app")`.
+Publicación en shinyapps.io (opcional; solo cuando el equipo lo decida): copia `output/etapa4/modelo_final_v2.rds` dentro de `app/`, instala `rsconnect`, configura la cuenta con `rsconnect::setAccountInfo()` y ejecuta `rsconnect::deployApp("app")`.
 
 ## Cómo nos organizamos
 

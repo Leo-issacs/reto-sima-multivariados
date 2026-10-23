@@ -1,7 +1,7 @@
 # =============================================================================================
-# Interfaz grafica del modelo final de la etapa 3 (reto SIMA).
+# Interfaz grafica del modelo final de la etapa 4, base v2 (reto SIMA).
 #
-# Usa el modelo congelado de output/etapa3/modelo_final.rds (lo escribe scripts/07c): no reentrena.
+# Usa el modelo congelado de output/etapa4/modelo_final_v2.rds (lo escribe scripts/12): no reentrena.
 # Para correrla desde la raiz del proyecto:  shiny::runApp("app")
 # Pestañas: «Calcular» (probabilidad para una combinacion de valores), «Desempeño 2024–2025»
 # (metricas y serie de tiempo de la prueba) y «Acerca de».
@@ -16,8 +16,8 @@ suppressPackageStartupMessages({
   library(ggplot2)
 })
 source("predecir.R", local = TRUE)
-# Si la app se publica sola, modelo_final.rds va junto a app.R; en el repositorio se lee de output/.
-ruta_modelo <- if (file.exists("modelo_final.rds")) "modelo_final.rds" else "../output/etapa3/modelo_final.rds"
+# Si la app se publica sola, modelo_final_v2.rds va junto a app.R; en el repositorio se lee de output/.
+ruta_modelo <- if (file.exists("modelo_final_v2.rds")) "modelo_final_v2.rds" else "../output/etapa4/modelo_final_v2.rds"
 mf <- readRDS(ruta_modelo)
 # Las tablas se usan como data.frame comunes (mas simple de indexar en la app).
 mf$entrenamiento$medianas <- as.data.frame(mf$entrenamiento$medianas)
@@ -44,7 +44,7 @@ tema <- theme_minimal(base_size = 15)
 pct <- function(x) sprintf("%.1f %%", 100 * x)
 
 # Valores iniciales y rangos de los deslizadores: mediana de la estacion x temporada y percentiles
-# 1-99 del entrenamiento (2021-2023).
+# 1-99 del entrenamiento v2 (2021-2023, sin dias previos a reubicaciones).
 valor_inicial <- function(estacion, temporada, v) {
   m <- mf$entrenamiento$medianas
   x <- m[m$estacion == estacion & m$temporada == temporada, v]
@@ -120,24 +120,27 @@ ui <- page_navbar(
   nav_panel("Acerca de", value = "acerca",
     div(class = "container", style = "max-width: 900px; font-size: 1.1rem;",
       h3("Datos"),
-      p("Muestra de la etapa 2: 13 estaciones del SIMA (sin NE3 ni NO3), 2021–2025, días con PM2.5 diario válido (≥ 18 h)",
-        sprintf("y los 8 predictores meteorológicos completos. Entrenamiento: 2021–2023 (%s días). Prueba: 2024–2025 (%s días), evaluada una sola vez.",
-                format(mf$entrenamiento$n, big.mark = " "), format(nrow(pred), big.mark = " "))),
+      p("Base v2 de la etapa 4: 13 estaciones del SIMA (sin NE3 ni NO3), 2021–2025, días con PM2.5 diario válido (≥ 18 h horas observadas;",
+        "el PM2.5 no se imputa). La meteorología faltante se imputó (imputeTS en la serie horaria y mediana de la red ajustada en la diaria),",
+        "con métodos elegidos por enmascaramiento, es decir, tapando datos conocidos y midiendo el error.",
+        sprintf("Entrenamiento: 2021–2023 (%s días-estación, sin los días previos a las reubicaciones de estaciones). Prueba: 2024–2025 (%s días-estación).",
+                format(mf$entrenamiento$n, big.mark = " "), format(nrow(pred), big.mark = " ")),
+        "La prueba se evaluó en varias etapas del proyecto, por lo que no es una prueba virgen."),
       h3("Modelo"),
       p("Análisis discriminante lineal (LDA) con prior igual a la prevalencia del entrenamiento.",
         "M0 usa solo estación y temporada; M1 agrega temperatura, humedad, radiación, presión (como anomalía de su estación),",
         "rapidez y componentes del viento y horas con lluvia, sin transformaciones. Corte de clasificación:", sprintf("%.3f.", CORTE)),
       h3("Limitaciones"),
       tags$ul(
-        tags$li(AVISO, "Usa la meteorología medida ese día, que no se conoce de antemano."),
+        tags$li(AVISO, "Usa la meteorología medida ese día, que no se conoce de antemano; no es un pronóstico."),
         tags$li("Asociación, no causalidad. «Superación» es PM2.5 diario > 25 µg/m³, una referencia fija de comparación, no una evaluación normativa."),
-        tags$li("Las probabilidades de la LDA no están bien calibradas (pendiente de recalibración ≈ 0.76): úsalas para ordenar días, no como frecuencias exactas."),
+        tags$li("Las probabilidades de la LDA no están bien calibradas (pendiente de recalibración 0.82; 1 sería ideal): úsalas para ordenar días, no como frecuencias exactas."),
         tags$li("La normalidad multivariada no se cumple; los residuos están correlacionados en el tiempo y entre estaciones."),
         tags$li("Los deslizadores de viento son independientes; en datos reales la rapidez media es al menos la magnitud del vector (u, v)."),
         tags$li("SIMA renovó sensores de viento en 2021 y equipos de PM2.5 en 2025 en algunas estaciones (ver RESUMEN_DIAGNOSTICO.md).")),
       h3("Repositorio"),
       p(a(REPO, href = REPO, target = "_blank"), br(),
-        "Modelo: output/etapa3/modelo_final.rds (scripts/07c_diagnostico_errores.R)."))
+        "Modelo: output/etapa4/modelo_final_v2.rds (scripts/12_exportar_modelo_app_v2.R; ajuste de scripts/09a_evaluar_prueba_v2.R)."))
   )
 )
 
