@@ -1,0 +1,109 @@
+% Informe final (etapa 4) del Reto SIMA - Equipo 1, Grupo 201, MA2003B
+% Compilar con pdfLaTeX (Overleaf: compilador pdfLaTeX). Fuente del contenido: quarto/etapa4_informe_final.qmd (main).
+\documentclass[11pt,letterpaper]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish,es-nodecimaldot,es-noindentfirst,es-tabla,es-noshorthands]{babel}
+\usepackage{newtxtext,newtxmath}
+\usepackage[margin=2cm]{geometry}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage{caption}
+\usepackage{float}
+\usepackage[section]{placeins}
+\renewcommand{\topfraction}{0.9}\renewcommand{\bottomfraction}{0.8}\renewcommand{\textfraction}{0.1}\renewcommand{\floatpagefraction}{0.8}\setcounter{topnumber}{3}\setcounter{bottomnumber}{2}\setcounter{totalnumber}{5}
+
+\usepackage[hyphens]{url}
+\usepackage[colorlinks=true,linkcolor=black,citecolor=black,urlcolor=blue!50!black]{hyperref}
+
+% --- Caracteres Unicode que se escriben directamente en el texto
+\DeclareUnicodeCharacter{2212}{\ensuremath{-}}      % menos
+\DeclareUnicodeCharacter{0394}{\ensuremath{\Delta}} % Delta
+\DeclareUnicodeCharacter{2265}{\ensuremath{\geq}}
+\DeclareUnicodeCharacter{2264}{\ensuremath{\leq}}
+\DeclareUnicodeCharacter{00D7}{\ensuremath{\times}}
+\DeclareUnicodeCharacter{03C7}{\ensuremath{\chi}}
+\DeclareUnicodeCharacter{00B1}{\ensuremath{\pm}}
+\DeclareUnicodeCharacter{2192}{\ensuremath{\rightarrow}}
+\DeclareUnicodeCharacter{2009}{\,}
+\DeclareUnicodeCharacter{0177}{\^{y}}
+
+% --- Formato general (mismo estilo que las etapas 2 y 3)
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{3pt plus 1pt}
+\linespread{1.0}
+\titleformat{\section}{\large\bfseries}{\thesection.}{0.4em}{}
+\titleformat{\subsection}{\normalsize\bfseries}{\thesubsection}{0.5em}{}
+\titlespacing*{\section}{0pt}{10pt}{4pt}
+\titlespacing*{\subsection}{0pt}{8pt}{2pt}
+\captionsetup{font={small,it},labelfont={small,it},labelsep=period,justification=raggedright,singlelinecheck=false,skip=4pt}
+\captionsetup[table]{position=top}
+\setlist[itemize]{label={\tiny$\blacksquare$},leftmargin=1.4em,itemsep=1pt,topsep=2pt,parsep=0pt}
+\setlist[enumerate]{leftmargin=1.6em,itemsep=1pt,topsep=2pt,parsep=0pt}
+\renewcommand{\arraystretch}{1.12}
+\setlength{\tabcolsep}{4pt}
+\newcolumntype{L}{>{\raggedright\arraybackslash}X}
+\newcolumntype{R}{>{\raggedleft\arraybackslash}X}
+\newcolumntype{C}{>{\centering\arraybackslash}X}
+\urlstyle{same}
+\setlength{\textfloatsep}{8pt plus 2pt minus 2pt}
+\setlength{\floatsep}{8pt plus 2pt minus 2pt}
+\setlength{\intextsep}{8pt plus 2pt minus 2pt}
+
+% --- Atajos
+\newcommand{\ugm}{\,µg/m\textsuperscript{3}}
+\newcommand{\pmd}{PM2.5}
+\newcommand{\dauc}{ΔAUC}
+\newcommand{\repo}{\url{https://github.com/Leo-issacs/reto-sima-multivariados}}
+\newcommand{\repotag}{\url{https://github.com/Leo-issacs/reto-sima-multivariados/tree/entrega-final-v2}}
+\newcommand{\anexo}[1]{%
+  \clearpage
+  \section*{#1}\addcontentsline{toc}{section}{#1}}
+
+\hypersetup{pdftitle={Informe final - Reto SIMA - Equipo 1},pdfauthor={Equipo 1, Grupo 201, MA2003B}}
+
+\begin{document}
+
+% ======================= PORTADA =======================
+\begin{titlepage}
+\centering
+\vspace*{0.6cm}
+\includegraphics[width=0.62\textwidth]{figuras/tec_logo.png}\par
+\vspace{1.6cm}
+{\LARGE\bfseries Reto SIMA: calidad del aire en el Área Metropolitana de Monterrey\par}
+\vspace{0.7cm}
+{\large\bfseries Etapa 4. Informe final\par}
+\vspace{0.35cm}
+{\normalsize\itshape ¿Cuánto mejora la meteorología del día la identificación de días con PM2.5 > 25\ugm?\\
+Análisis discriminante con validación temporal en 13 estaciones del SIMA, 2021–2025\par}
+\vspace{1.2cm}
+% Nombres y matrículas: portada.tex (local, fuera de Git). Si no existe, se usa la versión pública sin matrículas.
+\InputIfFileExists{portada.tex}{}{\input{portada_publica.tex}}
+\vspace{1.0cm}
+24 de octubre de 2026\par
+\vspace{0.8cm}
+Análisis multivariado (MA2003B)\par
+Grupo 201 · Equipo 1\par
+\vspace{0.5cm}
+Socio formador: Sistema Integral de Monitoreo Ambiental (SIMA)\\ y Agencia de Calidad del Aire de Nuevo León\par
+\vfill
+Repositorio de GitHub (etiqueta \texttt{entrega-final-v2}):\\
+\repotag\par
+\end{titlepage}
+
+\setcounter{page}{1}
+\input{secciones/00_resumen}
+\input{secciones/01_introduccion_datos}
+\input{secciones/02_modelacion}
+\input{secciones/03_resultados_conclusiones}
+\input{secciones/04_referencias_codigo}
+\input{secciones/05_anexos}
+
+\end{document}

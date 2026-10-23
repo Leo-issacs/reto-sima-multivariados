@@ -1,0 +1,11 @@
+# Matrículas: solo en la copia local
+portada.tex
+# Compilados y auxiliares
+*.pdf
+*.aux
+*.log
+*.out
+*.toc
+*.fls
+*.fdb_latexmk
+*.synctex.gz
