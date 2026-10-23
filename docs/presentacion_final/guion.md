@@ -2,17 +2,17 @@
 
 Exposición de 15 minutos más 5 de preguntas. Doce diapositivas; este guion es el mismo texto que está en las notas del orador del `.pptx`. Todas las cifras se explican en `trazabilidad_presentacion.md`.
 
-**Tiempo planeado:** 14:30 de exposición (30 s de holgura para las transiciones y las pausas). **Palabras del guion:** 1743 (≈ 804 s a 130 palabras por minuto; el ritmo real por diapositiva queda entre 112 y 141 palabras por minuto).
+**Tiempo planeado:** 14:30 de exposición (30 s de holgura para las transiciones y las pausas). **Palabras del guion:** 1744 (≈ 805 s a 130 palabras por minuto; el ritmo real por diapositiva queda entre 112 y 141 palabras por minuto).
 
 ## Reparto
 
 | Expositor | Diapositivas | Tiempo | Palabras del guion |
 |---|---|---|---|
-| Leonardo Orozco | 1, 5, 8 | 3:40 | 421 |
+| Leonardo Orozco | 1, 5, 8 | 3:40 | 422 |
 | Pablo Alonso Robles Nava | 6, 7, 11 | 3:10 | 366 |
 | Ignacio Kume | 2, 3, 12 | 3:50 | 470 |
 | Daniel Ayala | 4, 9, 10 | 3:50 | 486 |
-| **Total** | 1–12 | **14:30** | **1743** |
+| **Total** | 1–12 | **14:30** | **1744** |
 
 Orden de la voz: Leo (1) → Ignacio (2–3) → Daniel (4) → Leo (5) → Pablo (6–7) → Leo (8) → Daniel (9–10) → Pablo (11) → Ignacio (12). Cada cambio de expositor está marcado con una transición al final del texto del que termina.
 
@@ -44,9 +44,9 @@ Partimos de datos horarios de 2021 a 2025 que convertimos a un registro por esta
 
 ## Diapositiva 5 · Datos faltantes
 
-**Expositor:** Leonardo Orozco · **Duración:** 1:40 · **Reloj:** 4:00–5:40 · 187 palabras
+**Expositor:** Leonardo Orozco · **Duración:** 1:40 · **Reloj:** 4:00–5:40 · 188 palabras
 
-Faltaba el 12.3 por ciento de los datos, y del PM2.5 el 26 por ciento, sobre todo por apagones largos de equipos. Además invalidamos el 0.7 por ciento por inconsistencias. Tomamos tres decisiones. Una: la respuesta, el PM2.5, no se imputa. Un día cuenta solo si tiene al menos 18 horas observadas; imputar la respuesta fabricaría justo lo que queremos clasificar. Dos: la meteorología horaria se imputa con métodos del paquete imputeTS, que vimos en el curso: descomposición estacional, que repite el ciclo del día, o filtro de Kalman, según el tamaño del hueco. Para elegir el método usamos enmascaramiento: tapamos datos que sí conocemos, imputamos y medimos el error. Tres: para la meteorología diaria usamos la mediana de la red ajustada por estación, que superó a MICE, con error relativo de 0.450 frente a 0.593. El resultado es que recuperamos días: García pasa de 511 a 1 532, y en total son 2 438 días más que en la etapa anterior. También quisimos comparar con MIMA-v1, el trabajo de semestres anteriores, pero no tuvimos acceso al código y además imputa la respuesta. Pablo explica cómo analizamos.
+Faltaba el 12.3 por ciento de los datos, y del PM2.5 el 26 por ciento, sobre todo por apagones largos de equipos. Además invalidamos el 0.7 por ciento por inconsistencias. Tomamos tres decisiones. Una: la respuesta, el PM2.5, no se imputa. Un día cuenta solo si tiene al menos 18 horas observadas; imputar la respuesta fabricaría justo lo que queremos clasificar. Dos: la meteorología horaria se imputa con métodos del paquete imputeTS, que vimos en el curso: descomposición estacional, que repite el ciclo del día, o filtro de Kalman, según el tamaño del hueco. Para elegir el método usamos enmascaramiento: tapamos datos que sí conocemos, imputamos y medimos el error. Tres: para la meteorología diaria usamos la mediana de la red ajustada por estación, que superó a MICE, con error relativo de 0.450 frente a 0.593. El resultado es que recuperamos días: García pasa de 511 a 1 532, y en total son 2 438 días más que en la etapa anterior. También quisimos comparar con MIMA-v1, el trabajo de semestres anteriores, pero no tuvimos acceso a su dataset y además imputa la respuesta. Pablo explica cómo analizamos.
 
 ## Diapositiva 6 · Ruta de análisis
 
@@ -88,4 +88,4 @@ Queremos ser honestos con los supuestos. El LDA supone normalidad multivariada y
 
 **Expositor:** Ignacio Kume · **Duración:** 1:20 · **Reloj:** 13:10–14:30 · 164 palabras
 
-Respondemos la pregunta. Sí, la meteorología del día mejora la identificación, en esta medida: el AUC sube 0.079, de 0.713 a 0.792, y la detección de superaciones pasa de 56 a 74 por ciento, con intervalos que no incluyen el cero y resultados parecidos en todas las variantes, de 0.071 a 0.082. Queda débil lo siguiente: la mejora casi no aparece en lluvias, es retrospectiva porque usa clima observado, las probabilidades no están calibradas, y el PM2.5 de ayer predice más que el clima. Para SIMA recomendamos, en orden de prioridad: uno, evaluar el modelo con meteorología pronosticada, junto con su área de pronósticos; dos, incorporar las reglas de control de calidad, como radiación de madrugada y viento contra la red; y tres, revisar los sensores señalados: la radiación de García y Escobedo, y el PM2.5 de García de 2023 a 2025. Todo el código está en el repositorio, con la etiqueta informe-final; ahí está el código QR. Gracias; estamos listos para sus preguntas.
+Respondemos la pregunta. Sí, la meteorología del día mejora la identificación, en esta medida: el AUC sube 0.079, de 0.713 a 0.792, y la detección de superaciones pasa de 56 a 74 por ciento, con intervalos que no incluyen el cero y resultados parecidos en todas las variantes, de 0.071 a 0.082. Queda débil lo siguiente: la mejora casi no aparece en lluvias, es retrospectiva porque usa clima observado, las probabilidades no están calibradas, y el PM2.5 de ayer predice más que el clima. Para SIMA recomendamos, en orden de prioridad: uno, evaluar el modelo con meteorología pronosticada, junto con su área de pronósticos; dos, incorporar las reglas de control de calidad, como radiación de madrugada y viento contra la red; y tres, revisar los sensores señalados: la radiación de García y Escobedo, y el PM2.5 de García de 2023 a 2025. Todo el código está en el repositorio, con la etiqueta entrega-final; ahí está el código QR. Gracias; estamos listos para sus preguntas.

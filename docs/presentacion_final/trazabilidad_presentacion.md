@@ -20,7 +20,7 @@ Todas las figuras se regeneran con `scripts/11_figuras_presentacion.R` (lee los 
 | Límite diario de 25 µg/m³, NOM-025 | 25 | `docs/etapa4/trazabilidad_cifras.md` (Secretaría de Salud, 2021) |
 | M0 = estación + temporada; M1 = M0 + meteorología del día; mejora = AUC(M1) − AUC(M0) | — | `docs/etapa4/decisiones_etapa4.md`; `R/modelo_etapa4.R` |
 | Evaluación en 2024–2025 | — | `E4/prueba_v2_sensibilidades.csv` (`n`, años de la prueba); `E4/registro_prueba_v2.txt` |
-| Utilidad para SIMA: paso previo a una alerta con pronóstico | — | `docs/etapa4/retroalimentacion_final.md` (R2, Heriberto Vélez, SIMA); informe, «Justificación para SIMA» |
+| Utilidad para SIMA: paso previo a una alerta con pronóstico | — | `docs/etapa4/retroalimentacion_final.md` (R2, SIMA); informe, «Justificación para SIMA» |
 
 ## Diapositiva 3. Área de estudio
 
@@ -55,7 +55,7 @@ Todas las figuras se regeneran con `scripts/11_figuras_presentacion.R` (lee los 
 | Mediana de la red ajustada frente a MICE: 0.450 frente a 0.593 | 0.4500; 0.5932 | `E4/imputacion/eleccion_metodo_diario.csv` |
 | +2 438 días | 17 828 − 15 390 | `E4/imputacion/perdidas_v12_v2.csv` (15 390 casos completos v1.2) y `E4/tabla_puente.csv` |
 | García (NO2) de 511 a 1 532 días | 511; 1 532 | `E4/imputacion/dias_por_estacion_anio_v12_v2.csv`; `RF/f2_superacion_etapa3_etapa4.csv` (`dias_v12`, `dias_v2`) |
-| MIMA-v1 no se comparó (sin acceso; imputa la respuesta) | — | `docs/etapa4/decisiones_etapa4.md`, «Fase E»; `docs/etapa4/trazabilidad_cifras.md` (MIMA-v1) |
+| MIMA-v1 no se comparó (sin acceso a su dataset imputado; imputa la respuesta) | — | `docs/etapa4/decisiones_etapa4.md`, «Fase E»; `docs/etapa4/trazabilidad_cifras.md` (MIMA-v1) |
 
 ## Diapositiva 6. Ruta de análisis
 
@@ -138,7 +138,7 @@ Todas las figuras se regeneran con `scripts/11_figuras_presentacion.R` (lee los 
 | Variantes de 0.071 a 0.082 (notas) | — | ver diapositiva 11 |
 | Débil: lluvias, retrospectivo, probabilidades sin calibrar (pendiente 0.82), PM2.5 de ayer predice más | 0.822; 0.872 | `E4/lda/calibracion_recalibracion.csv`; `RF/b_persistencia_auc.csv` |
 | Recomendaciones: pronóstico; reglas de control de calidad (radiación de madrugada, viento contra la red); sensores (radiación de NO2 y NTE; PM2.5 de NO2 de 2023 a 2025) | — | Informe, «Recomendaciones para SIMA»; `E4/descriptivos/sr_media_por_estacion.csv` (SR media NO2 0.015, NTE 0.041); `E4/descriptivos/periodos_pm25_bajo_con_pm10_normal.csv` |
-| Repositorio `github.com/Leo-issacs/reto-sima-multivariados`, etiqueta `informe-final` | — | `git remote -v`; etiqueta `informe-final` verificada en el remoto (`git ls-remote --tags origin`). **Esa etiqueta apunta al commit del informe (`2b2954e`) y no incluye la fase F** (diapositiva 10) |
+| Repositorio `github.com/Leo-issacs/reto-sima-multivariados`, etiqueta `entrega-final`; código QR | `https://github.com/Leo-issacs/reto-sima-multivariados/tree/entrega-final` | `git remote -v`. La etiqueta anotada `entrega-final` se crea sobre el commit de fusión del PR #12 en main, que contiene la fase F (diapositiva 10) y esta presentación; verificada con `git ls-remote --tags origin`. El QR (`ppt/media/image-12-1.png`) se generó con `segno` (versión 5, corrección M) y se comprobó con un lector de QR (`pyzbar`) en la imagen y en el PDF exportado. `informe-final` (`2b2954e`) es la versión previa a la retroalimentación del 22 de octubre |
 
 ## Cifras solo de las notas y del banco de preguntas
 

@@ -2,7 +2,7 @@
 
 Páginas según el PDF de revisión (`docs/etapa4/Informe_final_SIMA_Equipo1.pdf`, convertido con Word desde el .docx; 31 páginas en total). Si Leo edita el .docx, las páginas pueden moverse.
 
-**Extensión:** las secciones 1–7 van de la página 3 («1. Introducción y justificación») a la 17 (fin de «7. Discusión y conclusiones»): **15 páginas** (límite 15). La sección 7 termina con 0.77 pulgadas libres al pie de la p. 17, y las Referencias empiezan en la p. 18. El Resumen ocupa una página (p. 2, con 1.1 pulgadas libres). Para que la fase F cupiera se movieron a los anexos los seis elementos de la lista de prioridad y, además, la tabla de reglas de limpieza (ver «Fase F: elementos movidos a los anexos»).
+**Extensión:** las secciones 1–7 van de la página 3 («1. Introducción y justificación») a la 17 (fin de «7. Discusión y conclusiones»): **15 páginas** (límite 15). La sección 7 termina con 0.43 pulgadas libres al pie de la p. 17, y las Referencias empiezan en la p. 18. El Resumen ocupa una página (p. 2, con 1.1 pulgadas libres). Para que la fase F cupiera se movieron a los anexos los seis elementos de la lista de prioridad y, además, la tabla de reglas de limpieza (ver «Fase F: elementos movidos a los anexos»).
 
 Estado: ✔ atendido · ◐ atendido en parte (ver nota) · ✘ no atendido.
 
@@ -22,7 +22,7 @@ Estado: ✔ atendido · ◐ atendido en parte (ver nota) · ✘ no atendido.
 | 7 | Interpretación de gráficos y tablas, numeración y descripción; sin código | 11 figuras y 22 tablas, todas numeradas, con pie y llamada explícita en el texto; ninguna figura con título interno (las Figuras 3 y 5 solo rotulan sus paneles); ningún bloque de código visible | todas | ✔ |
 | 8 | Resultados relevantes, recomendaciones y nuevas preguntas | 7: conclusión, hallazgos, Tabla 9, 7 limitaciones, 5 recomendaciones por prioridad, 7 preguntas nuevas | 16–17 | ✔ |
 | 9 | Referencias APA y coherencia citas–lista | Referencias (44 entradas); `scripts/utilidades/verificar_citas.R`: 0 citas sin referencia, 0 referencias sin cita, orden alfabético correcto | 18–19 | ✔ |
-| 10 | Liga al código; organización, comentarios, lenguajes y ejecución con el dataset | «Liga al código y organización»: Tabla 10 (con `10_analisis_retro_final.R`), lenguajes, cómo correrlo; README | 20–21 | ◐ la liga apunta a la etiqueta `informe-final`, que no contiene la fase F: al fusionar habrá que mover o crear la etiqueta y actualizar la liga |
+| 10 | Liga al código; organización, comentarios, lenguajes y ejecución con el dataset | «Liga al código y organización»: hipervínculo a la etiqueta `entrega-final` (rama main), con la nota de que `informe-final` es la versión previa a la retroalimentación del 22 de octubre; Tabla 10 (con `10_analisis_retro_final.R`), lenguajes, cómo correrlo; README | 20–21 | ✔ (la etiqueta anotada `entrega-final` apunta al commit de fusión del PR #12 en main; reproducción desde un clon limpio de la etiqueta, abajo) |
 
 ## Retroalimentación (`docs/etapa4/retroalimentacion_final.md`)
 
@@ -69,14 +69,14 @@ Todo lo de este bloque es posterior a la evaluación de la prueba (fase F de `de
 | Punto | Dónde | Pág. | Estado |
 |---|---|---|---|
 | Etapa 3: aplicación previa de PCA, LDA y logística en artículos, en series de tiempo o contextos ambientales, y su utilidad para el objetivo | 5.1: Tabla 4, columna «Aplicación previa en contexto ambiental o de series de tiempo» (Ramírez-Velarde et al., 2024; Mohd Shafi'i y Juahir, 2024; Vélez-Pereira et al., 2025; Saminathan y Malathy, 2023; Wilks, 2019), y una oración por técnica sobre su utilidad | 8–9 | ✔ (que Vélez-Pereira et al. usen validación temporal no se pudo verificar en el texto completo; la tabla no lo afirma) |
-| Etapa 3: variables relevantes de la logística y cómo influyen en las conclusiones | 5.5, «Variables relevantes»: OR por 1 DE con IC por bootstrap por bloques, % de réplicas con el mismo signo, coincidencia con el LDA, importancia por permutación, interpretación en momios y sin valores p; Figura 5, panel b | 11; 15 | ✔ |
+| Etapa 3: variables relevantes de la logística y cómo influyen en las conclusiones | 5.5, «Variables relevantes»: OR por 1 DE con IC por bootstrap por bloques, % de réplicas con el mismo signo, coincidencia con el LDA, importancia por permutación, interpretación en momios y sin valores p; la radiación, con un intervalo que llega a 1, se presenta como efecto débil (también en la Tabla 9 y en el pie de la Figura 5); Figura 5, panel b | 11; 15; 17 | ✔ |
 | Etapa 3: linealidad de los predictores continuos en la escala logit y tratamiento | 5.5, «Linealidad»: logits empíricos por decil, GAM con grados de libertad efectivos, AUC con splines en los pliegues y en la prueba; regla cumplida, así que los splines se reportan como tratamiento (ΔAUC 0.090) sin cambiar el modelo principal; Figura 8 y Tabla 18 (Anexo C) | 11; 25–27 | ✔ |
 | 1. Conclusión acotada: clasificación retrospectiva en el periodo evaluado, sin respaldar un pronóstico | Resumen; 6.1 (frase central); 7, «Conclusión»; Tabla 9 | 2; 13; 16–17 | ✔ |
 | 2. Describir con precisión el bootstrap, con la estructura estacional; validación temporal útil, no confirmación independiente | 5.7, «Bootstrap por bloques» (texto pedido e IC estratificado por temporada); Resumen | 12; 2 | ✔ |
 | 3. Línea base de persistencia | 6.5 (Tabla 7); 7 (Hallazgos, recomendación 1); Resumen | 15–16; 16–17; 2 | ✔ (la persistencia clasifica mejor: AUC 0.872 frente a 0.792; la meteorología le agrega 0.016) |
 | 4. Umbral según el uso, elegido con el entrenamiento y evaluado en la prueba; métricas por corte | 6.6 (Tabla 8); Figura 9 (Anexo C); 7, recomendación 2; Resumen | 16; 27; 17; 2 | ✔ |
 | 5. Distinguir días-estación de episodios | Todo el informe usa «días-estación» para los conteos y «episodio» solo con la definición de la fase F; detección por episodio en 6.1 | 14 | ✔ (no había «episodios graves» en el texto; se cambiaron cuatro usos genéricos de «episodio») |
-| 6. Causas y patrones de exclusión; respuesta en los excluidos; posible sesgo | 4.5 (Tabla 3 y texto, incluida la comparación etapa 3 → etapa 4 de NO2); Tabla 14 (Anexo B) | 8; 24 | ✔ |
+| 6. Causas y patrones de exclusión; respuesta en los excluidos; posible sesgo | 4.5 (Tabla 3 y texto, incluida la comparación etapa 3 → etapa 4 de NO2); Tabla 14 (Anexo B); Resumen y limitación 4 (NO 57 %, NE2 33 %, SUR 26 %, 2024–2025) | 8; 24; 2; 17 | ✔ |
 | 7. Interpretación empírica del LDA y logística como referencia | 5.3, «Dos clasificadores en paralelo»; Tabla 6 con las dos columnas; 5.5; Figura 5 | 10; 13; 11; 15 | ✔ |
 | 8. Las medidas acotan la incertidumbre, pero no hacen un modelo temporal completo ni una alerta operativa | 7, limitación 3 (frase textual); Tabla 9; Resumen | 17; 2 | ✔ |
 | Preguntas nuevas: modelo temporal explícito y evaluación con pronóstico | 7, «Preguntas nuevas» (las dos primeras) | 17 | ✔ |
@@ -168,3 +168,13 @@ Ninguno cambia una cifra del análisis.
 - **`scripts/10_analisis_retro_final.R`:** terminó con código 0 en unos 13 minutos.
 - **Salidas (`output/etapa4/retro_final/`, 40 archivos):** todos los CSV y PNG coinciden con los versionados, byte a byte; `decisiones_entrenamiento.csv` sale idéntico. Solo cambia, como se espera, la hora de generación en `RESUMEN.md`. De los 439 archivos versionados del clon, ningún otro cambió.
 - **Informe en el clon:** `quarto render`, `formato_docx.R` y `verificar_citas.R` terminan sin error (44 referencias, 0 diferencias); el Word resultante es idéntico al de la entrega salvo `docProps/core.xml` (fecha).
+
+## Cierre de la entrega final: presentación
+
+- **Cifras:** las de las 12 diapositivas, las notas, `guion.md`, `banco_preguntas.md`, `repaso_por_integrante.md` y `trazabilidad_presentacion.md` coinciden con los CSV finales de `output/etapa4/retro_final/` del commit `75ed765` (A1, B, C3, E, F y la tabla de LDA y logística) y con los de `output/etapa4/`. La superación por temporada y las diferencias de temperatura de la diapositiva 4 se recalcularon aparte: 36.9 / 35.0 / 11.7 % y −0.3, +2.0, +3.3 y +0.8 °C.
+- **Figuras:** `scripts/11_figuras_presentacion.R`, corrido en un clon limpio de `75ed765`, reproduce las nueve figuras de `docs/presentacion_final/figuras/` byte a byte.
+- **Correcciones:**
+  - Diapositiva 5 y guion: de MIMA-v1, lo que no obtuvimos fue el dataset imputado, no el código.
+  - `trazabilidad_presentacion.md`: sin el nombre del personal de SIMA.
+  - Diapositiva 12, notas, guion y trazabilidad: etiqueta `entrega-final`, con un QR nuevo que lleva a `https://github.com/Leo-issacs/reto-sima-multivariados/tree/entrega-final`, verificado con un lector en la imagen y en el PDF exportado.
+  - El .pptx y el PDF se exportaron otra vez con PowerPoint; solo cambian los textos de las diapositivas 5 y 12 y sus notas.
